@@ -12,11 +12,44 @@ number. It never asserts something it cannot derive.
 
 ## Status
 
-Design and architecture complete, implementation not started.
+The live app works, on all fifteen battlegrounds, as a single-player local app. Shared
+sessions over a relay are the one thing left and need a Cloudflare account.
+
+No battleground is marked `verified`, so nothing renders as exact except minion waves.
+That is deliberate: timings are hand-authored from published guides, and the app is not
+allowed to claim precision until a map has been timed by hand in a few custom games.
+
+## Running it
+
+```sh
+corepack enable
+pnpm install
+pnpm dev            # http://localhost:5173
+pnpm test           # 118 tests
+pnpm typecheck
+```
+
+Pick a battleground, tap **start match** as you spawn in, then tap **objective ended**
+during the regroup after each objective fight. That tap is the whole interaction. Without
+it the app is accurate for a few objective cycles and then honestly goes quiet about
+objectives, while waves, camps, talent tiers and the death timer carry on unaffected.
+
+## Layout
+
+```
+packages/engine   the whole product: projection, confidence, cues. Zero dependencies
+packages/maps     fifteen battlegrounds and the cue text, as data with a schema
+apps/web          Vite + React SPA. No timing logic
+```
+
+## Documents
 
 - [`docs/spec.md`](docs/spec.md) - the approved design
 - [`docs/architecture.md`](docs/architecture.md) - packages, projection, clock, relay, tests
+- [`docs/implementation-findings.md`](docs/implementation-findings.md) - what building it found wrong in the design
 - [`docs/features.md`](docs/features.md) - full feature catalogue, v1 and deferred
+- [`docs/game-constants.md`](docs/game-constants.md) - where the game-wide constants came from
+- [`docs/camp-data.md`](docs/camp-data.md) - mercenary camp timings per battleground
 - [`docs/research.md`](docs/research.md) - timing data, constraints, sources
 - [`docs/design/live-view-mockup.html`](docs/design/live-view-mockup.html) - visual direction
 - [`CLAUDE.md`](CLAUDE.md) - orientation for AI agents working in this repo

@@ -1,0 +1,124 @@
+# What implementation found in the design
+
+Date: 2026-09-05
+Status: all applied. `architecture.md` has been corrected at each point below; this file
+is the index, so the changes can be reviewed without diffing a 1,650 line document.
+
+Seventeen findings, from building steps 1 to 4. Grouped by how they were caught, because
+that is the useful signal: the type checker found the first group in seconds, and no
+amount of further reading would have found the last.
+
+## Found by the compiler
+
+**1. `TimedEvent` had no way to tell a spawn from a resolution.** The objectives generator
+is required to emit both as events, and both are `kind: 'objective'`. Nothing downstream
+could distinguish them, so the rail would count a resolution as the next objective. Added
+`role: 'spawn' | 'resolution'`.
+
+**2. `Cue.evaluate(ctx, t)` had no access to `perCue`.** `stall-camp` is given the rule
+"does not fire on consecutive cycles unless the chosen camp differs. That is what
+`CueState.perCue` remembers" — and the signature it is given cannot read it. `evaluate`
+now takes the cue's memory as a third argument and `CueMatch` may carry a new value back,
+which keeps cues pure functions while the state still travels with the caller.
+
+**3. `CueText` cannot live in `packages/maps` as a type.** `evaluateCues` is typed against
+it and the dependency runs `maps -> engine`. The interface is in `engine`; the data is in
+`maps`, which is what the obligation actually requires.
+
+**4. `AnchorControl.offer()` returns one offer, but the camp chip needs one per camp.**
+The design also makes the rail entries themselves the camp buttons, so a single-offer
+signature cannot express the input surface it specifies. `offer` returns an array; empty
+is the old `null`.
+
+**5. `ControlOffer.secondary.action: 'clear' | 'restore'` cannot express "camp is up".**
+Those are undo verbs and a `CampUp` anchor is a write. The action union now carries writes.
+
+## Found by reasoning the specification through
+
+**6. The clamp must not apply to the cycle immediately after an anchor.** The design says
+`view` clamps with `offsetMin`/`offsetMax` on the event, and `project` puts them on every
+event. But the clamp's premise is "the pending resolution has not been reported, so this
+cannot happen sooner than now", and for the cycle right after an anchor that resolution
+*was* reported. On Braxis with a 130 second offset and an anchor at 5:00, the next spawn
+is `Exact` at 7:10 — and the clamp would push it to `now + 130`, moving a green number
+forward with the clock. `project` now sets the offsets only on cycles whose predecessor
+was projected rather than observed, and `view` skips anything without them.
+
+**7. Rail slots 3 and 4 take camps satisfying `isClaimable`, which excludes `Stale` by
+construction** — while the input surface requires a `Stale` camp to keep a chip, "because
+decay must not remove the only control that could correct it". Both hold once the chip
+lives in the overflow camp list, which the design already provides for camps that do not
+win a rail slot. `LiveView` now carries that list.
+
+**8. The two camp-suppression bullets cannot both drive belief.** "Once `now` passes that
+`high` with no anchor, every camp becomes `Stale`" and "when suppression lifts, by anchor
+or by elapse, every suppressed camp's `availableSince` is reset to that moment" say
+opposite things about the elapse case: a reset `availableSince` reads as `Known(true)`.
+Resolved as the enumerated tests read it — expiry gives `Stale`, an anchored lift resets
+`availableSince` and the camp comes back fresh. In the case the app is designed around,
+where the player taps, they agree.
+
+**9. `campsSuppressedDuringObjective` on a map with no objective chain.** The design states
+the CI check without its reason. The reason is that the window is derived from the chain's
+spawn and resolution band; with no chain there is nothing to derive it from, so the flag
+would ask the app to assert a window it cannot compute. Recorded, because Tomb of the
+Spider Queen genuinely does remove its camps and still must not carry the flag.
+
+## Found by running it
+
+**10. The wave countdown froze at 0:00.** Generators emit blocks, and a block stays valid
+until it ends — that is what stops `validUntil` forcing a projection every thirty seconds.
+So the first entry in the block is routinely in the past. `view`, `buildContext` and
+`wave-reminder` all read it with `find`. They now take the earliest entry with
+`at >= now`, and `AdviceContext` carries `nextWave` so a cue cannot repeat the mistake.
+
+**11. `validUntil` had no candidate for the level estimate changing.** The death timer
+reads off the level curve, so it showed a stale death timer until some unrelated candidate
+happened to lapse. The next level-curve boundary and the next tier are candidates now.
+
+**12. During a live objective the app counted down to the next one.** The chain advances
+past a cycle as soon as `now` passes its `high`, which on a scalar-offset map is the
+instant it spawns. So through the whole phase — the moment the app exists for — the
+dominant countdown showed the cycle *after* the one being fought, and the re-anchor
+button, which the principles call a core interaction, sat unemphasised. `Timeline` now
+carries an `objectivePhase` belief derived from the same window the suppression rule uses.
+
+**13. That belief then contradicted the clamp on screen.** "No sooner than two minutes"
+above "it is happening now", about one cycle. Advancement and the clamp are deliberately
+allowed to disagree because they live in different places; a readout that shows both at
+once breaks that. The phase reads the clamp's basis: a clampable pending spawn is never
+live. Camp suppression stops claiming on an `Unknown` cycle for the same reason.
+
+**14. A suppressed camp had no way to say "away" rather than "no data".** It rendered as
+an em-dash in the exact-confidence colour, which reads as "available". `CampState` carries
+`suppressed`, and the chip reads AWAY in the unknown tone.
+
+## Numeric claims
+
+**15. Sky Temple does reach `Unknown`.** The design says it and Hanamura "never reach
+`Unknown` at all". With `stepSpread` pinned to the 8 second floor, `spread(n)` crosses the
+120 second band at n = 13, about thirty-five minutes after the last anchor. That is past
+the end of any real match, so the product claim holds and the absolute one does not. Both
+are asserted separately now.
+
+**16. Hanamura is not a `spreadSeconds: 0` map.** Its final barrage is a fixed fifteen
+seconds, but the phase is *pushing a payload*, which is exactly the human variable the
+fight spread exists to price. Sky Temple is the only map `minStepSpread` carries.
+
+The rest of the numeric claims held. The published worked example — bands of 50, 81, 110
+and 138 seconds for `stepSpread` 25 and `r` 0.3 — reproduces exactly, the clamp translates
+without narrowing at every point across a match on every map, and the per-map degradation
+sits on the documented curve.
+
+## Data
+
+**17. Camps are removed during the objective on seven maps, not two.** Alterac Pass,
+Battlefield of Eternity, Braxis Holdout, Dragon Shire, Garden of Terror, Tomb of the
+Spider Queen and Volskaya Foundry. On Dragon Shire, Garden of Terror and Volskaya the
+camps leave partway through the phase rather than at its start, so the window opens early
+and the app is briefly quiet about camps that are still there. That costs an opportunity;
+the other direction advises starting a camp that is not on the map.
+
+Camp spawn and respawn figures come from the wiki's per-map pages, which disagree with its
+general mercenary page on several maps. Collected in `docs/camp-data.md` with the gaps
+marked rather than filled.

@@ -9,19 +9,26 @@ below and in `docs/spec.md`, and nothing else.
 
 ## Current state
 
-Design and architecture are complete. No application code has been written yet.
+Steps 1 to 4 of the build order are done: `packages/engine`, `packages/maps` with all fifteen
+battlegrounds, and `apps/web`. `pnpm dev` runs it. 118 tests, TypeScript strict throughout.
+
+Step 5, the relay, is not started. It needs a Cloudflare account that does not exist yet, and
+nothing else depends on it: the app works fully as a single-player local app, which is what
+steps 1 to 4 were ordered to produce.
+
+Seventeen places where `docs/architecture.md` could not be built as written were found and
+corrected. `docs/implementation-findings.md` is the index; read it before trusting any part of
+the architecture document you have not checked against the code.
+
+No map is `verified`. Nothing has been hand-timed, so nothing renders `Exact` except waves. The
+exact display path, the exact spoken wording and any cue requiring an exact objective are all
+implemented but unreachable until one map is timed in a few custom games and promoted, which is
+a one-line data change.
 
 v1 is the live match only, from the moment the player spawns in. No draft support before it
 and no review after it. The post-game review is designed in `docs/spec.md` but deferred;
 read that design before making architectural choices, because the live prompts are chosen to
 match its grading dimensions.
-
-The next step is implementation, following the build order at the end of
-`docs/architecture.md`. Read the "Before step 1" note there first: a one-day throwaway spike
-tests the product hypothesis before any of this gets built.
-
-Then start with `packages/engine`: types, `project`, the objective phase chain, the `now` clamp
-and the provenance clamp, with tests throughout and no UI.
 
 ## Documents
 
@@ -32,6 +39,9 @@ and the provenance clamp, with tests throughout and no UI.
 | `docs/features.md` | Every feature discovered, marked v1 / deferred / rejected |
 | `docs/research.md` | Game timing data, technical constraints, and sources |
 | `docs/design/live-view-mockup.html` | Approved visual direction as a static reference. Open it in a browser |
+| `docs/implementation-findings.md` | What building it found wrong in the design, and what was done |
+| `docs/game-constants.md` | Where `firstWaveSeconds`, `levelCurve` and `deathTimerByLevel` came from |
+| `docs/camp-data.md` | Mercenary camp spawn and respawn per battleground, with the gaps marked |
 
 ## Principles that must not be violated
 

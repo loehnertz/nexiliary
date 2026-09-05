@@ -1,7 +1,12 @@
 # nexiliary architecture
 
 Date: 2026-09-05
-Status: designed, not implemented. Revised after review.
+Status: implemented through step 4 of the build order. Revised after review, then
+corrected against the implementation.
+
+Seventeen places where this document could not be built as written are corrected below
+and indexed in `implementation-findings.md`, which is the place to read the changes rather
+than diffing this file.
 
 This document turns `spec.md` into a buildable structure: package boundaries, the projection,
 how the clock drives rendering, the cue system, the input surface, the relay protocol, the
@@ -107,12 +112,17 @@ interface TimedEvent {
   id: string               // stable across re-projection
   kind: EventKind
   subjectId?: string       // camp id; objectives have one chain per map
+  role?: 'spawn' | 'resolution'   // objective events only
   label: string
   at: Seconds              // the median-accumulated estimate; see "at is the median"
   confidence: Confidence
   cycle?: number
 
-  // clamp inputs, computed once in `project` so `view` can clamp with arithmetic alone
+  // Clamp inputs, computed once in `project` so `view` can clamp with arithmetic alone.
+  // Present only on cycles whose preceding resolution was *projected*. The clamp's
+  // premise is "the pending resolution has not been reported"; for the cycle right after
+  // an anchor that resolution was reported, and clamping it would push an Exact spawn
+  // forward by a whole offset, moving a green number along with the clock.
   offsetMin?: Seconds
   offsetMax?: Seconds
   spread?: Seconds         // spread(n) for this cycle; not recoverable from `confidence`
@@ -121,6 +131,10 @@ interface TimedEvent {
 
 `EventKind` has no `boss` member. A boss is a camp with `type: 'boss'`, handled by the camp
 generator, which is why no boss generator exists.
+
+`role` exists because the objectives generator emits both a spawn and a resolution and both
+are `kind: 'objective'`. Without a discriminator the rail counts a resolution as the next
+objective.
 
 ### Anchor keys, and how cycle identity is represented
 
@@ -329,6 +343,16 @@ starting a camp that is not there.
 
 `MapDefinition` therefore carries `campsSuppressedDuringObjective: boolean`.
 
+Seven maps do this, not two: Alterac Pass, Battlefield of Eternity, Braxis Holdout, Dragon Shire,
+Garden of Terror, Tomb of the Spider Queen and Volskaya Foundry. On Dragon Shire, Garden of Terror
+and Volskaya the camps leave partway through the phase rather than at its start, so the window
+opens early and the app is briefly quiet about camps that are still there. That costs an
+opportunity; the other direction advises starting a camp that is not on the map.
+
+Tomb of the Spider Queen is the exception that proves the CI rule below: it genuinely removes its
+camps, and still must not carry the flag, because with `kind: 'none'` there is no chain to derive
+the window from.
+
 "A phase is believed active" has to be defined, and defined so that it expires. The obvious
 reading, active from spawn until an `ObjectiveEnded` anchor arrives, means one missed tap pins
 every camp on the map to `Known(false)` for the rest of the match: a wrong claim produced by
@@ -345,7 +369,7 @@ quantity that exists rather than gesture at one.
 - From the spawn's `low` until the resolution band's `high`, every camp is `Known(false)`.
 - Once `now` passes that `high` with no `ObjectiveEnded` anchor, every camp becomes `Stale` rather
   than staying `Known(false)`.
-- When suppression lifts, by anchor or by elapse, every suppressed camp's `availableSince` is
+- When suppression lifts **by anchor**, every suppressed camp's `availableSince` is
   **reset to that moment**. Camps return to the battlefield as a fresh spawn, so carrying the
   pre-suppression value forward would have them emerge already past `staleSeconds` — a phase lasts
   well over two minutes against a 120 second threshold — killing camp coaching on Alterac Pass and
@@ -355,6 +379,19 @@ The window starts at **spawn**, not at the resolution band. Camps vanish when th
 active, so on Braxis, where beacons spawn at 1:30 and resolution is estimated around 2:20 to 2:40, a
 window opening at the band's `low` would advise starting a camp through the fifty seconds when the
 objective is live and the camps are gone.
+
+Those two bullets cannot both drive belief in the elapse case: a reset `availableSince` reads as
+`Known(true)`, which is the opposite of `Stale`. Expiry gives `Stale` and sets `availableSince` to
+the elapse moment so the value exists for the next cycle; an anchored lift resets it and the camps
+come back fresh. In the case the app is designed around, where the player taps, the two agree, and
+this is how the enumerated tests read it.
+
+Suppression also stops claiming once the cycle's confidence is `Unknown`. Removing every camp from
+the battlefield on the strength of a window the countdown itself has given up on is a confident
+negative built on nothing.
+
+`CampState.suppressed` distinguishes "removed by the phase" from "no data", which the view needs:
+rendered as an em-dash in the exact-confidence colour, a suppressed camp reads as available.
 
 That degrades to "I do not know" instead of a false negative, keeps the correcting chip reachable,
 and reuses machinery that already exists. With `isAvailable` in place, `stall-camp` skipping
@@ -370,7 +407,13 @@ interface Timeline {
   level: { id: string; estimate: number; confidence: Confidence }
   validUntil: Seconds
   provenance: Provenance
+  objectiveTimingLost: boolean
+  objectivePhase: ObjectivePhase
 }
+
+type ObjectivePhase =
+  | { kind: 'idle' }
+  | { kind: 'active'; cycle: number; since: Seconds; until: Seconds; confidence: Confidence }
 
 function project(map: MapDefinition, anchors: AnchorSet, now: Seconds): Timeline
 ```
@@ -508,6 +551,24 @@ When every projected cycle is `Unknown`, the UI shows that deliberately rather t
 dominant countdown reads "objective timing lost" with the anchor button offered prominently. A
 blank countdown reads as a bug.
 
+##### While a phase is running
+
+Advancement moves past a cycle the instant `now` exceeds its `high`, which on a scalar-offset
+map is the instant it spawns. So without a separate readout the dominant countdown shows the
+cycle *after* the one being fought for the whole phase — the moment the app exists for — and the
+re-anchor button, which principle 0 calls a core interaction, is not emphasised when the tap is
+wanted.
+
+`Timeline.objectivePhase` answers "is a phase running right now" from the same window the camp
+suppression rule uses: the spawn's `low` to the resolution band's `high`. It is a belief about the
+present, carries the cycle's `Confidence`, and goes `idle` when that is `Unknown`.
+
+**It must read the clamp's basis, not the unclamped values.** A clampable pending spawn is one
+`view` pushes to `now + offsetMin` or later, so reading it unclamped puts "no sooner than two
+minutes" and "it is happening now" on screen together about one cycle. Only an *unclampable*
+pending cycle, or an elapsed one, may be called live. Advancement and the clamp are allowed to
+disagree because they live in different places; a readout that shows both at once breaks that.
+
 #### How the band grows
 
 v1 hardcodes the inputs. Measurement is a refinement path, not a prerequisite.
@@ -526,8 +587,8 @@ judgement. They do not need to be precise, because they only govern how fast the
 unsure, and admitting uncertainty slightly early is the safe direction to be wrong.
 
 `spreadSeconds: 0` is legal and meaningful. Some phases end on a deterministic timer rather than
-on a fight: Sky Temple's temples fire for a fixed 40 seconds, Hanamura's payload barrage lasts a
-fixed 15. Forcing those through a spread would manufacture an amber "due soon" for a number the
+on a fight: Sky Temple's temples fire for a fixed 40 seconds. Hanamura's payload *barrage* is a
+fixed 15, but the phase is pushing the payload, which is not, so that map carries a real spread. Forcing those through a spread would manufacture an amber "due soon" for a number the
 app actually knows. A zero-width `Estimated` collapses to `Exact`, subject to provenance.
 
 The midpoint accumulates linearly, because expected values add. The spread does not.
@@ -550,10 +611,10 @@ The band is `at ± spread(n)`. The present clamp is a separate step applied in `
 "Advancing the chain as the clock moves". Two formulas for one quantity in one document is how the
 first version of the clamp bug survived, so this block defines the spread and nothing else.
 
-`minStepSpread` (start at 8 seconds) is a floor, and it exists because two maps would otherwise
-never widen at all. Sky Temple and Hanamura have deterministic phase durations (`spreadSeconds: 0`)
-and scalar offsets, so `stepSpread` would be zero and the chain would report `Exact` at cycle
-twenty with no taps. Those cycles genuinely are close to deterministic, but "the phase resolved
+`minStepSpread` (start at 8 seconds) is a floor, and it exists because one map would otherwise
+never widen at all. Sky Temple has a deterministic phase duration (`spreadSeconds: 0`) and a scalar
+offset, so `stepSpread` would be zero and the chain would report `Exact` at cycle twenty with no
+taps. Those cycles genuinely are close to deterministic, but "the phase resolved
 exactly when the model says" is itself an assumption, and the floor prices it.
 
 Two things about the outer term are worth understanding rather than copying.
@@ -603,10 +664,15 @@ quiet objective slot, while waves, camps, tiers and the death timer continue una
 Both halves are worth stating plainly to the player during onboarding, and the pre-step-1 spike
 should test whether people actually tap, not only whether they like the voice.
 
-Two maps are the other extreme. Sky Temple and Hanamura have deterministic phase durations and
-scalar offsets, so with only `minStepSpread` driving the widening they stay `Estimated` for an
-entire match rather than reaching `Unknown`. That is defensible, since those cycles genuinely are
-near-deterministic, but it is why the figure above is a range rather than a single number.
+One map is the other extreme. Sky Temple has a deterministic phase duration and a scalar offset,
+so with only `minStepSpread` driving the widening it stays `Estimated` for an entire match. It does
+reach `Unknown` eventually — at cycle 13, roughly thirty-five minutes after the last anchor — which
+is past the end of any real match, so "never" is true of the product and false of the model. That
+is why the figure above is a range rather than a single number.
+
+Hanamura was previously named alongside it and is not a second case. Its final barrage is a fixed
+fifteen seconds, but the phase is *pushing a payload*, which is exactly the human variable the
+fight spread exists to price, so it carries a real `spreadSeconds`.
 
 Maps with a fast objective cadence and wide offset ranges degrade soonest. Cursed Hollow is the
 worst case in the pool, on both counts at once: past `possibleFromCycle: 3` its union offset is
@@ -657,6 +723,7 @@ interface CampState {
   standing: Belief            // is the camp there right now
   nextUp?: TimedEvent         // respawn, when known
   availableSince?: Seconds
+  suppressed: boolean         // removed by an active phase, rather than taken
 }
 ```
 
@@ -711,7 +778,7 @@ in as a parameter, precisely because it is authored content; these are not.
 
 ```ts
 // packages/engine/src/game-constants.ts
-export const firstWaveSeconds: Seconds        // waves are not at 0:00
+export const firstWaveSeconds: Seconds        // 0; waves are on the :00 and :30 marks
 export const waveIntervalSeconds = 30
 export const levelCurve: { level: number; typicalSeconds: Seconds; spreadSeconds: Seconds }[]
 export const deathTimerByLevel: { level: number; seconds: Seconds }[]
@@ -776,9 +843,10 @@ Waves, tiers and the death timer are exempt at every provenance level.
 
 That exemption is about map files: a wrong map cannot make a game-wide rule wrong. It says nothing
 about the constants themselves, which are currently unmeasured. `firstWaveSeconds`, `levelCurve` and
-`deathTimerByLevel` have no values in any document, and whatever they contain renders unqualified.
-Hand-timing them is a natural output of the pre-step-1 spike, and the exemption is conditional on
-that having happened. They derive from game-wide rules rather
+`deathTimerByLevel` are sourced in `game-constants.md`, and whatever they contain renders
+unqualified. The death timer table is published and exact; the wave cadence is published; the level
+curve is derived from the published experience tables under a stated income model, and is the one
+worth hand-timing. They derive from game-wide rules rather
 than per-map constants, so a wrong map file cannot make them wrong. Read literally, an
 unexempted clamp would downgrade waves, which is nonsense.
 
@@ -799,7 +867,11 @@ advances; only remaining time does, and that is subtraction. But a projection do
 
 Candidates:
 
-- the end of the wave block already emitted,
+- the end of the wave block already emitted — individual wave boundaries are deliberately not
+  candidates, so a consumer must select the next entry with `at >= now` *within* the block rather
+  than reading the first one, which is routinely in the past,
+- the next entry on the level curve, since the death timer reads off it,
+- the `at` of the earliest emitted tier,
 - the `high` of the earliest `Estimated` objective cycle,
 - the `at` of the earliest `Exact` objective cycle, so a spawn forces a recompute,
 - for each camp, `availableSince + decaySeconds` and `availableSince + staleSeconds`,
@@ -852,7 +924,9 @@ the fork it exists to prevent.
 Conditions are code, because they genuinely are code. Everything tunable is not.
 
 ```ts
-// packages/maps/src/cue-text.ts  (data, no logic)
+// The interface is in `engine`, because `evaluateCues` is typed against it and the
+// dependency runs maps -> engine. The *data* is packages/maps/src/cue-text.ts, which is
+// what the obligation requires: wording and priority are edited without an engine rebuild.
 interface CueText {
   id: string
   display: string
@@ -892,7 +966,7 @@ interface Cue {
   id: string                              // indexes into CueText
   appliesTo?: string[]
   thresholds: readonly string[]           // threshold keys this cue reads
-  evaluate(ctx: AdviceContext, t: Record<string, number>): CueMatch | null
+  evaluate(ctx: AdviceContext, t: Record<string, number>, memory: unknown): CueMatch | null
 }
 
 interface CueMatch {
@@ -901,7 +975,12 @@ interface CueMatch {
   timeFrom?: string                       // which basedOn entry supplies {time}; defaults to [0]
   score?: number
   subject?: string
+  memory?: unknown         // written to CueState.perCue[cue.id] when the match fires
 }
+
+`memory` in and out is what lets `stall-camp` implement the "not on consecutive cycles" rule below
+while staying a pure function. The two-argument `evaluate` this document previously gave it had no
+way to reach `CueState.perCue`.
 ```
 
 `timeFrom` exists because `basedOn` is a list and multi-fact cues are the motivating case. Without
@@ -1025,6 +1104,7 @@ interface AdviceContext {
   map: MapDefinition
   timeline: Timeline
   nextObjective: TimedEvent | null
+  nextWave: TimedEvent | null    // the next one, not the first emitted; see `validUntil`
   camps: CampState[]
   tier: { current: number; next: TimedEvent | null }
   deathTimer: Timeline['deathTimer']
@@ -1122,6 +1202,11 @@ CI validates more than shape:
 - Every map whose `ObjectiveModel` is `kind: 'timed'` has a `RespawnRule` of a kind the objective
   generator implements, and every named outcome in an `afterResolution` rule has a min and a max.
 - `campsSuppressedDuringObjective` is not set on a map whose `ObjectiveModel` is `kind: 'none'`.
+  The reason is not bookkeeping: the suppression window is derived from the chain's spawn and
+  resolution band, so with no chain the flag asks the app to assert a window it cannot compute.
+- `scalePerMinuteSeconds` is accompanied by `minOffsetSeconds`, or the offset goes negative late.
+- at least one outcome in an `afterResolution` rule is reachable at cycle 1.
+- a `boss` camp's `staleSeconds` is at least 900, or its timer dies in the last third of a match.
 - `provenance` is present, and `verified` requires a corpus reference or a hand-timing note.
 - Every `CueText` id matches a registered cue, and every key in a cue's declared `thresholds`
   exists in its `CueText`. The declaration is what makes this checkable; reading thresholds by
@@ -1280,9 +1365,17 @@ because decay must not remove the only control that could correct it. An earlier
 tap, in exactly the solo case the documentation identifies as most likely.
 
 Rail slot allocation is fixed rather than emergent, because the rail serves two purposes over
-four slots. Slot 1 is always the next objective, slot 2 the next wave, slots 3 and 4 the two
+four slots. Slot 1 is the objective column, slot 2 the next wave, slots 3 and 4 the two
 highest-`pressureValue` camps satisfying `isClaimable`, falling back to the next tier when fewer
-qualify. Without a stated rule, a map with four camps up shows no upcoming events at
+qualify.
+
+Slot 1 carries the cycle *after* the dominant countdown's, since printing the same number twice is
+not information, and "what is after this" is the rail's stated purpose. While a phase is live the
+dominant slot shows that instead, so slot 1 carries the pending spawn.
+
+Note that `isClaimable` excludes `Stale` by construction, so a `Stale` camp can never win slot 3 or
+4. Its chip lives in the overflow camp list below, which is what reconciles this rule with the
+requirement that decay never removes the only control that could correct it. Without a stated rule, a map with four camps up shows no upcoming events at
 all.
 
 Camps that do not win a rail slot are reachable through an **overflow camp list**, opened from the
@@ -1342,18 +1435,32 @@ interface AnchorControl {
   id: string
   placement: 'primary' | 'rail' | 'header' | 'overflow'
   appliesTo?: string[]
-  offer(ctx: AdviceContext): ControlOffer | null
+  offer(ctx: AdviceContext): ControlOffer[]
 }
 
 interface ControlOffer {
   label: string
   subject?: string                       // camp id, cycle index, whatever the anchor needs
   emphasis?: 'normal' | 'urgent'
-  secondary?: { label: string; action: 'clear' | 'restore' }   // the "camp is up" affordance
+  action: ControlAction
+  secondary?: { label: string; action: ControlAction }         // the "camp is up" affordance
 }
+
+type ControlAction =
+  | { kind: 'write'; anchorType: string }
+  | { kind: 'clear' } | { kind: 'restore' }
+  | { kind: 'endMatch' } | { kind: 'adjustClock' } | { kind: 'openOverflow' }
 ```
 
-`offer()` returning `null` mirrors a cue returning `null`. The registry owns what is offered;
+`ControlAction` is a union rather than `'clear' | 'restore'` because "camp is up" writes a `CampUp`
+anchor, and those two are undo verbs. `offer()` returns an array rather than one offer or `null`,
+because the camp chip makes one offer per camp and the rail entries themselves are the camp
+buttons; an empty array is the old `null`. The objective control returns nothing on a map whose
+`ObjectiveModel` is `kind: 'none'`, and is `urgent` while `objectivePhase` is active — reading the
+next spawn's band instead gets this backwards, since the chain has already advanced past a live
+cycle.
+
+`offer()` returning nothing mirrors a cue returning `null`. The registry owns what is offered;
 the view owns how a placement looks. A control in an existing placement needs no component
 change; a new placement is a view change, which is honest, because layout is not something a
 registry should own.
@@ -1619,6 +1726,10 @@ revisiting before proceeding.
 
 ## Build order
 
+Steps 1 to 4 are done and produce a working local app. Step 5 is not started: it needs a
+Cloudflare account. The pre-step-1 spike was skipped deliberately — the product bet gets tested by
+playing with the real thing.
+
 1. `engine` types, `project`, the objective phase chain with every `RespawnRule` variant, chain
    advancement and the two-sided present clamp, the band model, the provenance clamp, and the
    `isAvailable` / `isClaimable` predicates. Plus `game-constants.ts` and `tuning.ts`: the wave cadence, the level
@@ -1641,7 +1752,7 @@ No replay parsing in v1. Timings are hand-authored, which removes a parser from 
 path of a countdown. `packages/replay` is described above so that adding it later replaces
 values rather than reshaping interfaces.
 
-### Before step 1
+### Before step 1 (skipped)
 
 Spend a day on a throwaway spike: one battleground, timings hand-stopwatched in a few custom
 games, hardcoded, a countdown and the Web Speech API, no engine and no packages. Play four
