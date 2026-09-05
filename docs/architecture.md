@@ -540,8 +540,8 @@ whole of what "keeping the door open" requires here.
 
 #### Camps
 
-Camps are independent of each other and never chain, so no camp band widens the way an
-objective track does.
+Camps are independent of each other and never chain, so no camp band widens the way the
+objective chain does.
 
 Camps have the opposite failure mode. A missing objective anchor produces a widened band, which
 is honest. A missing camp anchor would produce a false positive: claiming a camp is available
