@@ -318,11 +318,19 @@ every camp on the map to `Known(false)` for the rest of the match: a wrong claim
 forgetting, which the founding principle forbids, and one with no correction affordance because
 `Known(false)` renders as a respawn countdown rather than a tappable chip.
 
-So suppression is bounded by the phase's own estimated resolution and decays like everything else:
+So suppression runs from the objective's spawn to the far end of its estimated resolution, and
+then decays like everything else:
 
-- While `now` is inside the phase's estimated resolution band, every camp is `Known(false)`.
-- Once `now` passes that band's `high` with no `ObjectiveEnded` anchor, every camp becomes
-  `Stale` rather than staying `Known(false)`.
+- From the phase's spawn until the `high` of its estimated resolution, every camp is
+  `Known(false)`.
+- Once `now` passes that `high` with no `ObjectiveEnded` anchor, every camp becomes `Stale`
+  rather than staying `Known(false)`.
+- An `ObjectiveEnded` anchor ends suppression immediately and restarts each camp's
+  `availableSince` from that moment.
+
+The window starts at **spawn**, not at the start of the resolution band. Camps vanish when the
+objective becomes active, so a window beginning at the resolution band's `low` would show camps as
+available through the first and most contested part of every phase.
 
 That degrades to "I do not know" instead of a false negative, keeps the correcting chip reachable,
 and reuses machinery that already exists. With `isAvailable` in place, `stall-camp` skipping
@@ -588,9 +596,18 @@ contested siege camp falls in twenty seconds, so one pair of constants would mak
 availability `Stale` in essentially every match and quietly kill boss timers. `decaySeconds`
 and `staleSeconds` live on `CampDefinition` and are asserted by the `maps` CI check.
 
-v1 hardcodes these per camp type from judgement: a siege camp in a contested lane goes stale
-fast, a boss can stand for a whole match. Start around 45 and 120 seconds for regular camps and
-far longer for bosses, then adjust by feel after a few games.
+v1 hardcodes these per camp type from judgement. Starting values: **45 and 120 seconds for
+regular camps**, and **300 and 900 seconds for bosses**.
+
+The boss numbers carry a hard constraint rather than a preference. `staleSeconds` for a boss must
+exceed the typical remaining match length after it first spawns, or boss availability goes `Stale`
+in the last third of every game, which is exactly when bosses are contested. A boss spawning
+around 5:00 in a twenty-minute match needs at least 900. Setting it by the same intuition as a
+siege camp gives 600 and silently kills the boss timer that `features.md` lists as a v1 feature.
+
+The cost of a long threshold is a boss believed standing that was quietly taken. That is the right
+trade: a boss being up is the default state, taking one is a large and visible event, and the
+anchor resets belief when it happens.
 
 If they are ever measured, the target is the point at which belief becomes worthless, which is a
 quantile of the survival function rather than of time-to-first-capture: the times by which
@@ -1327,7 +1344,10 @@ The cases that matter:
   same anchor set agree on the index.
 - `possibleFromCycle` at both boundaries, since an off-by-one produces false precision.
 - `isAvailable` rejecting `Known(false)`, which an "at least Likely" ordering would admit.
-- Suppression expiring to `Stale` rather than pinning camps to `Known(false)` for the match.
+- Suppression running from objective spawn (not from the resolution band's start) to the
+  resolution `high`, then expiring to `Stale` rather than pinning camps to `Known(false)`.
+- A boss not reaching `Stale` within a twenty-minute match, since that would kill the boss timer
+  precisely when bosses are contested.
 - The death timer carrying the level estimate's confidence rather than rendering `Exact`.
 - `validUntil` always strictly greater than `now`, including once every camp is `Stale`.
 - `spreadSeconds: 0` collapsing a zero-width `Estimated` to `Exact`.
