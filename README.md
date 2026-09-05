@@ -31,10 +31,17 @@ pnpm typecheck
 ```
 
 To use it in a real match before it is deployed, run `dev:lan` and open the printed
-network address on the phone. One caveat: Screen Wake Lock needs a secure context, so a
-plain `http://` address falls back to a looping muted video to keep the screen on.
-Settings reports which one is actually holding the screen, because a phone that sleeps
-mid-match looks like the app crashing.
+**https** address on the phone, accepting the self-signed certificate once.
+
+The `https` is not optional. Screen Wake Lock requires a secure context, so on a plain
+`http://192.168.x.x` address the API is not merely restricted, it is absent — the phone's
+screen sleeps mid-match and takes the speech with it. There is no working fallback on
+Android: Chrome pauses background video-only media outright. If the certificate warning is
+a nuisance, the alternative is to allow the origin under
+`chrome://flags/#unsafely-treat-insecure-origin-as-secure`, which also gets you the service
+worker that a bypassed certificate does not.
+
+Settings reports what is actually holding the screen, and says so plainly when nothing is.
 
 Pick a battleground, tap **start match** as you spawn in, then tap **objective ended**
 during the regroup after each objective fight. That tap is the whole interaction. Without

@@ -20,7 +20,11 @@ function useWakeLockStatus(): WakeLockStatus {
 const wakeLockCopy: Record<WakeLockStatus, string> = {
   off: 'Not held. It is requested when a match starts.',
   locked: 'Held. The screen will stay on for the match.',
-  video: 'Held by the fallback. Screen Wake Lock needs HTTPS, so this is what a plain http:// address gets.',
+  video: 'Held by the video fallback rather than by the real API.',
+  insecure:
+    'Not held. Screen Wake Lock needs a secure context, and this page was opened over plain http, ' +
+    'so the API is not there at all — the screen will sleep mid-match. Open the https:// address ' +
+    'instead, or allow this origin under chrome://flags/#unsafely-treat-insecure-origin-as-secure.',
   unavailable: 'Not held, and the fallback was refused. The screen will sleep, and speech stops with it.',
 }
 

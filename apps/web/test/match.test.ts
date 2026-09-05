@@ -9,9 +9,12 @@ import {
   matchStartWallClock,
 } from '../src/match/reducer.js'
 import type { MatchState } from '../src/match/reducer.js'
+import type { StoredMatch } from '../src/services/storage.js'
 import {
   clearMatch,
   fromAnchorList,
+  autoResumeWindowMillis,
+  isFreshEnoughToAutoResume,
   loadResumableMatch,
   resumeWindowMillis,
   saveMatch,
@@ -160,6 +163,59 @@ describe('persistence with no relay present', () => {
     expect(matchStartWallClock(resumed)).toBe(START)
     expect(gameTimeSeconds(resumed, START + 400_000)).toBe(400)
     expect(resumed.anchors.get('ObjectiveEnded:1')!.gameTimeSeconds).toBe(300)
+  })
+
+  it('auto-resumes a match the browser discarded moments ago', () => {
+    // Android Chrome discards a backgrounded tab freely, and on a locked phone that is
+    // the normal case. Dropping to the setup screen there loses the match every time the
+    // screen comes back on, which is what made the first real playtest unusable.
+    const stored: StoredMatch = {
+      matchId: 'm1',
+      mapId: 'braxis-holdout',
+      anchors: [],
+      userAdjustSeconds: 0,
+      savedAtWallClock: START,
+    }
+    expect(isFreshEnoughToAutoResume(stored, START + 20_000)).toBe(true)
+    expect(isFreshEnoughToAutoResume(stored, START + autoResumeWindowMillis - 1)).toBe(true)
+  })
+
+  it('asks rather than assuming once the app has been shut a while', () => {
+    // Far enough out and it is the player returning, not a discard, so being thrown into
+    // a stale match would be worse than a banner.
+    const stored: StoredMatch = {
+      matchId: 'm1',
+      mapId: 'braxis-holdout',
+      anchors: [],
+      userAdjustSeconds: 0,
+      savedAtWallClock: START,
+    }
+    saveMatch(stored)
+    expect(isFreshEnoughToAutoResume(stored, START + autoResumeWindowMillis + 1)).toBe(false)
+    // Still offered, just not assumed.
+    expect(loadResumableMatch(START + autoResumeWindowMillis + 1)).not.toBeNull()
+  })
+
+  it('keeps the stored save current, so a discard lands inside the window', () => {
+    // Saving only on anchor changes was not enough: a match can run for minutes without a
+    // tap, and that is exactly when a phone kills the tab.
+    saveMatch({
+      matchId: 'm1',
+      mapId: 'braxis-holdout',
+      anchors: [],
+      userAdjustSeconds: 0,
+      savedAtWallClock: START,
+    })
+    expect(isFreshEnoughToAutoResume(loadResumableMatch(START + 10 * 60_000)!, START + 10 * 60_000)).toBe(false)
+    // A heartbeat re-save moves it back inside.
+    saveMatch({
+      matchId: 'm1',
+      mapId: 'braxis-holdout',
+      anchors: [],
+      userAdjustSeconds: 0,
+      savedAtWallClock: START + 10 * 60_000,
+    })
+    expect(isFreshEnoughToAutoResume(loadResumableMatch(START + 10 * 60_000)!, START + 10 * 60_000)).toBe(true)
   })
 
   it('does not offer a match older than the resume window', () => {

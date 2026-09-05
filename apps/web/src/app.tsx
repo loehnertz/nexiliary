@@ -26,6 +26,7 @@ import {
   clearMatch,
   fromAnchorList,
   loadRecentMaps,
+  isFreshEnoughToAutoResume,
   loadResumableMatch,
   loadSettings,
   noteMapPlayed,
@@ -65,18 +66,18 @@ export function App() {
   const timeline = useTimeline(map, state.anchors, now)
 
   useEffect(() => {
-    initSpeech()
-    setResumable(loadResumableMatch(Date.now()))
-    return installWakeLockRecovery()
-  }, [])
-
-  useEffect(() => {
     saveSettings(settings)
   }, [settings])
 
-  // Persisting the live match is a few lines and contradicts nothing. iOS routinely
-  // evicts a backgrounded PWA on a phone that sits beside a keyboard for twenty minutes.
-  useEffect(() => {
+  // Persisting the live match is a few lines and contradicts nothing. Phones evict a
+  // backgrounded tab freely, and a locked screen is the normal case for this app.
+  //
+  // Saving only on anchor changes was not enough: a match can run for minutes without a
+  // tap, and that is exactly when it gets killed, so the stored save went stale and the
+  // match fell outside the auto-resume window. It is written on every change, on a slow
+  // heartbeat, and — the one that matters — the moment the page is hidden, which is the
+  // last code that runs before a discard.
+  const persist = useCallback(() => {
     if (!live) return
     saveMatch({
       matchId: state.matchId,
@@ -86,6 +87,22 @@ export function App() {
       savedAtWallClock: Date.now(),
     })
   }, [live, state.matchId, state.mapId, state.anchors, state.userAdjustSeconds])
+
+  useEffect(() => {
+    persist()
+    if (!live) return
+    const heartbeat = window.setInterval(persist, 15_000)
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') persist()
+    }
+    document.addEventListener('visibilitychange', onHide)
+    window.addEventListener('pagehide', persist)
+    return () => {
+      window.clearInterval(heartbeat)
+      document.removeEventListener('visibilitychange', onHide)
+      window.removeEventListener('pagehide', persist)
+    }
+  }, [live, persist])
 
   const writeAnchorAt = useCallback(
     (type: string, subject: string, key?: string) => {
@@ -155,6 +172,20 @@ export function App() {
       anchors: fromAnchorList(stored.anchors),
       userAdjustSeconds: stored.userAdjustSeconds,
     })
+  }, [])
+
+  useEffect(() => {
+    initSpeech()
+    const stored = loadResumableMatch(Date.now())
+    if (stored !== null && isFreshEnoughToAutoResume(stored, Date.now())) {
+      // The browser discarded the tab, it is not the player starting a session. Going to
+      // the setup screen here loses the match every time the phone's screen comes back.
+      resumeMatch(stored)
+    } else {
+      setResumable(stored)
+    }
+    return installWakeLockRecovery()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const endMatch = useCallback(() => {

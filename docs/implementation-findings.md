@@ -217,6 +217,32 @@ fired is the point — so a second call within the same second finds every key a
 and returns nothing, blanking a prompt mid-display. StrictMode does that on mount, and in
 production so does changing a setting while a prompt is up.
 
+## Found by a phone, in a real match
+
+**28. The screen slept, and there was never anything preventing it.** Screen Wake Lock
+requires a secure context, so on the `http://192.168.x.x` address a phone reaches the dev
+server on, the API is not restricted — it is absent. The looping-video fallback cannot
+cover that: Chrome pauses video-only media in the background outright, and a 1px invisible
+video does not hold the screen while visible either. The dev server can now serve TLS, and
+an insecure origin is reported as exactly that rather than as a hold the app cannot verify.
+
+**29. A discarded tab lost the match to the setup screen.** Android Chrome discards a
+backgrounded tab freely, and on a locked phone that is the ordinary case rather than an
+edge one. A cold start showed setup with a resume banner, so every screen-off cost a
+detour. A save younger than three minutes now resumes automatically, because at that age a
+cold start is the browser having killed the tab rather than the player returning. A match
+is only stored while live — `MATCH_ENDED` clears it — so there is no stale match to be
+thrown back into.
+
+**30. The stored save went stale exactly when it mattered.** It was written only when the
+anchor set changed, and a match can run for minutes without a tap — which is precisely when
+a phone kills the tab. It is now written on a heartbeat and, the one that counts, on
+`visibilitychange` to hidden, which is the last code that runs before a discard.
+
+**31. The wake lock status claimed a hold it had lost.** The browser releases the lock
+whenever the page stops being visible, and nothing updated the status, so the settings
+panel reported the screen was held while the phone was asleep.
+
 ## Data
 
 **17. Camps are removed during the objective on seven maps, not two.** Alterac Pass,

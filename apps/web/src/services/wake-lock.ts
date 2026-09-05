@@ -1,10 +1,14 @@
 /**
  * Requested on MATCH_STARTED, released on MATCH_ENDED, re-requested on
- * `visibilitychange`, because the lock is dropped whenever the page is hidden.
+ * `visibilitychange`, because the browser drops the lock whenever the page is hidden.
  *
- * Falls back to a looping muted video where Wake Lock is unavailable, which is the
- * only thing that keeps older iOS awake. Wake Lock needs a secure context, which is one
- * reason the app is served over HTTPS.
+ * **A secure context is the only thing that actually works.** The looping muted video is
+ * kept because it is the classic trick and may still help older iOS, but it is not a
+ * fallback on Android: Chrome pauses video-only media in the background outright —
+ * "video-only background media was paused to save power" — and a 1px invisible video does
+ * not hold the screen on while visible either. So on an insecure origin the status is
+ * reported as `insecure` whether or not the video plays, rather than claiming a hold the
+ * app cannot verify.
  */
 
 interface WakeLockSentinelLike {
@@ -16,7 +20,7 @@ interface WakeLockSentinelLike {
  * What is actually keeping the screen awake. Surfaced because the failure is silent
  * otherwise: the player's screen sleeps mid-match and nothing says why.
  */
-export type WakeLockStatus = 'off' | 'locked' | 'video' | 'unavailable'
+export type WakeLockStatus = 'off' | 'locked' | 'video' | 'insecure' | 'unavailable'
 
 let sentinel: WakeLockSentinelLike | null = null
 let video: HTMLVideoElement | null = null
@@ -70,8 +74,8 @@ function startFallbackVideo(): void {
     // will sleep.
     void el
       .play()
-      .then(() => setStatus('video'))
-      .catch(() => setStatus('unavailable'))
+      .then(() => setStatus(window.isSecureContext ? 'video' : 'insecure'))
+      .catch(() => setStatus(window.isSecureContext ? 'unavailable' : 'insecure'))
   } catch {
     video = null
     setStatus('unavailable')
@@ -91,16 +95,23 @@ function stopFallbackVideo(): void {
 
 async function acquire(): Promise<void> {
   const api = lockApi()
-  // Wake Lock needs a secure context, so on a plain-HTTP LAN address it is simply
-  // absent and the video is the only path.
   if (api === null) {
+    // Wake Lock needs a secure context, so on a plain-HTTP LAN address it is simply
+    // absent. Naming that separately matters: it is the single reason a phone's screen
+    // sleeps mid-match, and it is a property of the address rather than of the phone,
+    // so "unavailable" would send someone looking in the wrong place.
     startFallbackVideo()
+    if (!window.isSecureContext) setStatus('insecure')
     return
   }
   try {
     sentinel = await api.request('screen')
     sentinel.addEventListener('release', () => {
+      // The browser releases the lock whenever the page stops being visible, which on a
+      // phone is every time the screen goes off. Leaving the status at 'locked' would
+      // have the settings panel claiming the screen is held while it is not.
       sentinel = null
+      if (wanted) setStatus('off')
     })
     setStatus('locked')
   } catch {

@@ -83,8 +83,24 @@ export interface StoredMatch {
   readonly savedAtWallClock: number
 }
 
-/** A stored match older than this is not offered for resume. */
+/** A stored match older than this is not offered for resume at all. */
 export const resumeWindowMillis = 45 * 60 * 1000
+
+/**
+ * A save younger than this means the app was open moments ago, so a cold start is almost
+ * certainly the browser having discarded the tab rather than the player coming back to
+ * it. Those resume automatically.
+ *
+ * Android Chrome discards a backgrounded tab freely, and on a locked phone that is the
+ * normal case rather than an edge one: the first real playtest lost the match to the
+ * setup screen every time the screen came back on. A match is only stored while it is
+ * live — `MATCH_ENDED` clears it — so there is no stale match to be thrown back into.
+ */
+export const autoResumeWindowMillis = 3 * 60 * 1000
+
+export function isFreshEnoughToAutoResume(stored: StoredMatch, nowMillis: number): boolean {
+  return nowMillis - stored.savedAtWallClock <= autoResumeWindowMillis
+}
 
 export function saveMatch(match: StoredMatch): void {
   write(KEYS.match, match)
