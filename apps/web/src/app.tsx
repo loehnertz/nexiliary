@@ -182,7 +182,7 @@ export function App() {
     state.lastWrite !== null && Date.now() - state.lastWrite.atWallClock < undoWindowMillis
 
   return (
-    <div className="mx-auto flex w-full max-w-[420px] flex-col gap-3 p-3 sm:max-w-[560px]">
+    <div className="mx-auto flex w-full max-w-[420px] flex-col gap-3 p-3 sm:max-w-[620px]">
       <Frame>
         <Header
           mapName={liveView.mapName}
@@ -192,33 +192,43 @@ export function App() {
         />
         <Rule />
         <main className="px-4 pt-3 pb-4">
-          <ObjectivePanel slot={liveView.objective} />
-          {settings.showRail && <Rail rail={liveView.rail} onCampTaken={onCampTaken} />}
-          <CueRunner
-            map={map}
-            timeline={timeline}
-            now={now}
-            matchId={state.matchId}
-            settings={settings}
-          />
-          {primary !== undefined && (
-            <button
-              type="button"
-              className={`btn-slant mt-4 min-h-14 w-full py-4 text-sm ${primary.emphasis === 'urgent' ? 'btn-urgent' : 'btn-primary'}`}
-              onClick={onObjectiveEnded}
-            >
-              {primary.label}
-            </button>
-          )}
-          {undoOffered && (
-            <button
-              type="button"
-              className="btn-slant btn-quiet mt-2 min-h-11 w-full py-2 text-[0.65rem]"
-              onClick={() => dispatch({ type: 'ANCHOR_REVERTED' })}
-            >
-              Undo that tap
-            </button>
-          )}
+          <div className="live-grid">
+            <div className="area-countdown">
+              <ObjectivePanel slot={liveView.objective} />
+            </div>
+            <div className="area-rail">
+              {settings.showRail && <Rail rail={liveView.rail} onCampTaken={onCampTaken} />}
+            </div>
+            <div className="area-prompt">
+              <CueRunner
+                map={map}
+                timeline={timeline}
+                now={now}
+                matchId={state.matchId}
+                settings={settings}
+              />
+            </div>
+            <div className="area-action">
+              {primary !== undefined && (
+                <button
+                  type="button"
+                  className={`btn-slant mt-4 min-h-14 w-full py-4 text-sm ${primary.emphasis === 'urgent' ? 'btn-urgent' : 'btn-primary'}`}
+                  onClick={onObjectiveEnded}
+                >
+                  {primary.label}
+                </button>
+              )}
+              {undoOffered && (
+                <button
+                  type="button"
+                  className="btn-slant btn-quiet mt-2 min-h-11 w-full py-2 text-[0.65rem]"
+                  onClick={() => dispatch({ type: 'ANCHOR_REVERTED' })}
+                >
+                  Undo that tap
+                </button>
+              )}
+            </div>
+          </div>
           <TierRow tiers={liveView.tiers} />
           <Footer view={liveView} syncedPeers={1} />
         </main>

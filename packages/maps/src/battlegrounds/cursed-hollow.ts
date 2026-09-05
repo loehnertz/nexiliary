@@ -40,11 +40,11 @@ export const cursedHollow: MapDefinition = {
     instances: '1 tribute',
   },
   camps: [
-    camp({ id: 'siege-nw', label: 'siege', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'siege-se', label: 'siege', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'knight-ne', label: 'knights', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
-    camp({ id: 'knight-sw', label: 'knights', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
-    camp({ id: 'golem-ne', label: 'boss', type: 'boss', firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [60] }),
-    camp({ id: 'golem-sw', label: 'boss', type: 'boss', firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [60] }),
+    camp({ id: 'siege-nw', label: 'siege nw', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
+    camp({ id: 'siege-se', label: 'siege se', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
+    camp({ id: 'knight-ne', label: 'knights ne', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
+    camp({ id: 'knight-sw', label: 'knights sw', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
+    camp({ id: 'golem-ne', label: 'boss ne', type: 'boss', firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [60] }),
+    camp({ id: 'golem-sw', label: 'boss sw', type: 'boss', firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [60] }),
   ],
 }

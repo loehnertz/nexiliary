@@ -36,9 +36,9 @@ export const alteracPass: MapDefinition = {
     instances: '3 cavalry',
   },
   camps: [
-    camp({ id: 'gnoll-e', label: 'gnolls', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 90, travelSeconds: [40] }),
-    camp({ id: 'gnoll-w', label: 'gnolls', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 90, travelSeconds: [40] }),
-    camp({ id: 'giant-n', label: 'ice giant', type: 'boss', firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [60] }),
-    camp({ id: 'giant-s', label: 'ice giant', type: 'boss', firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [60] }),
+    camp({ id: 'gnoll-e', label: 'gnolls e', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 90, travelSeconds: [40] }),
+    camp({ id: 'gnoll-w', label: 'gnolls w', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 90, travelSeconds: [40] }),
+    camp({ id: 'giant-n', label: 'ice giant n', type: 'boss', firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [60] }),
+    camp({ id: 'giant-s', label: 'ice giant s', type: 'boss', firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [60] }),
   ],
 }

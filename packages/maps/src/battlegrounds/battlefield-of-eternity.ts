@@ -24,9 +24,9 @@ export const battlefieldOfEternity: MapDefinition = {
     instances: '2 immortals',
   },
   camps: [
-    camp({ id: 'impaler-n', label: 'impalers', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [40] }),
-    camp({ id: 'impaler-s', label: 'impalers', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [40] }),
-    camp({ id: 'shaman-w', label: 'shaman', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
-    camp({ id: 'shaman-e', label: 'shaman', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
+    camp({ id: 'impaler-n', label: 'impalers n', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [40] }),
+    camp({ id: 'impaler-s', label: 'impalers s', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [40] }),
+    camp({ id: 'shaman-w', label: 'shaman w', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
+    camp({ id: 'shaman-e', label: 'shaman e', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
   ],
 }

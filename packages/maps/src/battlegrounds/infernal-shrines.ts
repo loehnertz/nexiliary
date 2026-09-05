@@ -22,10 +22,10 @@ export const infernalShrines: MapDefinition = {
     instances: '1 shrine',
   },
   camps: [
-    camp({ id: 'impaler-w', label: 'impalers', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'impaler-c', label: 'impalers', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [35] }),
-    camp({ id: 'impaler-e', label: 'impalers', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'shaman-w', label: 'shaman', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [50] }),
-    camp({ id: 'shaman-e', label: 'shaman', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [50] }),
+    camp({ id: 'impaler-w', label: 'impalers w', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
+    camp({ id: 'impaler-c', label: 'impalers mid', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [35] }),
+    camp({ id: 'impaler-e', label: 'impalers e', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
+    camp({ id: 'shaman-w', label: 'shaman w', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [50] }),
+    camp({ id: 'shaman-e', label: 'shaman e', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [50] }),
   ],
 }

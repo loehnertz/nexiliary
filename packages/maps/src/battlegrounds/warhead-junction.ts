@@ -31,7 +31,7 @@ export const warheadJunction: MapDefinition = {
   camps: [
     camp({
       id: 'hellbat-w',
-      label: 'hellbats',
+      label: 'hellbats w',
       type: 'siege',
       firstSpawnSeconds: 60,
       respawnSeconds: 90,
@@ -40,7 +40,7 @@ export const warheadJunction: MapDefinition = {
     }),
     camp({
       id: 'hellbat-e',
-      label: 'hellbats',
+      label: 'hellbats e',
       type: 'siege',
       firstSpawnSeconds: 60,
       respawnSeconds: 90,
@@ -49,7 +49,7 @@ export const warheadJunction: MapDefinition = {
     }),
     camp({
       id: 'raven-w',
-      label: 'raven',
+      label: 'raven w',
       type: 'bruiser',
       firstSpawnSeconds: 60,
       respawnSeconds: 240,
@@ -58,7 +58,7 @@ export const warheadJunction: MapDefinition = {
     }),
     camp({
       id: 'raven-e',
-      label: 'raven',
+      label: 'raven e',
       type: 'bruiser',
       firstSpawnSeconds: 60,
       respawnSeconds: 240,

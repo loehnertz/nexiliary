@@ -33,11 +33,11 @@ export const gardenOfTerror: MapDefinition = {
     instances: '1 seed',
   },
   camps: [
-    camp({ id: 'siege-nw', label: 'siege', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'siege-ne', label: 'siege', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'siege-sw', label: 'siege', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'siege-se', label: 'siege', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'knight-ne', label: 'knights', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
-    camp({ id: 'knight-sw', label: 'knights', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
+    camp({ id: 'siege-nw', label: 'siege nw', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
+    camp({ id: 'siege-ne', label: 'siege ne', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
+    camp({ id: 'siege-sw', label: 'siege sw', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
+    camp({ id: 'siege-se', label: 'siege se', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
+    camp({ id: 'knight-ne', label: 'knights ne', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
+    camp({ id: 'knight-sw', label: 'knights sw', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
   ],
 }

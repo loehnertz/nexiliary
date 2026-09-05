@@ -100,7 +100,7 @@ export function Rail({
   onCampTaken: (campId: string) => void
 }) {
   return (
-    <div className="mt-4 flex items-stretch justify-between gap-1">
+    <div className="rail mt-4">
       {rail.map((slot) => {
         const body = (
           <>

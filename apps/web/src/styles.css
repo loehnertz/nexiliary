@@ -152,6 +152,50 @@ body {
   text-shadow: none;
 }
 
+/* --------------------------------------------------------------- layout ---- */
+
+/* Phone portrait is the primary target and desktop is a first-class second, so the
+   same four blocks stack on a phone and split into two columns on a wider screen
+   rather than being two layouts. */
+.live-grid {
+  display: grid;
+  grid-template-areas: 'countdown' 'rail' 'prompt' 'action';
+}
+
+.area-countdown {
+  grid-area: countdown;
+}
+.area-rail {
+  grid-area: rail;
+}
+.area-prompt {
+  grid-area: prompt;
+}
+.area-action {
+  grid-area: action;
+}
+
+.rail {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+@media (min-width: 640px) {
+  .live-grid {
+    grid-template-columns: 1.15fr 1fr;
+    grid-template-areas: 'countdown rail' 'prompt action';
+    column-gap: 20px;
+    align-items: start;
+  }
+
+  /* Four across is right under a dominant countdown and too narrow beside one. */
+  .live-grid .rail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 8px;
+  }
+}
+
 /* --------------------------------------------------------------- chrome ---- */
 
 /* Slanted parallelogram, matching the game's panel buttons. */

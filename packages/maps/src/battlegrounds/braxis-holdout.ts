@@ -29,10 +29,10 @@ export const braxisHoldout: MapDefinition = {
     instances: '2 beacons',
   },
   camps: [
-    camp({ id: 'hellbat-ne', label: 'hellbats', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 90, travelSeconds: [35] }),
-    camp({ id: 'hellbat-sw', label: 'hellbats', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 90, travelSeconds: [35] }),
-    camp({ id: 'raven-nw', label: 'raven', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
-    camp({ id: 'raven-se', label: 'raven', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
+    camp({ id: 'hellbat-ne', label: 'hellbats ne', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 90, travelSeconds: [35] }),
+    camp({ id: 'hellbat-sw', label: 'hellbats sw', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 90, travelSeconds: [35] }),
+    camp({ id: 'raven-nw', label: 'raven nw', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
+    camp({ id: 'raven-se', label: 'raven se', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
     camp({ id: 'archangel', label: 'archangel', type: 'boss', firstSpawnSeconds: 300, respawnSeconds: 250, travelSeconds: [50] }),
   ],
 }

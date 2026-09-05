@@ -30,9 +30,9 @@ export const hauntedMines: MapDefinition = {
     instances: '1 mine',
   },
   camps: [
-    camp({ id: 'siege-w', label: 'siege', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [40] }),
-    camp({ id: 'siege-e', label: 'siege', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [40] }),
-    camp({ id: 'sapper-n', label: 'sappers', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 120, travelSeconds: [35] }),
-    camp({ id: 'sapper-s', label: 'sappers', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 120, travelSeconds: [35] }),
+    camp({ id: 'siege-w', label: 'siege w', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [40] }),
+    camp({ id: 'siege-e', label: 'siege e', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [40] }),
+    camp({ id: 'sapper-n', label: 'sappers n', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 120, travelSeconds: [35] }),
+    camp({ id: 'sapper-s', label: 'sappers s', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 120, travelSeconds: [35] }),
   ],
 }

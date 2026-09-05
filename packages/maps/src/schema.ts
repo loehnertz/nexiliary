@@ -100,9 +100,16 @@ export function validateMap(map: MapDefinition): ValidationIssue[] {
   }
 
   const seen = new Set<string>()
+  const labels = new Set<string>()
   for (const camp of map.camps) {
     if (seen.has(camp.id)) issues.push({ where, problem: `duplicate camp id ${camp.id}` })
     seen.add(camp.id)
+    // Two chips reading "boss" on the same rail is not a control, it is a coin flip.
+    // The player is tapping these without looking, mid-game.
+    if (labels.has(camp.label)) {
+      issues.push({ where, problem: `two camps labelled "${camp.label}" cannot be told apart on the rail` })
+    }
+    labels.add(camp.label)
     issues.push(...validateCamp(map.id, camp))
   }
 

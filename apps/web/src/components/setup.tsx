@@ -45,7 +45,8 @@ export function Setup({
         <div className="p-4">
           {resumable !== null && (
             <div className="prompt mb-4">
-              A match on {resumable.mapName} was running {resumable.ageMinutes} minutes ago.
+              A match on {resumable.mapName} was running {resumable.ageMinutes}{' '}
+              {resumable.ageMinutes === 1 ? 'minute' : 'minutes'} ago.
               <div className="mt-2 flex gap-2">
                 <button type="button" className="btn-slant btn-primary min-h-11 flex-1 py-2 text-xs" onClick={onResume}>
                   Resume it

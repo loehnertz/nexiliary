@@ -38,7 +38,7 @@ export const skyTemple: MapDefinition = {
     // bottom-lane siege camps are close to the first temples and far from the second.
     camp({
       id: 'siege-w',
-      label: 'siege',
+      label: 'siege w',
       type: 'siege',
       firstSpawnSeconds: 60,
       respawnSeconds: 180,
@@ -47,7 +47,7 @@ export const skyTemple: MapDefinition = {
     }),
     camp({
       id: 'siege-e',
-      label: 'siege',
+      label: 'siege e',
       type: 'siege',
       firstSpawnSeconds: 60,
       respawnSeconds: 180,
@@ -56,7 +56,7 @@ export const skyTemple: MapDefinition = {
     }),
     camp({
       id: 'knight-w',
-      label: 'knights',
+      label: 'knights w',
       type: 'bruiser',
       firstSpawnSeconds: 60,
       respawnSeconds: 240,
@@ -65,7 +65,7 @@ export const skyTemple: MapDefinition = {
     }),
     camp({
       id: 'knight-e',
-      label: 'knights',
+      label: 'knights e',
       type: 'bruiser',
       firstSpawnSeconds: 60,
       respawnSeconds: 240,

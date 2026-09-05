@@ -30,7 +30,7 @@ export const towersOfDoom: MapDefinition = {
   camps: [
     camp({
       id: 'sapper-n',
-      label: 'sappers',
+      label: 'sappers n',
       type: 'siege',
       firstSpawnSeconds: 60,
       respawnSeconds: 180,
@@ -39,7 +39,7 @@ export const towersOfDoom: MapDefinition = {
     }),
     camp({
       id: 'sapper-w',
-      label: 'sappers',
+      label: 'sappers w',
       type: 'siege',
       firstSpawnSeconds: 60,
       respawnSeconds: 180,
@@ -48,7 +48,7 @@ export const towersOfDoom: MapDefinition = {
     }),
     camp({
       id: 'sapper-e',
-      label: 'sappers',
+      label: 'sappers e',
       type: 'siege',
       firstSpawnSeconds: 60,
       respawnSeconds: 180,
