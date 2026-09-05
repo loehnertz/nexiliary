@@ -110,6 +110,47 @@ and 138 seconds for `stepSpread` 25 and `r` 0.3 — reproduces exactly, the clam
 without narrowing at every point across a match on every map, and the per-map degradation
 sits on the documented curve.
 
+## Found by playing it
+
+**18. "Objective ended" could be pressed before any objective existed**, one second into
+a match, and could be pressed repeatedly for the same one. The control asked only whether
+a phase was live, and a phase is live for a fraction of the time the tap is wanted.
+`ObjectivePhase` gains an `unreported` state, and the control is offered when — and only
+when — something has spawned that no anchor accounts for. An `Unknown` cycle falls through
+to `unreported` rather than `idle`, because when timing is lost the tap is the only way
+back.
+
+**19. The resolution band used the spawn's spread rather than the fight's.** A cycle whose
+spawn is exactly known — the first objective of every match, and any recorded spawn —
+therefore resolved at an exact instant. That band closes the camp suppression window and
+bounds the live readout, so both were claiming a phase ends at a precise moment. It is the
+spawn spread combined with this cycle's fight spread, which are independent.
+
+**20. The wake lock fallback was not a video.** The inlined base64 decoded to something
+with no `moov` box, `play()` rejected, the rejection was swallowed. Screen Wake Lock needs
+a secure context, so any plain-http address — a phone on the LAN, which is how this is
+tested before deployment — was relying entirely on that fallback. The deeper fault was the
+silence, so the service reports which mechanism is actually holding the screen.
+
+**21. The footer read as unexplained numbers**, and the talent tier row had no label at
+all. The numbers were right — a test asserts the death timer and the level estimate agree
+at every second of a match — but "death" beside "level" does not say that one is the cost
+of dying. The app now carries a guide, because a dense readout in the game's own idiom of
+bare numerals needs somewhere to be learned once.
+
+## A gap the design did not have
+
+`ObjectiveEnded` taps give cycle length, and cycle length is fight plus offset. When a
+countdown is wrong there was no way to tell which of the two guesses was wrong, so no
+amount of playing could promote a map to `verified` — and `verified` is what unlocks every
+exact number in the app.
+
+`ObjectiveSpawned` closes it. Spawn to end is the fight; end to next spawn is the offset.
+It passes the input gate on its own merits rather than as an export hook: it states a
+fact, forgetting it degrades to exactly the previous behaviour, and the engine reads it,
+walking the chain from the newer of the two anchors so a spawn observation pins its cycle
+outright instead of predicting it from an offset.
+
 ## Data
 
 **17. Camps are removed during the objective on seven maps, not two.** Alterac Pass,
