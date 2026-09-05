@@ -81,9 +81,7 @@ which violates principle 2.
 
 The core of the product is one pure function:
 
-```
-project(mapDefinition, clockNow, anchors) -> TimedEvent[]
-```
+`project` is defined in `architecture.md`, along with its parameters and return type.
 
 It has no I/O, no framework dependency and no clock of its own. Time is a parameter. The
 live view calls it, and so does the offline timing tool, and so would the deferred review.
@@ -108,8 +106,8 @@ types.
 
 Confidence propagates along the chain of derived events. An `ObjectiveEnded` anchor makes
 the next objective spawn `Exact`. The one after that is `Estimated` with a band derived from
-observed cycle lengths, and each further step widens. A new anchor collapses the band back
-to `Exact` and re-derives everything downstream.
+observed cycle lengths, and each further step widens. A new anchor collapses the band to the tightest the offset
+permits and re-derives everything downstream.
 
 Confidence also governs wording, which is how the app stays honest out loud without becoming
 annoying:
@@ -123,13 +121,14 @@ annoying:
 Colour carries confidence consistently everywhere in the UI: green for exact, amber for
 estimated, grey for unknown.
 
-### Always-exact events
+### The floor the app never drops below
 
-Two things need no input and no map data, so they form the floor the app never drops below on
-any battleground, recognised or not:
+Two things need no input and no map data, so they hold on any battleground, recognised or not:
 
-- Minion waves, on a 30 second cadence from match start.
-- The current death timer length, from the game-time curve.
+- **Minion waves.** A fixed cadence from a game-wide constant. Always `Exact`.
+- **The current death timer length.** Derived from the level curve, and team level depends on soak
+  nobody can observe, so it carries the level estimate's confidence and is **not** `Exact`. Near a
+  breakpoint an exact-looking death timer is simply the wrong number rendered green.
 
 Both derive from game-wide rules rather than per-map constants, so they are exempt from the
 provenance clamp: a wrong map file cannot make them wrong.
@@ -138,7 +137,7 @@ Two further things need no input but do depend on map data, so they are only as 
 map's provenance:
 
 - Initial mercenary camp spawns.
-- The first objective of each track.
+- The first objective of the match.
 
 Talent tiers are always `Estimated`, because reaching level 10 depends on how well the team
 soaks. Presenting a tier countdown as exact would violate principle 1.
@@ -236,8 +235,9 @@ of upcoming events:
   fixed rather than emergent; `architecture.md` states it.
 - An end-match control, without which the clock never stops and the next match starts dirty.
 
-Only starting the match is required input. Everything else improves precision and nothing else
-is needed for correctness.
+Only starting the match is strictly required, in the sense that nothing breaks without the rest.
+That is not how the app is meant to be used: without objective anchors, objective timing is good for
+roughly the first ten minutes and then honestly goes quiet. The re-anchor tap is a core interaction.
 - Match clock and map name in a header strip.
 - A talent tier row rendering 1, 4, 7, 10, 13, 16, 20 with the current tier highlighted and
   the next one marked, in the style of the game's own talent screen.
@@ -269,9 +269,8 @@ The relay accepts anchor events from any participant and fans them out to all ot
 Because anchors overwrite, any teammate's re-anchor corrects the whole team's clock, which
 is the practical answer to one person forgetting to tap.
 
-```
-AnchorEvent { sessionId, type, subject?, gameTimeSeconds, wallClock, source }
-```
+The anchor wire format is defined in `architecture.md`, including its envelope and version
+fields. It is not restated here.
 
 The relay holds only current session state and does not persist matches. The deferred
 Discord bot is a subscriber on the same channel that speaks instead of drawing; the
@@ -482,5 +481,5 @@ Speech becoming noise is the second. Mitigated by verbosity tiers and conservati
 defaults. The stronger mitigation, letting the review promote the prompts a given player
 actually needs, is unavailable until the review is built.
 
-Prompt wording is unproven until used in real matches. Milestone 2 deliberately ships one
-map so wording can be tuned before authoring 15 maps' worth.
+Prompt wording is unproven until used in real matches. The build order deliberately ships a
+small number of maps first so wording can be tuned before authoring fifteen maps' worth.

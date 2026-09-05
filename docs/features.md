@@ -16,7 +16,7 @@ See `spec.md` for the design these are drawn from.
 
 | # | Feature | Status | Notes |
 | --- | --- | --- | --- |
-| 1 | Objective timers per battleground | v1 | First spawn is exact; later cycles need an anchor or fall back to a band |
+| 1 | Objective timers per battleground | v1 | First spawn is exact. Later cycles need an anchor, and even then are `Exact` only where the map's respawn offset is a single number rather than a range |
 | 2 | Mercenary camp timers | v1 | Initial spawn exact; respawn needs a `CampTaken` anchor |
 | 3 | Boss camp timers | v1 | Same anchor model as camps |
 | 4 | Minion wave timers | v1 | Fixed cadence from a game-wide constant, always exact, no input |
