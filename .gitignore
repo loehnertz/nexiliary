@@ -1,1 +1,35 @@
+# Brainstorming session artefacts
 .superpowers/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+.wrangler/
+.vite/
+
+# Test and coverage
+coverage/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Editor and OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Replay corpus. Large binary game data, and not ours to redistribute.
+# Point the derivation tool at a path outside the repo.
+*.StormReplay
+replays/
