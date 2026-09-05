@@ -1,5 +1,7 @@
 import type { MapDefinition } from '@nexiliary/engine'
 import { braxisHoldout } from './battlegrounds/braxis-holdout.js'
+import { cursedHollow } from './battlegrounds/cursed-hollow.js'
+import { skyTemple } from './battlegrounds/sky-temple.js'
 import { fallbackMap } from './fallback.js'
 
 export { fallbackMap }
@@ -8,7 +10,7 @@ export * from './schema.js'
 export { camp } from './camp-presets.js'
 export type { CampSpec } from './camp-presets.js'
 
-export const battlegrounds: readonly MapDefinition[] = [braxisHoldout]
+export const battlegrounds: readonly MapDefinition[] = [braxisHoldout, cursedHollow, skyTemple]
 
 const byId = new Map(battlegrounds.map((m) => [m.id, m]))
 
@@ -20,4 +22,4 @@ export function mapById(id: string): MapDefinition {
   return byId.get(id) ?? { ...fallbackMap, id, name: id }
 }
 
-export { braxisHoldout }
+export { braxisHoldout, cursedHollow, skyTemple }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cues, project } from '@nexiliary/engine'
+import { cues, project, walkChain } from '@nexiliary/engine'
 import type { MapDefinition } from '@nexiliary/engine'
 import { appliesToBudget, battlegrounds, cueText, fallbackMap, mapById, validateCueText, validateMap } from '../src/index.js'
 
@@ -103,5 +103,58 @@ describe('cue text', () => {
         expect(sentence, 'states world state without a condition').toMatch(/\bif\b/i)
       }
     }
+  })
+})
+
+describe('degradation matches the documented per-map behaviour', () => {
+  /** The projected cycle index at which the chain first reports `Unknown`. */
+  function cyclesFromAnchor(mapId: string, anchorAt: number): number | null {
+    const map = battlegrounds.find((m) => m.id === mapId)!
+    const anchors = new Map([
+      [
+        'ObjectiveEnded:1',
+        { type: 'ObjectiveEnded', subject: '1', gameTimeSeconds: anchorAt, wallClock: 0, source: 'test', schema: 1 },
+      ],
+    ])
+    for (let now = anchorAt; now < 4000; now += 2) {
+      const walk = walkChain(map, anchors, now)
+      if (walk !== null && walk.pending.confidence.kind === 'Unknown') return walk.pending.n
+    }
+    return null
+  }
+
+  it('does not lose the thread on a near-deterministic map within a match', () => {
+    // Sky Temple's phase duration and offset are both deterministic, so only
+    // `minStepSpread` widens it. Staying Estimated for a whole match is the honest
+    // answer for a cadence that genuinely is near-deterministic.
+    //
+    // `architecture.md` says this map "never reaches Unknown at all". It does, at cycle
+    // 13 — about thirty-five minutes after the last anchor, which is past the end of any
+    // real match. The product claim holds; the absolute one does not.
+    const map = battlegrounds.find((m) => m.id === 'sky-temple')!
+    const anchors = new Map([
+      [
+        'ObjectiveEnded:1',
+        { type: 'ObjectiveEnded', subject: '1', gameTimeSeconds: 300, wallClock: 0, source: 'test', schema: 1 },
+      ],
+    ])
+    for (let now = 300; now <= 1800; now += 5) {
+      expect(walkChain(map, anchors, now)!.pending.confidence.kind).not.toBe('Unknown')
+    }
+    expect(cyclesFromAnchor('sky-temple', 300)).toBe(13)
+  })
+
+  it('degrades soonest on the map with a fast cadence and a wide union', () => {
+    // Cursed Hollow is the worst case on both counts at once: past cycle 3 its union
+    // offset is 0:50 to 2:40, which alone is a 110 second band.
+    const cursed = cyclesFromAnchor('cursed-hollow', 300)
+    expect(cursed).not.toBeNull()
+    expect(cursed!).toBeLessThanOrEqual(3)
+  })
+
+  it('sits between the two on a scalar-offset map with a real fight', () => {
+    const braxis = cyclesFromAnchor('braxis-holdout', 300)
+    expect(braxis).not.toBeNull()
+    expect(braxis!).toBeGreaterThan(cyclesFromAnchor('cursed-hollow', 300)!)
   })
 })
