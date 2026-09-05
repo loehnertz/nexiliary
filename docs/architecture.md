@@ -121,25 +121,63 @@ spawn(n) --> [fight happens] --> resolution(n) --> spawn(n+1) = resolution(n) + 
 ```
 
 `offset` is a fixed game constant per map. `fight` is not a constant at all; it is how long
-humans take to finish the objective, and it is calibrated from replays as a distribution
-`{ p10, median, p90 }`.
+humans take to finish the objective, and it is calibrated from replays.
 
 The generator walks cycles forward from the most recent anchor:
 
 - `spawn(0) = map.objective.firstSpawnSeconds`, `Exact`.
 - Given an `ObjectiveEnded` anchor for cycle k at time t, `spawn(k+1) = t + offset`, `Exact`.
   The anchor supplies the resolution directly, so no estimation is involved.
-- Without an anchor, resolution must be estimated:
-  `spawn(k+1).low  = spawn(k).low  + fight.p10 + offset`
-  `spawn(k+1).high = spawn(k).high + fight.p90 + offset`
-  `spawn(k+1).at   = spawn(k).at   + fight.median + offset`
+- Without an anchor, the midpoint accumulates linearly, because expected values add:
+  `spawn(k+1).at = spawn(k).at + fight.median + offset`
 
-The band therefore widens by `(fight.p90 - fight.p10)` per unanchored step, and collapses to
-zero the moment an anchor arrives. Nothing accumulates: the walk restarts from the newest
-anchor every time, so a stale anchor cannot poison later cycles.
+The band collapses to zero the moment an anchor arrives. Nothing accumulates across anchors:
+the walk restarts from the newest one every time, so a stale anchor cannot poison later
+cycles.
+
+##### How the band grows
+
+The midpoint is the easy half. The spread is where it is easy to be wrong, and the obvious
+approach is wrong.
+
+Accumulating percentiles linearly, `low += p10` and `high += p90` per step, treats every cycle
+as hitting its extreme in the same direction. Independent draws partially cancel, so a sum of
+n draws has a spread proportional to `sqrt(n)`, not `n`. Linear accumulation therefore
+over-widens, and the practical cost is that the app goes `Unknown` several cycles earlier than
+the evidence justifies.
+
+The opposite assumption is also wrong. Fight durations are not independent: a team that
+resolves objectives slowly tends to do so every cycle, and that positive correlation pushes
+growth back toward linear. For n draws with pairwise correlation r:
+
+```
+var(sum) = n * sigma^2 + n * (n - 1) * r * sigma^2
+```
+
+At `r = 0` this is `sqrt(n)` growth; at `r = 1` it is linear. The truth sits between, and it
+is measurable rather than assumable.
+
+So the design is: calibrate `{ median, sigma, r }` from the corpus, and derive the band as
+
+```
+spread(n) = z * sigma * sqrt(n + n * (n - 1) * r)      // z = 1.28, an 80% interval
+low  = at - spread(n)
+high = at + spread(n)
+```
+
+Better still, and preferred once the corpus is large enough: the offline tool can measure the
+n-step spread **directly**, as the observed distribution of time from a cycle spawn to the
+spawn n cycles later. That needs no distributional assumption and no correlation estimate, and
+it is exactly the kind of thing having a corpus is for. The formula above is the interim model
+for when a map has too few samples to fit empirical quantiles at every n.
+
+The difference is not academic. With a 40 second p10-to-p90 fight spread, linear accumulation
+reaches a 120 second band by the third unanchored cycle, while uncorrelated growth does not
+reach it until around the ninth. That is the difference between an app that goes quiet about
+objectives at seven minutes and one that stays useful most of a match without a single tap.
 
 When band width exceeds `maxUsefulBand` (start at 120 seconds, tune against real data),
-confidence drops to `Unknown` and every later cycle in that chain is `Unknown` too. A
+confidence drops to `Unknown`, and every later cycle in that chain is `Unknown` too. A
 four-minute range is not information, and showing it would train the player to ignore the
 amber state that does carry meaning.
 
@@ -736,6 +774,9 @@ protocol versions, which is a feature for testing version handling and a trap if
 numbers are mistaken for current ones. Anything derived from it is emitted with
 `provenance: 'archive'` and can never render as `Exact`.
 
+`derive` also emits the objective cycle spread model, `{ median, sigma, r }` per map, or
+empirical n-step quantiles where sample counts allow. See "How the band grows".
+
 `derive` produces two distinct things, and conflating them is the main risk in this tool.
 Fixed constants are confirmed from a handful of replays per map; if all of them agree, the
 number is settled. Distributions for the estimation bands need hundreds of samples, because
@@ -749,7 +790,9 @@ The design exists to make testing cheap, so the seams are worth stating explicit
 `engine` carries the great majority of the tests, table-driven, because it is pure and time is
 a parameter. The cases that matter most:
 
-- Confidence widening across successive unanchored objective cycles.
+- Confidence widening across successive unanchored objective cycles, specifically that the
+  spread grows sub-linearly. A regression to linear accumulation is the most likely wrong
+  implementation here and would silently cost several usable cycles.
 - Collapse to `Exact` when an anchor arrives mid-chain, including that later cycles re-derive
   from it rather than from the original start.
 - Downgrade to `Unknown` past `maxUsefulBand`.
