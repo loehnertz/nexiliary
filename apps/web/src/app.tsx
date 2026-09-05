@@ -114,11 +114,6 @@ export function App() {
     [writeAnchorAt],
   )
 
-  const onTierReached = useCallback(
-    (level: number) => writeAnchorAt('TierReached', String(level)),
-    [writeAnchorAt],
-  )
-
   const onCampTaken = useCallback(
     (campId: string) => {
       writeAnchorAt('CampTaken', campSubject(campId, nextCampOccurrence(state.anchors, 'CampTaken', campId)))
@@ -284,9 +279,6 @@ export function App() {
           settings={settings}
           onSettings={setSettings}
           matchLog={buildMatchLog(map, [...state.anchors.values()], now)}
-          tiers={liveView.tiers}
-          levelExact={liveView.level.estimated === false}
-          onTierReached={onTierReached}
           onCampTaken={onCampTaken}
           onCampUp={onCampUp}
           onEndMatch={endMatch}

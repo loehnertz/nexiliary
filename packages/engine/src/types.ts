@@ -58,16 +58,6 @@ export type AnchorType =
    * marked `verified`.
    */
   | 'ObjectiveSpawned'
-  /**
-   * The team reached this talent tier, now. Subject is the level.
-   *
-   * The input gate passed this narrowly, "worth having only if a cue needs the current
-   * tier". Two things do: `tier-spike`, and the death timer, which is a step function of
-   * level and is the one number the app shows that the player can also read off their
-   * own screen — so a visible mismatch there costs trust in every number they cannot
-   * check.
-   */
-  | 'TierReached'
   | 'CampTaken'
   | 'CampUp'
 

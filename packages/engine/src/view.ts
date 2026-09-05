@@ -4,8 +4,6 @@ import { displayTime, mmss } from './confidence.js'
 import { isClaimable, isAvailable } from './belief.js'
 import { compareBearing } from './types.js'
 import { applyPresentClamp } from './clamp.js'
-import { currentTier } from './generators/tiers.js'
-import { talentTiers } from './game-constants.js'
 
 export type Tone = 'exact' | 'estimated' | 'unknown'
 
@@ -82,13 +80,6 @@ export interface RailSlot {
   readonly camp?: RailCamp
 }
 
-export interface TierCell {
-  readonly level: number
-  readonly state: 'reached' | 'next' | 'future'
-  /** True when an anchor established this tier, rather than the curve estimating it. */
-  readonly known: boolean
-}
-
 /**
  * The next talent tier and when it lands.
  *
@@ -115,9 +106,9 @@ export interface LiveView {
    * lose to two siege camps on `pressureValue`.
    */
   readonly overflowCamps: readonly RailSlot[]
-  readonly tiers: readonly TierCell[]
+  /** How long you would be dead. Not shown in game until you already are. */
   readonly deathTimer: { readonly text: string; readonly tone: Tone }
-  readonly level: { readonly text: string; readonly estimated: boolean; readonly tone: Tone }
+  /** When the next talent tier lands. Not shown in game at all. */
   readonly nextTier: NextTier | null
   /** The clamped timeline, for controls and anything that needs the raw facts. */
   readonly timeline: Timeline
@@ -329,8 +320,6 @@ function buildRail(timeline: Timeline, now: Seconds, objective: ObjectiveSlot): 
 export function view(timeline: Timeline, map: MapDefinition, now: Seconds): LiveView {
   const clamped = applyPresentClamp(timeline, now)
   const objective = objectiveSlot(map, clamped, now)
-  const tier = currentTier(clamped.level.estimate)
-  const nextTier = talentTiers.find((t) => t > tier)
   const nextTierEvent = clamped.events.find((e) => e.kind === 'tier' && e.at >= now)
 
   return {
@@ -342,11 +331,6 @@ export function view(timeline: Timeline, map: MapDefinition, now: Seconds): Live
     overflowCamps: [...clamped.camps]
       .sort((a, b) => compareBearing(a.bearing, b.bearing) || a.id.localeCompare(b.id))
       .map((c) => campSlot(c, now)),
-    tiers: talentTiers.map((level) => ({
-      level,
-      state: level <= tier ? 'reached' : level === nextTier ? 'next' : 'future',
-      known: clamped.level.confidence.kind === 'Exact' && level === tier,
-    })),
     deathTimer: { text: mmss(clamped.deathTimer.seconds), tone: toneOf(clamped.deathTimer.confidence) },
     nextTier:
       nextTierEvent === undefined
@@ -356,13 +340,6 @@ export function view(timeline: Timeline, map: MapDefinition, now: Seconds): Live
             text: displayTime(nextTierEvent.confidence, nextTierEvent.at, now),
             tone: toneOf(nextTierEvent.confidence),
           },
-    level: {
-      // No tilde. At this size it reads as a minus sign, and the colour and the label
-      // already carry whether it is an estimate.
-      text: String(clamped.level.estimate),
-      estimated: clamped.level.confidence.kind !== 'Exact',
-      tone: toneOf(clamped.level.confidence),
-    },
     timeline: clamped,
   }
 }

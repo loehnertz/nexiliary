@@ -88,9 +88,6 @@ export function OverflowSheet({
   view,
   settings,
   matchLog,
-  tiers,
-  levelExact,
-  onTierReached,
   onSettings,
   onCampTaken,
   onCampUp,
@@ -100,9 +97,6 @@ export function OverflowSheet({
   view: LiveView
   settings: StoredSettings
   matchLog: string
-  tiers: LiveView['tiers']
-  levelExact: boolean
-  onTierReached: (level: number) => void
   onSettings: (next: StoredSettings) => void
   onCampTaken: (campId: string) => void
   onCampUp: (campId: string) => void
@@ -130,15 +124,7 @@ export function OverflowSheet({
       {tab === 'camps' && <CampList camps={view.overflowCamps} onCampTaken={onCampTaken} onCampUp={onCampUp} />}
       {tab === 'guide' && <Legend />}
       {tab === 'log' && <MatchLog text={matchLog} />}
-      {tab === 'settings' && (
-        <SettingsPanel
-          settings={settings}
-          onSettings={onSettings}
-          tiers={tiers}
-          levelExact={levelExact}
-          onTierReached={onTierReached}
-        />
-      )}
+      {tab === 'settings' && <SettingsPanel settings={settings} onSettings={onSettings} />}
 
       <button
         type="button"
@@ -219,10 +205,11 @@ function Legend() {
         and it is amber because it is read off an estimated level.
       </Entry>
 
-      <Entry term="Team level">
-        Not shown, because it is on your screen already. It is tracked, because the death timer and
-        the tier countdown both read off it — so if the death timer looks wrong, correct the level
-        under Settings and both come right.
+      <Entry term="What is not here">
+        Team level and which talent tier you are on. Both are on your own screen, and a derived
+        number that can visibly disagree with one you can read costs trust in the numbers you
+        cannot check. The level is still estimated internally, because the two readings above are
+        computed from it — which is also why both are amber rather than green.
       </Entry>
 
       <Entry term="Objective ended">
@@ -288,47 +275,13 @@ function CampList({
 export function SettingsPanel({
   settings,
   onSettings,
-  tiers,
-  levelExact,
-  onTierReached,
 }: {
   settings: StoredSettings
   onSettings: (next: StoredSettings) => void
-  tiers?: LiveView['tiers']
-  levelExact?: boolean
-  onTierReached?: (level: number) => void
 }) {
   const voices = isSpeechAvailable() ? listVoices() : []
   return (
     <div className="flex flex-col gap-5">
-      {tiers !== undefined && onTierReached !== undefined && (
-        <div>
-          <div className="label mb-1 flex items-baseline justify-between gap-2">
-            <span>Team level</span>
-            <span className={levelExact === true ? 'tone-exact' : 'tone-estimated'}>
-              {levelExact === true ? 'confirmed' : 'estimated'}
-            </span>
-          </div>
-          <p className="mb-2 text-xs leading-snug text-[var(--color-ink-faint)]">
-            Only two things read this: how long you would be dead, and when the next tier lands.
-            Neither is on your screen in game. The level itself is, so the app does not show it —
-            but a wrong one makes both of those wrong, so tell it the tier you are on if the death
-            timer looks off.
-          </p>
-          <div className="flex gap-1">
-            {tiers.map((cell) => (
-              <button
-                key={cell.level}
-                type="button"
-                onClick={() => onTierReached(cell.level)}
-                className={`btn-slant min-h-11 flex-1 py-2 text-xs ${cell.known ? 'btn-primary' : 'btn-quiet'}`}
-              >
-                {cell.level}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
       <div>
         <div className="label mb-2">Spoken prompts</div>
         <div className="flex gap-2">

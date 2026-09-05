@@ -328,37 +328,6 @@ body {
   border-left-color: var(--color-enemy);
 }
 
-/* Talent tiers, in the idiom of the game's own talent screen column headers. */
-.tier-cell {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-unknown);
-}
-/* The row is the control for correcting the level, so its cells are tap targets. */
-.tier-tap {
-  flex: 1;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  cursor: pointer;
-  background: none;
-  font-family: inherit;
-}
-
-.tier-known {
-  text-shadow: 0 0 12px rgb(74 222 128 / 0.6);
-  color: var(--color-exact);
-}
-
-.tier-reached {
-  color: var(--color-ink);
-  font-weight: 700;
-}
-.tier-next {
-  color: var(--color-estimated);
-  text-shadow: 0 0 12px rgb(245 185 66 / 0.5);
-}
-
 /* Selection and activity are shown by soft outer glow rather than by fill. */
 .map-tile {
   position: relative;

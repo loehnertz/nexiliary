@@ -179,10 +179,18 @@ observed tier still holds, the level is `Exact` and so is the death timer that r
 **23. Team level and the talent tier row were both duplication.** Both are on the
 player's own screen, so showing them is at best redundant and at worst — when the derived
 curve disagrees with what they can see — corrosive to the numbers they *cannot* check,
-which is the part worth having. They are gone from the live view. What replaced them is
-what the game does not show: how long the death timer is right now, and when the next tier
-lands. The level is still tracked, because those two read off it, and is correctable under
-settings for when the death timer looks wrong.
+which is the part worth having. They are gone. What replaced them is what the game does
+not show: how long the death timer is right now, and when the next tier lands. The level
+is still estimated internally, because those two are computed from it, and both inherit
+its confidence and are never `Exact`.
+
+A `TierReached` anchor was built to let the player correct that estimate, and then
+removed. The design's own input gate had already ruled on it — "passes, narrowly… worth
+having only if a cue needs the current tier" — and no cue does: `tier-spike` reads the
+next tier from the curve, not from an anchor. With nothing displaying the level there is
+also no signal that would ever prompt someone to correct it, so it was a control with no
+trigger. Recorded because the reasoning is the useful part: an input has to be reachable
+*and* prompted, and the gate's four rules only test the first.
 
 **24. The rail could degenerate to four identical wave countdowns.** The fixed slot
 allocation exists so a map with four camps up still shows upcoming events; the same
