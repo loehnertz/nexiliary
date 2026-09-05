@@ -66,6 +66,24 @@ type Belief =
 `describeTime(confidence, at, now)` renders the first. `describeBelief(belief)` renders the
 second. A cue may read either; nothing converts between them.
 
+`Known` means the app has a definite answer, whether from an anchor or from a rule such as "before
+first spawn" or "suppressed during an objective phase". It does not mean "an anchor said so".
+
+**Never order `Belief` by strength when what you mean is availability.** The ordering
+`Known > Likely > Stale` is over epistemic strength, not over the value, so `Known(false)` — a
+camp just taken and not yet respawned — is the *strongest* belief in the lattice and passes any
+"at least `Likely`" test. Written that way, `stall-camp` would select a camp it knows is not
+standing, arbitration would not filter it, and the chip would be tappable on a camp that is not
+there. Two helpers exist so this is never expressed in prose:
+
+```ts
+function isAvailable(b: Belief): boolean   // Known(true) or Likely(true) only
+function isClaimable(b: Belief): boolean   // anything but Stale
+```
+
+Every availability test uses `isAvailable`. Every "may we say anything at all" test uses
+`isClaimable`.
+
 ### Domain types
 
 ```ts
@@ -121,9 +139,27 @@ This does not violate the overwrite principle. Tapping twice for the same cycle 
 that cycle's entry; a match produces on the order of ten to thirty anchors total, bounded by
 match length rather than by tap count, and no entry is ever appended to.
 
-The occurrence index comes from the projection at the moment of the tap: the app records the
-cycle it currently believes is in progress. If that belief was wrong, the correction is a later
-anchor, which is the mechanism used everywhere else.
+The occurrence index is derived from the anchor set, not from the projection:
+
+```
+cycle = (number of ObjectiveEnded entries for this track) + 1
+```
+
+Taking it from the projection's belief about the current cycle was wrong, and wrong in a way that
+mattered. That belief comes from the same widening bands, so when bands overlap the projection
+does not know which cycle is in progress either. It would have relocated the defect rather than
+fixed it, and then baked an unreliable value into a persistent key and broadcast it to peers, so
+two clients could write two mutually inconsistent statements about one occurrence.
+
+Counting entries is monotone, independent of band arithmetic, converges across peers through the
+`state` sync on join, and is trivially testable. It can still be wrong about how many cycles truly
+occurred, if a tap was missed, but it can no longer be *inconsistent* between two clients or
+between two re-projections, which is what actually breaks things.
+
+The stronger alternative is the Durable Object assigning the index on write, which would give true
+cross-peer agreement. It is not taken because it would make the relay interpret anchor payloads,
+and relay neutrality is what keeps the deferred Discord bot and desktop companion additive. If
+peer disagreement on the count ever proves worse than that coupling, this is the trade to revisit.
 
 ### The objective model
 
@@ -139,15 +175,19 @@ and is sometimes random, but it does not affect *when* the phase happens, so it 
 hint rather than a timing input.
 
 ```ts
-interface ObjectiveModel {
-  label: string                   // "Beacons", "Altars", "Tribute"
-  firstSpawnSeconds: Seconds
-  respawn: RespawnRule
-  instancesByPhase?: number[]     // display only; last value repeats
-}
+type ObjectiveModel =
+  | { kind: 'none' }                          // Tomb of the Spider Queen
+  | { kind: 'timed'
+      label: string                           // "Beacons", "Altars", "Tribute"
+      firstSpawnSeconds: Seconds
+      fight: FightEstimate
+      respawn: RespawnRule
+      instances?: string }                    // display hint: "2-3 altars", "1 then 2 then 3"
+
 
 type RespawnRule =
   | { kind: 'afterResolution'
+      minOffsetSeconds?: Seconds              // floor for scalePerMinuteSeconds
       outcomes: Record<string, {
         minSeconds: Seconds
         maxSeconds: Seconds
@@ -155,8 +195,15 @@ type RespawnRule =
       }>
       scalePerMinuteSeconds?: number }
   | { kind: 'fixedInterval'; minSeconds: Seconds; maxSeconds: Seconds }
-  | { kind: 'none' }
 ```
+
+`ObjectiveModel` is a discriminated union so that a map with no timed objective is not forced to
+invent a `label` and a `firstSpawnSeconds: 0` under `strict: true`, which the objectives generator
+would then have to remember to ignore or else emit a phantom objective at 0:00.
+
+`instances` is a display hint and a string on purpose. The table below has "2-3 altars", "2-4
+warheads" and "1, then 2, then 3 chests", and a `number[]` cannot hold any of those. Since nothing
+reads it for timing, the cheap representation is the right one.
 
 Four things forced this shape, each found on a real map:
 
@@ -174,8 +221,11 @@ the band spans the union of the *reachable* outcomes: the minimum of the minima 
 of the maxima. Wider, honest, no new button. A control naming the outcome could tighten it
 later and would pass the input gate, but v1 does not need one.
 
-`possibleFromCycle` is what keeps that union from being needlessly pessimistic, and it matters
-more than it looks. On Cursed Hollow a curse requires one team to hold three tributes, so it
+`possibleFromCycle` indexes the **spawning** cycle, the one whose time is being predicted, not
+the resolving cycle before it. An off-by-one here produces false precision on the one map it was
+added for, so both boundaries are tested.
+
+It is what keeps the union from being needlessly pessimistic, and it matters more than it looks. On Cursed Hollow a curse requires one team to hold three tributes, so it
 cannot possibly have occurred on the first or second. Taking the union from cycle one would
 give a 110 second band before any fight spread is added, which alone nearly exhausts the 120
 second `maxUsefulBand` and makes the map go `Unknown` by its third cycle, around 9:30. Marking
@@ -183,10 +233,15 @@ the curse branch `possibleFromCycle: 3` leaves the early cycles on the tight 0:5
 and only widens once a curse is actually possible. Garden of Terror has the same shape, needing
 three seeds before the Garden Terrors branch is reachable.
 
-**One map scales its offset with game time.** Alterac Pass reduces the respawn delay by 2
-seconds per minute of elapsed game time. `scalePerMinuteSeconds` exists solely for it. Nothing
-else in the model would have caught this, and it would have shown visibly wrong numbers by the
-twenty minute mark.
+**One map scales its offset with game time.** Alterac Pass reduces the respawn delay by 2 seconds
+per minute of elapsed game time. `scalePerMinuteSeconds` exists solely for it. Nothing else in the
+model would have caught this, and it would have shown visibly wrong numbers by the twenty minute
+mark.
+
+The scaling applies to both `minSeconds` and `maxSeconds`, so `offsetHalfWidth` is unchanged by
+it, and it is floored by `minOffsetSeconds` on the rule. Without a floor, 2 seconds per minute
+against a 110 to 150 second offset reaches zero at 55 minutes and goes negative after, and Heroes
+of the Storm matches do run long.
 
 **One map has no timed objective at all.** Tomb of the Spider Queen drops gems continuously
 from minions, and the turn-in is player-initiated with no clock. There is nothing to count down
@@ -204,11 +259,14 @@ a pause driven by an unobservable event, and inventing an anchor for "a bombardm
 would fail the input gate's rule 4, since nobody is tapping a phone while a bombardment is
 being contested.
 
-The honest handling: Blackheart's Bay ships with a deliberately wide band and depends more than
-other maps on the objective anchor to re-sync. This is a case where the app is simply less
-useful, stated here so it is a known limitation rather than a bug report later. If it proves
-annoying, the fallback is to model it as `afterResolution` keyed off chest collection, which
-anchors naturally and drops the fixed interval entirely.
+The recovery has to be defined rather than gestured at. **An `ObjectiveEnded` anchor on a
+`fixedInterval` map re-phases the interval:** `next = t + interval`. That is implementable, and it
+is exactly what the player means by tapping after a bombardment, so the residual limitation
+becomes recoverable for one line of specification rather than resting on undefined behaviour.
+
+Blackheart's Bay still ships with a deliberately wide band and leans harder on the anchor than
+other maps. If that proves annoying, the fallback is to model it as `afterResolution` keyed off
+chest collection and drop the fixed interval entirely.
 
 Thirteen of the fifteen maps use `afterResolution`, one uses `fixedInterval`, and one uses
 `none`. Three variants cover the whole pool, and no speculative fourth is carried.
@@ -252,9 +310,23 @@ Alterac Pass and Braxis Holdout remove mercenary camps from the battlefield whil
 is active, returning them when it ends. A camp model that does not know this will advise
 starting a camp that is not there.
 
-`MapDefinition` therefore carries `campsSuppressedDuringObjective: boolean`. When true and an
-objective phase is believed active, every camp's `standing` is `Known(false)` and `stall-camp`
-does not fire.
+`MapDefinition` therefore carries `campsSuppressedDuringObjective: boolean`.
+
+"A phase is believed active" has to be defined, and defined so that it expires. The obvious
+reading, active from spawn until an `ObjectiveEnded` anchor arrives, means one missed tap pins
+every camp on the map to `Known(false)` for the rest of the match: a wrong claim produced by
+forgetting, which the founding principle forbids, and one with no correction affordance because
+`Known(false)` renders as a respawn countdown rather than a tappable chip.
+
+So suppression is bounded by the phase's own estimated resolution and decays like everything else:
+
+- While `now` is inside the phase's estimated resolution band, every camp is `Known(false)`.
+- Once `now` passes that band's `high` with no `ObjectiveEnded` anchor, every camp becomes
+  `Stale` rather than staying `Known(false)`.
+
+That degrades to "I do not know" instead of a false negative, keeps the correcting chip reachable,
+and reuses machinery that already exists. With `isAvailable` in place, `stall-camp` skipping
+suppressed camps falls out rather than needing to be asserted as a special case.
 
 ### Projection
 
@@ -300,34 +372,63 @@ explicitly.
 spawn(n) --> [fight] --> resolution(n) --> spawn(n+1) = resolution(n) + offset
 ```
 
-`offset` is a per-map constant. `fight` is how long humans take to resolve the objective and is
-calibrated from replays.
+`offset` is per map and is a range on several of them. `fight` is how long humans take to resolve
+the objective.
 
-Walking a track forward from its newest anchor:
+Walking the chain forward from its newest anchor:
 
-- `spawn(0) = track.firstSpawnSeconds`, `Exact`.
-- Given an `ObjectiveEnded` anchor for cycle k at time t: `spawn(k+1) = t + offset`, `Exact`.
+- `spawn(0) = firstSpawnSeconds`, `Exact`.
+- Given an `ObjectiveEnded` anchor for cycle k at time t, the next spawn is
+  `[t + offsetMin, t + offsetMax]`. This is `Exact` **only when `offsetMin === offsetMax`** for
+  the reachable outcome set and the map is `verified`. Otherwise it is `Estimated`, with no fight
+  spread for that step, because no fight is being predicted: it already happened.
 - Without an anchor the midpoint accumulates linearly, because expected values add:
-  `spawn(k+1).at = spawn(k).at + fight.median + offset`
+  `spawn(k+1).at = spawn(k).at + fight.median + offsetMid`
 
-The recurrence must be clamped to the present. If cycle k's band has elapsed with no anchor,
-the objective cannot have resolved before now, so:
+That conditional matters, and an earlier version got it wrong. Declaring the first post-anchor
+step `Exact` was inherited from a model in which offsets were scalars. On Alterac Pass, offset
+1:50 to 2:30, an anchor at 6:00 puts the next spawn somewhere in 7:38 to 8:18. Rendering that as
+one green number while speaking "cavalry in two minutes" is a claim that can be forty seconds
+wrong, made at the moment the player has most reason to trust it. Twelve maps have scalar offsets
+and do collapse to `Exact`; Cursed Hollow, Garden of Terror and Alterac Pass do not.
+
+##### Advancing the chain as the clock moves
+
+`project` must decide what happens when `now` overtakes a projected spawn. Leaving that implicit
+produced a real defect.
+
+**Rule:** when `now` passes a cycle's `high` with no anchor, the app presumes that cycle occurred,
+advances the cycle index, and adds a step to `n`, so the band widens accordingly.
+
+**The present clamp must widen the estimate, never narrow it.** The information at `now > at` is
+"no resolution has been reported yet", which pushes the near end out *and* removes any upper
+bound:
 
 ```
-low = max(low, now + offset)
+low  = max(at - spread(n), now + offsetMin)
+high = max(at + spread(n), now + offsetMax)
+at   = clamp(at, low, high)
 ```
 
-Without this the app offers a spawn time the clock already rules out, which is principle 1
-violated in precisely the state principle 3 claims to handle. The clamp is one line and it also
-feeds `validUntil`.
+Clamping `low` alone inverts the interval. Worked through on Braxis Holdout with offset 130s,
+`stepSpread` 30 and an anchor at 5:00: `spawn(3).at` is 630 with a band of 600 to 660. At
+`now = 640` a one-sided clamp gives `low = 770` against an unmoved `high = 660`. The countdown
+reads minus ten and keeps falling, the band renders backwards, and because the width is
+*negative* it never exceeds `maxUsefulBand`, so the event stays amber and confident-looking
+instead of dropping to `Unknown`. The safety net was defeated by its own sign, roughly five
+minutes after one missed tap.
 
-A stale anchor is bounded by the same rule. Tapping once at 4:10 and never again does not let
-the chain project confidently into minute fifteen: each unanchored step widens, the clamp
-pushes the floor forward, and the chain reaches `Unknown` on schedule.
+With both ends clamped the interval stays ordered, retains at least `2 * stepSpread` of width, and
+grows past `maxUsefulBand` on schedule, so the chain reaches `Unknown` and the UI says "objective
+timing lost".
 
-When every projected cycle of a track is `Unknown`, that is a state the UI shows deliberately
-rather than silently. The dominant countdown reads "objective timing lost" with the anchor
-button offered prominently. A blank countdown reads as a bug.
+The clamp is evaluated in `view`, not in `project`. Once it binds, `low` is a continuous function
+of `now`, so leaving it in `project` would collapse `validUntil` to `now` and force a projection
+every tick, which is the behaviour that section exists to prevent.
+
+When every projected cycle is `Unknown`, the UI shows that deliberately rather than silently: the
+dominant countdown reads "objective timing lost" with the anchor button offered prominently. A
+blank countdown reads as a bug.
 
 #### How the band grows
 
@@ -343,8 +444,13 @@ interface FightEstimate {
 ```
 
 These come from the published guides, from timing a handful of replays by hand, or from
-judgement. They do not need to be precise, because they only govern how fast the app admits it
-is unsure, and admitting uncertainty slightly early is the safe direction to be wrong.
+judgement. They do not need to be precise, because they only govern how fast the app admits it is
+unsure, and admitting uncertainty slightly early is the safe direction to be wrong.
+
+`spreadSeconds: 0` is legal and meaningful. Some phases end on a deterministic timer rather than
+on a fight: Sky Temple's temples fire for a fixed 40 seconds, Hanamura's payload barrage lasts a
+fixed 15. Forcing those through a spread would manufacture an amber "due soon" for a number the
+app actually knows. A zero-width `Estimated` collapses to `Exact`, subject to provenance.
 
 The midpoint accumulates linearly, because expected values add. The spread does not.
 
@@ -379,14 +485,33 @@ a real number later.
 When band width exceeds `maxUsefulBand` (start at 120 seconds), confidence drops to `Unknown`
 and every later cycle does too.
 
-##### Expected behaviour, as a target to check against
+##### Expected behaviour, and what it means for the product
 
-The intended shape, for a player who never taps once: objective timing stays useful for roughly
-four to six cycles and then admits it has lost the thread, somewhere in the region of ten to
-eighteen minutes depending on the map. Not going quiet early, and not bluffing to the end.
+Working the model through with real numbers gives a blunter answer than an earlier draft of this
+section claimed, and the model is right.
+
+**Without any taps, objective timing is good for roughly the first ten minutes**, which is about
+three unanchored cycles at a generous `stepSpread` of 25 seconds. After that the band exceeds
+`maxUsefulBand` and the chain honestly reports that it has lost the thread. Reaching five or six
+cycles would require a `maxUsefulBand` near 170 seconds, and "sometime in the next three minutes"
+is not coaching.
+
+That reframes the interaction. "Only starting the match is required input" is true in the sense
+that nothing breaks without taps, and misleading as a description of how the app is meant to be
+used. **The re-anchor tap is a core interaction, not an optional refinement.** Four to six taps a
+match keep objectives accurate throughout; zero taps give a good first ten minutes and then a
+quiet objective slot, while waves, camps, tiers and the death timer continue unaffected.
+
+Both halves are worth stating plainly to the player during onboarding, and the pre-step-1 spike
+should test whether people actually tap, not only whether they like the voice.
 
 Maps with a fast objective cadence and wide offset ranges degrade soonest. Cursed Hollow is the
-worst case in the pool, on both counts at once.
+worst case in the pool, on both counts at once: past `possibleFromCycle: 3` its union offset is
+0:50 to 2:40, which alone is a 110 second band, so even a fresh anchor leaves it near the
+threshold and one unanchored step exceeds it. Cursed Hollow therefore has little useful objective
+coaching in the second half of a match regardless of tapping. The fix is the outcome-naming
+control described under the input gate, which would collapse the union to one branch. It is
+deferred, and this is the map that would justify building it.
 
 A worked example, to check an implementation against rather than to treat as a specification.
 Take a `stepSpread` of 25 seconds and `r = 0.3`:
@@ -462,13 +587,33 @@ prerequisite.
 vanishes from the UI, and it does not remove the control that could correct it. See "Input
 surface".
 
-#### Waves and tiers
+#### Waves, tiers and the death timer
 
-Waves are a pure function of game time on a 30 second cadence and are always `Exact`.
+These three are the floor the app never drops below on an unrecognised map, so they derive from
+game-wide constants rather than from `MapDefinition`. Those constants currently have no home, and
+authoring them is an explicit item in build order step 1:
 
-Tiers derive from an estimated level curve. A tier the team has already reached may be `Exact`,
-since an anchor could establish it; future tiers are always `Estimated`, because reaching level
-13 depends on soak nobody can observe. No anchor supplies a future tier.
+```ts
+// packages/maps/src/game-constants.ts
+export const firstWaveSeconds: Seconds        // waves are not at 0:00
+export const waveIntervalSeconds = 30
+export const levelCurve: { level: number; typicalSeconds: Seconds; spreadSeconds: Seconds }[]
+export const deathTimerByLevel: { level: number; seconds: Seconds }[]
+```
+
+Waves are a pure function of game time from `firstWaveSeconds` on a 30 second cadence, and are
+always `Exact`.
+
+Tiers derive from `levelCurve`, which is an estimate because team level depends on soak nobody can
+observe. A tier already reached may be `Exact` if an anchor ever establishes it; future tiers are
+always `Estimated`.
+
+**The death timer is not `Exact`, and earlier drafts said it was in three places.** It is a step
+function of team level, and team level is `Estimated`. Near a breakpoint that makes it simply the
+wrong number, rendered green, in the one place the provenance clamp is not allowed to intervene:
+a direct principle 1 violation. So `deathTimerSeconds` carries a `Confidence` inherited from the
+level estimate, and it has a stable event id so cues can name it in `basedOn` and the confidence
+filter applies to it like anything else.
 
 #### The provenance clamp
 
@@ -486,7 +631,13 @@ Specified, because "downgrade a bit" is not implementable:
   itself, not in human behaviour). Applies to objective and camp events only.
 - `unknown` drops map-derived events entirely.
 
-Waves and tiers are exempt at every provenance level. They derive from game-wide rules rather
+Two cases that were previously silent. An event already `Estimated` on a non-`verified` map has
+its band widened by `clampBandSeconds` rather than replaced, because the two uncertainties are
+independent and the map constant being unverified does not remove the behavioural spread. And
+`Belief` is clamped too: a camp's pre-first-spawn `Known(false)` is map-derived, so under
+`unknown` provenance it becomes `Stale` rather than a confident negative.
+
+Waves, tiers and the death timer are exempt at every provenance level. They derive from game-wide rules rather
 than per-map constants, so a wrong map file cannot make them wrong. Read literally, an
 unexempted clamp would downgrade waves, which is nonsense.
 
@@ -501,13 +652,21 @@ work and it unblocks the entire exact path without waiting for the corpus.
 Re-running `project` every tick is unnecessary, because event times do not move as the clock
 advances; only remaining time does, and that is subtraction. But a projection does expire.
 
-`validUntil` is the earliest of:
+`validUntil` is the earliest candidate **strictly greater than `now`**, falling back to
+`now + 30` when none is. Without the strictness it is permanently in the past once any camp goes
+`Stale`, and the memo then recomputes every tick, defeating the whole section.
+
+Candidates:
 
 - the end of the wave block already emitted,
-- for each objective track, the `high` of its earliest `Estimated` cycle,
+- the `high` of the earliest `Estimated` objective cycle,
+- the `at` of the earliest `Exact` objective cycle, so a spawn forces a recompute,
 - for each camp, `availableSince + decaySeconds` and `availableSince + staleSeconds`,
 - any `nextUp` respawn boundary,
-- the `now + offset` clamp becoming binding on any track.
+- on a suppression map, the start and end of the objective phase's estimated resolution band,
+  since both change every camp's `standing`.
+
+The present clamp is deliberately not a candidate. It lives in `view`.
 
 Belief decay is defined at thresholds, not continuously, precisely so this value exists. A
 continuously falling confidence would make `validUntil` meaningless and force a projection
@@ -576,26 +735,34 @@ at thirty cues that is otherwise sixty to a hundred magic numbers in engine sour
 interface Cue {
   id: string                              // indexes into CueText
   appliesTo?: string[]
-  evaluate(ctx: AdviceContext): CueMatch | null
+  thresholds: readonly string[]           // threshold keys this cue reads
+  evaluate(ctx: AdviceContext, t: Record<string, number>): CueMatch | null
 }
 
 interface CueMatch {
   key: string                             // 'stall-camp:siege-top:cycle-3'
   basedOn: string[]                       // TimedEvent ids and camp ids this rests on
+  timeFrom?: string                       // which basedOn entry supplies {time}; defaults to [0]
   score?: number
   subject?: string
 }
 ```
 
+`timeFrom` exists because `basedOn` is a list and multi-fact cues are the motivating case. Without
+it, which fact supplies the spoken time is undefined precisely where it matters.
+
 `basedOn` is what makes the confidence filter implementable. Arbitration resolves those ids
-back to their `Confidence` or `Belief` and applies the rule: a prompt may fire only if every
-fact it rests on is at least `Estimated` or `Likely`, and never if any is `Unknown` or `Stale`.
+back to their `Confidence` or `Belief` and applies the rule: a prompt may fire only if no fact it
+rests on is `Unknown` or fails `isClaimable`. A cue additionally states its own value requirement
+for camp facts, which is where `isAvailable` is used, because "we may speak about this camp" and
+"this camp is standing" are different questions.
 A cue cannot fabricate its own confidence, and a multi-fact cue like `stall-camp`, which rests
 on both a camp state and an objective spawn, is handled correctly rather than by a single scalar
 that cannot express it.
 
 `spoken` text contains `{time}`, substituted by `describeTime(confidence, at, now)` at render
-time. No cue writes a time phrase itself, so no cue can speak an estimated event as though it
+time. `at`, `low` and `high` are absolute game seconds; the subtraction to a relative phrase or a
+displayed range happens in `view`. No cue writes a time phrase itself, so no cue can speak an estimated event as though it
 were exact.
 
 ### Priority
@@ -618,14 +785,36 @@ caller:
 ```ts
 interface CueState {
   matchId: string
-  fired: Record<string, Seconds>          // CueMatch.key -> when it fired
-  lastFiredByCue: Record<string, Seconds> // Cue.id -> when it last fired anything
+  fired: Record<string, { at: Seconds; basedOn: string[] }>   // CueMatch.key -> when, and on what
+  lastFiredByCue: Record<string, Seconds>                     // Cue.id -> last fire of anything
+  perCue: Record<string, unknown>                             // small per-cue scratch
 }
 
 function evaluateCues(
-  cues: Cue[], ctx: AdviceContext, state: CueState,
+  cues: Cue[],
+  text: Record<string, CueText>,
+  settings: PromptSettings,
+  ctx: AdviceContext,
+  state: CueState,
 ): { active: Prompt[]; state: CueState }
 ```
+
+Three things about that signature are deliberate and were wrong in an earlier draft.
+
+`text` is a parameter rather than an import. `CueText` lives in `packages/maps` and the dependency
+runs `maps -> engine`, so `engine` cannot import it. Arbitration needs `tier` and `basePriority`
+to filter and sort, and the rendered `Prompt` needs `display` and `spoken`, so the table is passed
+in.
+
+`settings` is a parameter for the same reason it is absent from `AdviceContext`: verbosity governs
+what is spoken, and arbitration is the only thing that should see it.
+
+`fired` stores `basedOn` alongside the timestamp. The re-fire rule clears fired keys whose
+`basedOn` includes a moved event, which is not expressible against a key-to-timestamp map.
+
+`perCue` is a small scratch slot, needed because `stall-camp` must remember the camp it named last
+cycle in order not to repeat it. Cues stay stateless functions; the state travels with the caller
+like everything else.
 
 `fired` keyed by `CueMatch.key` gives once-per-occurrence semantics. `lastFiredByCue` keyed by
 `Cue.id` gives the cooldown, which is what stops a cue chattering across different occurrences.
@@ -703,16 +892,22 @@ To have mercenaries arrive as the objective starts:
 startCaptureAt = objectiveSpawn - travelSeconds - clearSeconds - approachSeconds
 ```
 
-`approachSeconds` is the walk to the camp and was missing, making the advice systematically
-late. `travelSeconds` is measured to the objective, not to the lane generally, because the two
-differ and the objective is where the pressure is meant to land. On maps where the objective
-location changes per cycle, `travelSeconds` is per track rather than a single camp constant.
+`approachSeconds` is the walk to the camp and was missing, making the advice systematically late.
+`travelSeconds` is measured to the objective, not to the lane generally, because the two differ
+and the objective is where the pressure is meant to land.
 
-Camp choice is the highest `pressureValue` among camps whose `standing` is at least `Likely`,
-ties broken by camp id. A static argmax names the same camp every cycle of every match, which is
-`spec.md`'s "speech becomes noise" risk with a deterministic cause, so `pressureValue` is per
-objective track rather than per map, and the cue does not fire for consecutive cycles of the
-same track unless the chosen camp differs.
+Camp choice is the highest `pressureValue` among camps satisfying `isAvailable`, ties broken by
+camp id. A static argmax would name the same camp every cycle of every match, which is `spec.md`'s
+"speech becomes noise" risk with a deterministic cause.
+
+`pressureValue` and `travelSeconds` are therefore **indexed by cycle**, with the last entry
+repeating. Not per map, and not per track: under one chain per map "per track" is identical to
+"per map" and cures nothing, which was residue from the rejected multi-track model. The objective's
+location genuinely moves between cycles on Sky Temple, Towers of Doom and Warhead Junction, so a
+single camp constant cannot be right for all of them.
+
+`stall-camp` additionally does not fire on consecutive cycles unless the chosen camp differs. That
+is what `CueState.perCue` remembers.
 
 ### Layout
 
@@ -758,7 +953,9 @@ CI validates more than shape:
 - Every map's `ObjectiveModel` has a `RespawnRule` of a kind the objective generator
   implements, and every named outcome in an `afterResolution` rule has a min and a max.
 - `provenance` is present, and `verified` requires a corpus reference or a hand-timing note.
-- Every `CueText` id matches a registered cue, and every threshold a cue reads exists.
+- Every `CueText` id matches a registered cue, and every key in a cue's declared `thresholds`
+  exists in its `CueText`. The declaration is what makes this checkable; reading thresholds by
+  string key inside arbitrary TypeScript would leave the check as a note someone has to remember.
 - The count of cues using `appliesTo` stays under budget.
 
 The fallback definition covers unrecognised maps: waves, tiers and the death timer, with
@@ -794,16 +991,23 @@ by both.
 Three write paths for one fact caused real ambiguity. There is now one authority.
 
 The `MatchStart` anchor is the session's start time. `ServerMessage.state.startedAt` mirrors it
-for convenience on join; the reducer derives from the anchor.
+for convenience on join and never wins; the reducer derives from the anchor.
 
-Local clock offset is separate and never published. Correcting your own late tap must not
-re-time your teammates, so the clock adjust control writes a local `clockOffsetSeconds` stored
+The manual adjustment is separate and never published. Correcting your own late tap must not
+re-time your teammates, so the clock adjust control writes a local `userAdjustSeconds` stored
 outside the anchor set. Only an explicit "fix the session clock" action in the overflow menu
 rewrites the shared `MatchStart` anchor, and it says so plainly.
 
 ```
-gameTime = (Date.now() - matchStartWallClock) / 1000 + clockOffsetSeconds
+gameTime = (Date.now() + peerSkewMillis - matchStartWallClock) / 1000 + userAdjustSeconds
 ```
+
+Two distinct offsets, and conflating them was a real gap. `peerSkewMillis` is the device clock
+difference negotiated with the Durable Object on `hello`, and it must be applied to the local
+derivation and not only when publishing: `matchStartWallClock` arrives in the host's epoch, so a
+phone ten seconds fast otherwise runs ten seconds ahead of its team for the whole match, which is
+a third of a wave on a 30 second cadence. `userAdjustSeconds` is the manual nudge, is local, and
+is never published.
 
 Recomputed from wall clock on every 250ms tick rather than incremented, so a throttled or
 skipped tick self-corrects instead of falling permanently behind. That matters because a phone
@@ -817,9 +1021,13 @@ type MatchAction =
   | { type: 'ANCHOR_SET'; anchor: Anchor }
   | { type: 'ANCHOR_CLEARED'; key: string }        // undo of a first write
   | { type: 'ANCHORS_REPLACED'; anchors: Anchor[] }
-  | { type: 'CLOCK_OFFSET_SET'; seconds: Seconds }
+  | { type: 'USER_ADJUST_SET'; seconds: Seconds }
   | { type: 'MATCH_ENDED' }
 ```
+
+`ANCHOR_SET` applies last-write-wins on `wallClock`, the same rule the relay uses. Without it
+stated, a late-delivered peer anchor overwrites a newer local one on the client, and the test for
+out-of-order peer arrival has nothing to assert against.
 
 `ANCHOR_CLEARED` exists because undoing the first anchor of a key means removing an entry, and
 "there is no append path" said nothing about deletion. Removal is the third legal operation on
@@ -862,8 +1070,13 @@ reconnection triggers a state sync rather than a replay of missed messages.
 
 ### Persistence
 
-`localStorage` for settings and recent maps. No match state is persisted; a match outliving a
-reload is recovered by rejoining the session or restarted.
+`localStorage` for settings and recent maps, **and for the live match**: the anchor set, `matchId`,
+`mapId` and `matchStartWallClock`, written on every anchor change.
+
+An earlier draft persisted no match state and relied on rejoining the session to recover. That is
+circular for build steps 1 to 4, where no relay exists, and iOS routinely evicts a backgrounded
+PWA on a phone that sits beside a keyboard for twenty minutes. Persisting is a few lines and
+contradicts nothing. On load, a stored match younger than 45 minutes offers to resume.
 
 ## Input surface
 
@@ -874,16 +1087,22 @@ replaces.
 | Control | Where | Writes | Frequency |
 | --- | --- | --- | --- |
 | Start match | setup | `MatchStart` | once, required |
-| Objective ended | live, primary | `ObjectiveEnded` | 4-6, optional |
+| Objective ended | live, primary | `ObjectiveEnded` | 4-6; see below |
 | Camp chip | live, rail | `CampTaken` | opportunistic |
 | Camp is up | live, on a stale chip | restores the camp's belief | rare |
 | Clock adjust | live, header | local offset | rare |
 | End match | live, header | `MATCH_ENDED` | once |
 | Undo | live, transient | reverts last anchor | rare |
 
-Only `Start match` is required.
+Only `Start match` is required. But see "Expected behaviour": without objective anchors the app
+is good for roughly the first ten minutes and then goes quiet on objectives, so "optional"
+describes what does not break rather than how the app is meant to be used.
 
-Camp chips are the rail entries, tappable while a camp's `standing` is at least `Likely`. A
+The objective control's `offer()` returns `null` on a map whose `ObjectiveModel` is
+`kind: 'none'`. Offering it there would write an anchor no generator reads, failing the input
+gate's own rule 2.
+
+Camp chips are the rail entries, tappable while `isAvailable` holds. A
 `Stale` camp still shows a chip: it reads "camp?" and offers both "taken" and "camp is up",
 because decay must not remove the only control that could correct it. An earlier version made
 `Stale` mean no chip, which deadlocked camp coaching for the rest of the match after one missed
@@ -891,17 +1110,30 @@ tap, in exactly the solo case the documentation identifies as most likely.
 
 Rail slot allocation is fixed rather than emergent, because the rail serves two purposes over
 four slots. Slot 1 is always the next objective, slot 2 the next wave, slots 3 and 4 the two
-highest-`pressureValue` camps that are `Likely` or `Stale`, falling back to the next tier when
-fewer camps qualify. Without a stated rule, a map with four camps up shows no upcoming events at
+highest-`pressureValue` camps satisfying `isClaimable`, falling back to the next tier when fewer
+qualify. Without a stated rule, a map with four camps up shows no upcoming events at
 all.
+
+Camps that do not win a rail slot are reachable through an **overflow camp list**, opened from the
+header and using the registry's existing `'overflow'` placement. Without it, a typical map with
+five or six camps leaves three or four with no control anywhere in the app, which contradicts the
+reasoning that justified keeping chips on `Stale` camps. A boss is the common casualty, since its
+long `staleSeconds` is exactly what makes it lose to two siege camps on `pressureValue`.
+
+Empty slots are defined rather than left to render blank. On a map whose `ObjectiveModel` is
+`kind: 'none'`, slot 1 reads "no objective timer on this battleground". On a `provenance: 'unknown'`
+map, where the clamp drops map-derived events, slots 1, 3 and 4 collapse and the rail shows the
+wave and the next tier.
 
 Tap targets are a minimum of 44 by 44 CSS pixels, which the earlier 10px text in a 60px slot did
 not meet. These are pressed without looking, mid-game. The rail's chromelessness is a virtue for
 reading and a liability for tapping, and the tap target wins.
 
-Undo covers the one way input actively hurts. It reverts the last anchor write, including
-clearing an entry that had no previous value, and it publishes a revert to the relay so peers do
-not keep the bad anchor. Its window is 60 seconds, not "a few", because a mistapped objective is
+Undo covers the one way input actively hurts. It reverts the last anchor write, which has two
+cases: restoring a previous value, or deleting an entry that had none. Both publish to the relay
+as `revert { key, restore? }`, so peers converge. A `revert` carrying only a key could express
+deletion alone, which would leave the undoing client with a restored value and every peer with
+nothing. Its window is 60 seconds, not "a few", because a mistapped objective is
 noticed when the countdown looks wrong half a minute later, not within a transient. One level
 only; there is no undo stack.
 
@@ -941,6 +1173,13 @@ interface AnchorControl {
   appliesTo?: string[]
   offer(ctx: AdviceContext): ControlOffer | null
 }
+
+interface ControlOffer {
+  label: string
+  subject?: string                       // camp id, cycle index, whatever the anchor needs
+  emphasis?: 'normal' | 'urgent'
+  secondary?: { label: string; action: 'clear' | 'restore' }   // the "camp is up" affordance
+}
 ```
 
 `offer()` returning `null` mirrors a cue returning `null`. The registry owns what is offered;
@@ -964,13 +1203,13 @@ WS   /session/:code
 type ClientMessage =
   | { v: 1; t: 'hello'; name?: string }
   | { v: 1; t: 'anchor'; anchor: Anchor }
-  | { v: 1; t: 'revert'; key: string }
-  | { v: 1; t: 'match'; mapId: string; startedAt: Millis }
+  | { v: 1; t: 'revert'; key: string; restore?: Anchor }
+  | { v: 1; t: 'match'; mapId: string }
 
 type ServerMessage =
   | { v: 1; t: 'state'; mapId: string; startedAt: Millis; anchors: Anchor[]; peers: number }
   | { v: 1; t: 'anchor'; anchor: Anchor }
-  | { v: 1; t: 'revert'; key: string }
+  | { v: 1; t: 'revert'; key: string; restore?: Anchor }
   | { v: 1; t: 'peers'; count: number }
 ```
 
@@ -978,8 +1217,19 @@ The object holds a map keyed by `${type}:${subject}`, mirroring the engine. Writ
 last-write-wins on `wallClock`, which suffices because an anchor is a statement about a fact
 rather than an increment.
 
-Sessions are ephemeral and expire after 30 minutes of inactivity. Host disconnection does not end
-a session, since the object outlives any participant.
+**Anchors live in `ctx.storage`, not in an in-memory `Map`.** This is the one place where the
+named technology and a naive design are actually incompatible. WebSocket hibernation, which is
+the reason `partyserver` was chosen, evicts the object from memory while sockets stay open and
+re-runs the constructor on wake. In-memory state does not survive, so a mid-match reconnect would
+return a `state` message with zero anchors and silently reset the whole team's clock, in a system
+whose own tests assert state sync on join.
+
+Sessions expire after 30 minutes of inactivity, implemented with a Durable Object alarm rather
+than a timer, for the same reason. Host disconnection does not end a session, since the object
+outlives any participant.
+
+`t: 'match'` carries the map selection only and never wins on time. The `MatchStart` anchor is the
+single authority for when the match began; `state.startedAt` is a convenience mirror.
 
 ### Clock agreement between peers
 
@@ -1047,14 +1297,27 @@ The cases that matter:
 - Band growth across unanchored cycles, specifically that spread grows sub-linearly. A regression
   to linear accumulation is the most likely wrong implementation and silently costs several
   usable cycles.
-- The `now + offset` clamp, including that a long-stale anchor never projects a spawn the clock
-  rules out.
-- Collapse to `Exact` on an anchor mid-chain, and that later cycles re-derive from it.
+- The two-sided present clamp: after an estimated band elapses with no anchor, assert
+  `low <= at <= high` and that confidence has become `Unknown`, not merely that the numbers moved.
+  A one-sided clamp inverts the interval and defeats the width test by its own sign.
+- Chain advancement: `now` passing a cycle's `high` advances the cycle index and adds a step.
+- An anchor collapsing to the tightest band the offset permits, asserting `Exact` only on
+  scalar-offset maps and an offset-width band on the three ranged ones.
 - Downgrade to `Unknown` past `maxUsefulBand`, and that the UI receives a distinguishable
   "timing lost" state rather than a null.
 - Anchor overwrite per key, out-of-order arrival from a peer, and `ANCHOR_CLEARED`.
-- Cycle identity: two `ObjectiveEnded` anchors for different cycles coexist; a repeat tap for the
-  same cycle overwrites.
+- Cycle identity derived from the anchor count: two anchors for different cycles coexist, a
+  repeat tap for the same cycle overwrites, and two clients with different projections but the
+  same anchor set agree on the index.
+- `possibleFromCycle` at both boundaries, since an off-by-one produces false precision.
+- `isAvailable` rejecting `Known(false)`, which an "at least Likely" ordering would admit.
+- Suppression expiring to `Stale` rather than pinning camps to `Known(false)` for the match.
+- The death timer carrying the level estimate's confidence rather than rendering `Exact`.
+- `validUntil` always strictly greater than `now`, including once every camp is `Stale`.
+- `spreadSeconds: 0` collapsing a zero-width `Estimated` to `Exact`.
+- An `ObjectiveEnded` anchor re-phasing a `fixedInterval` map.
+- The reducer applying last-write-wins on `wallClock` for a late peer anchor.
+- A resumed match rehydrating from `localStorage` with no relay present.
 - Camp belief decaying from `availableSince` in both derivations, anchored and unanchored.
 - Per-camp thresholds, specifically that a boss does not go `Stale` in a normal match.
 - The provenance clamp at every value, including that waves and tiers are exempt.
@@ -1081,8 +1344,9 @@ The cases that matter:
 given, an anchor arriving late, a second match started immediately after the first, and the relay
 dropping mid-match.
 
-`relay` gets last-write-wins convergence, state sync on join, revert propagation, and clock offset
-exchange.
+`relay` gets last-write-wins convergence, state sync on join after a hibernation eviction,
+`revert` propagation in both its restore and delete forms, and a joining client with a skewed
+device clock computing the same game time as the host.
 
 ## Decisions and their reasons
 
@@ -1153,8 +1417,11 @@ revisiting before proceeding.
 
 ## Build order
 
-1. `engine` types, `project`, the objective phase chain with every `RespawnRule` variant, the
-   `now` clamp, the band model, the provenance clamp. Tests throughout. No UI.
+1. `engine` types, `project`, the objective phase chain with every `RespawnRule` variant, chain
+   advancement and the two-sided present clamp, the band model, the provenance clamp, and the
+   `isAvailable` / `isClaimable` predicates. Plus `game-constants.ts`: the wave cadence, the level
+   curve and the death-timer curve, which the floor depends on and which no other step provides.
+   Tests throughout. No UI.
 2. `maps` schema plus two or three battlegrounds, hand-authored from the validated table with
    `provenance: 'published'`, and one of them hand-timed in custom games and marked `verified`
    so the exact path is reachable.

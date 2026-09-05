@@ -19,11 +19,11 @@ See `spec.md` for the design these are drawn from.
 | 1 | Objective timers per battleground | v1 | First spawn is exact; later cycles need an anchor or fall back to a band |
 | 2 | Mercenary camp timers | v1 | Initial spawn exact; respawn needs a `CampTaken` anchor |
 | 3 | Boss camp timers | v1 | Same anchor model as camps |
-| 4 | Minion wave timers | v1 | 30s cadence, always exact, no input |
-| 5 | Death timer length readout | v1 | Current cost of dying, from the game-time curve. Always exact |
+| 4 | Minion wave timers | v1 | Fixed cadence from a game-wide constant, always exact, no input |
+| 5 | Death timer length readout | v1 | Current cost of dying. Derives from the level curve, so it carries the level estimate's confidence and is not `Exact` |
 | 6 | Talent tier and level estimate | v1 | Always `Estimated`; depends on soak quality |
 | 7 | Confidence-tiered display | v1 | Exact / Estimated / Unknown, colour-coded throughout |
-| 8 | Re-anchor tap | v1 | Overwrites rather than accumulates, so it cannot drift |
+| 8 | Re-anchor tap | v1 | Overwrites rather than accumulates, so it cannot drift. Core interaction: objective timing degrades to `Unknown` after roughly ten minutes without it |
 | 9 | Graceful degradation on unknown maps | v1 | Falls back to waves, tiers and the death timer instead of failing |
 
 ## Coaching

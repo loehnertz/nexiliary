@@ -49,7 +49,8 @@ runs one clock.
 Nothing before the match (no draft support) and nothing after it (no review). The app's job
 starts at spawn and ends when the match does.
 
-All 15 battlegrounds are the target. Five maps currently have no published timings at all.
+All 15 battlegrounds are the target, and `architecture.md` carries a table validated against every
+one of them.
 
 Degradation is graded rather than all-or-nothing, and it follows the map's provenance. A map
 with verified timings renders `Exact`. A map seeded from guides or from the old replay archive
@@ -66,16 +67,6 @@ obligation that replay parsing emit a neutral match timeline comes from it.
 A desktop companion running on the gaming PC (screen OCR of the in-game clock, global
 hotkey re-anchoring, replay folder watching, speech output routed into voice chat). A
 Discord bot that joins the team voice channel and speaks the prompts.
-
-### Replay parsing in v1
-
-Replay parsing stays in v1, but as an offline development tool rather than a shipped
-feature. It has no UI, does not run in the browser, and `heroprotocol` is not in the app
-bundle. Its job is to derive verified objective and camp timings and to calibrate the
-estimation bands from a corpus of matches, emitting `maps` data files.
-
-This is not optional. Five battlegrounds have no published timings at all and the ten that
-do have contradictory sources, so the live feature cannot ship accurate numbers without it.
 
 ### Out of scope
 
@@ -100,33 +91,20 @@ That is what makes the review cheap to add later rather than something to build 
 
 ### Anchors
 
-An anchor pins a known real-world moment to a known game fact.
+An anchor pins a known real-world moment to a known game fact. Anchor types, key structure and
+the occurrence index are defined in `architecture.md`; they are not duplicated here, because two
+copies of a type in two documents drift.
 
-```ts
-type AnchorType = 'MatchStart' | 'ObjectiveEnded' | 'CampTaken'
-
-interface Anchor {
-  type: AnchorType
-  subject?: string        // camp id, for CampTaken
-  gameTimeSeconds: number
-  wallClock: number
-  source: string          // 'local' | 'peer' | 'ocr' | 'hotkey' | 'replay'
-}
-```
-
-A new anchor replaces the previous anchor for the same type and subject. The engine never
+A new anchor replaces the previous anchor for the same key. The engine never
 branches on `source`; it is metadata for display and debugging only. That is the seam that
 makes the deferred desktop companion additive rather than invasive: it becomes another
 publisher of the same events.
 
 ### Confidence
 
-```ts
-type Confidence =
-  | { kind: 'Exact' }
-  | { kind: 'Estimated'; lowSeconds: number; highSeconds: number }
-  | { kind: 'Unknown' }
-```
+`Confidence` and `Belief` are defined in `architecture.md`. `Confidence` answers when an event
+happens; `Belief` answers whether something is true right now. They are deliberately different
+types.
 
 Confidence propagates along the chain of derived events. An `ObjectiveEnded` anchor makes
 the next objective spawn `Exact`. The one after that is `Estimated` with a band derived from
@@ -170,17 +148,9 @@ soaks. Presenting a tier countdown as exact would violate principle 1.
 Maps are data, not code. Adding or correcting a battleground is a data change validated by
 schema tests in CI, never a logic change.
 
-```ts
-type Provenance = 'verified' | 'archive' | 'published' | 'unknown'
-
-interface MapDefinition {
-  id: string
-  name: string
-  provenance: Provenance            // governs the confidence its timings may claim
-  objective: ObjectiveModel         // one phase chain, or 'none'
-  camps: CampDefinition[]
-}
-```
+The `MapDefinition` and `ObjectiveModel` types live in `architecture.md`. What matters here is
+what a map carries: a provenance value governing what confidence its timings may claim, one
+objective phase chain or none at all, and a set of camps with the metadata the cues read.
 
 A map has one objective phase chain. Within a phase one or more instances activate: two temples
 on Sky Temple, two or three altars on Towers of Doom, three cavalry on Alterac Pass, one tribute
@@ -496,20 +466,13 @@ what happens when an anchor never arrives.
 
 ## Milestones
 
-1. `engine` and `maps` with one battleground, fully tested. No UI. Seed timings from
-   published guides so development is not blocked on verification.
-2. Live view on phone and desktop, manual start, re-anchor tap, speech. Single map.
-3. Offline `replay` tool: derive verified timings and calibrate estimation bands from a
-   corpus, emitting `maps` data files.
-4. Remaining battlegrounds, verified by step 3.
-5. Relay and shared sessions.
+`architecture.md` carries the build order and is the authority. A copy here would drift, and did:
+this list previously had the replay tool as step 3 with the maps "verified by step 3", which a
+linear reader would have followed into building an MPQ parser before authoring fourteen maps.
 
-Steps 1 through 4 have no relay dependency and work as a purely local app, so the relay can
-slip without blocking anything. Step 3 gates shipping, not development: milestone 2 can be
-built and tuned against seeded data.
-
-`architecture.md` carries a finer-grained build order that supersedes this list for
-implementation purposes.
+In outline: engine and game constants, then one or two maps, then the live app, then the rest of
+the maps, then the relay. Before any of it, a one-day throwaway spike to test whether the spoken
+coaching is actually wanted.
 
 ## Risks
 
