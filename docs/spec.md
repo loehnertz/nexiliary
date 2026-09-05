@@ -1,7 +1,12 @@
 # nexiliary design
 
 Date: 2026-09-05
-Status: approved, ready for implementation planning
+Status: approved. Next step is a software architecture design pass, before any
+implementation.
+
+Companion documents: `features.md` for the full feature catalogue including everything
+deferred and rejected, `research.md` for game timing data and technical constraints,
+`design/live-view-mockup.html` for the approved visual direction.
 
 ## Purpose
 

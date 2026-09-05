@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nexiliary live view mockup</title>
+<!--
+  Approved visual direction for the live view. Static mockup, no logic.
+  Kept as an implementation reference: palette, frame construction, geometry and
+  type are all here. See ../spec.md "Visual design".
+
+  Reproduces the Heroes of the Storm interface language in CSS only. No Blizzard
+  assets are used.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --void:#0a0714; --panel-top:#2e2254; --panel-bot:#110b22;
+    --edge:#9688e0; --edge-dim:#5a4e96;
+    --ink:#e9e6f7; --ink-dim:#a99fdc; --ink-faint:#8f86c4;
+    --exact:#4ade80; --estimated:#f5b942; --unknown:#5d5590;
+    --ally:#58b8f0; --enemy:#e0456f;
+    --bevel:11px;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:var(--void); color:var(--ink);
+         font-family:'Rajdhani', system-ui, sans-serif;
+         display:flex; flex-direction:column; align-items:center; gap:22px; padding:40px 16px; }
+  h1 { font-size:15px; font-weight:600; letter-spacing:.2em; text-transform:uppercase;
+       color:var(--ink-dim); margin:0; }
+
+  /* Frame: outer paints the stroke, inner paints the fill, both bevel-cut.
+     drop-shadow is used instead of box-shadow because clip-path clips box-shadow. */
+  .frame { background:linear-gradient(180deg, rgba(150,136,224,.72), rgba(90,78,150,.42));
+           padding:1.5px; filter:drop-shadow(0 0 16px rgba(96,74,190,.42));
+           clip-path:polygon(var(--bevel) 0,100% 0,100% calc(100% - var(--bevel)),
+                             calc(100% - var(--bevel)) 100%,0 100%,0 var(--bevel)); }
+  .inner { background:
+             url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='24'%3E%3Cpath d='M7 0h14l7 12-7 12H7L0 12z' fill='none' stroke='%239b8ce8' stroke-opacity='.075'/%3E%3C/svg%3E"),
+             linear-gradient(180deg, var(--panel-top), var(--panel-bot));
+           clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),
+                             calc(100% - 10px) 100%,0 100%,0 10px); }
+
+  .phone { width:270px; }
+  .desktop { width:560px; }
+
+  header { display:flex; justify-content:space-between; align-items:baseline; padding:11px 15px 9px;
+           font-size:12px; font-weight:600; letter-spacing:.15em; text-transform:uppercase; color:var(--ink-dim); }
+  header .clock { font-size:17px; font-weight:700; color:var(--ink); letter-spacing:.04em;
+                  font-variant-numeric:tabular-nums; }
+  .rule { height:1px; background:linear-gradient(90deg, transparent, rgba(155,140,232,.65), transparent); }
+  main { padding:17px 15px 15px; }
+
+  .label { font-size:12px; letter-spacing:.22em; text-transform:uppercase; text-align:center; color:var(--ink-dim); }
+  .countdown { font-size:58px; font-weight:700; line-height:.98; text-align:center;
+               font-variant-numeric:tabular-nums; margin:3px 0 0;
+               color:var(--estimated); text-shadow:0 0 22px rgba(245,185,66,.45); }
+  .countdown small { font-size:26px; font-weight:600; }
+  .confidence { text-align:center; font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+                color:var(--estimated); margin-top:4px; }
+
+  .rail { display:flex; justify-content:space-between; margin:16px 0 4px; }
+  .rail span { text-align:center; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); }
+  .rail b { display:block; font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:0; }
+  .is-exact{color:var(--exact)} .is-est{color:var(--estimated)} .is-unknown{color:var(--unknown)}
+
+  .prompt { margin:13px 0 0; padding:10px 12px; font-size:13.5px; line-height:1.4; color:#ded9f5;
+            background:linear-gradient(90deg, rgba(245,185,66,.14), rgba(245,185,66,.03));
+            border-left:2px solid var(--estimated); }
+  .prompt i { display:block; font-style:normal; font-size:10px; letter-spacing:.13em;
+              text-transform:uppercase; color:var(--ink-dim); margin-top:5px; }
+
+  /* Slanted parallelogram, matching the game's panel buttons */
+  .anchor { margin:15px 0 6px; text-align:center; font-size:13px; font-weight:700; letter-spacing:.17em;
+            text-transform:uppercase; color:#7ff0aa; padding:14px 0; border:0; width:100%;
+            font-family:inherit; cursor:pointer;
+            background:linear-gradient(180deg, rgba(74,222,128,.24), rgba(74,222,128,.07));
+            box-shadow:inset 0 0 0 1px rgba(122,240,170,.5);
+            clip-path:polygon(13px 0,100% 0,calc(100% - 13px) 100%,0 100%); }
+
+  /* Talent tiers, in the idiom of the game's own talent screen column headers */
+  .tiers { display:flex; justify-content:space-between; margin-top:12px; padding-top:10px;
+           border-top:1px solid rgba(155,140,232,.22); font-size:13px; font-weight:600; color:var(--unknown); }
+  .tiers .reached { color:var(--ink); font-weight:700; }
+  .tiers .next { color:var(--estimated); }
+
+  footer { display:flex; justify-content:space-between; margin-top:11px; font-size:10px;
+           letter-spacing:.09em; text-transform:uppercase; color:var(--ink-faint); text-align:center; }
+  footer b { display:block; font-size:14px; font-weight:700; color:var(--ink);
+             font-variant-numeric:tabular-nums; letter-spacing:0; }
+
+  .split { display:grid; grid-template-columns:1.15fr 1fr; gap:20px; }
+  .split .countdown { font-size:72px; }
+</style>
+</head>
+<body>
+
+<h1>Live view &mdash; phone</h1>
+<div class="frame phone"><div class="inner">
+  <header><span>Braxis Holdout</span><span class="clock">4:22</span></header>
+  <div class="rule"></div>
+  <main>
+    <div class="label">Beacons</div>
+    <div class="countdown">~0:08<small>&ndash;0:48</small></div>
+    <div class="confidence">Estimated</div>
+
+    <div class="rail">
+      <span><b class="is-exact">0:08</b>wave</span>
+      <span><b class="is-exact">1:12</b>siege</span>
+      <span><b class="is-est">~2:10</b>lvl 13</span>
+      <span><b class="is-exact">2:40</b>bruiser</span>
+    </div>
+
+    <div class="prompt">Reset now if you're not full.<i>&#9834; spoken: &ldquo;Beacons due soon&rdquo;</i></div>
+    <button class="anchor">Objective ended</button>
+
+    <div class="tiers">
+      <span class="reached">1</span><span class="reached">4</span><span class="reached">7</span>
+      <span class="reached">10</span><span class="next">13</span><span>16</span><span>20</span>
+    </div>
+    <footer>
+      <span><b>0:28</b>death</span><span><b>~11</b>level</span><span><b>5</b>synced</span>
+    </footer>
+  </main>
+</div></div>
+
+<h1>Live view &mdash; desktop</h1>
+<div class="frame desktop"><div class="inner">
+  <header><span>Braxis Holdout</span><span class="clock">4:22</span></header>
+  <div class="rule"></div>
+  <main>
+    <div class="split">
+      <div>
+        <div class="label">Beacons</div>
+        <div class="countdown">~0:08<small>&ndash;0:48</small></div>
+        <div class="confidence">Estimated</div>
+        <div class="prompt">Reset now if you're not full.<i>&#9834; spoken: &ldquo;Beacons due soon&rdquo;</i></div>
+      </div>
+      <div>
+        <div class="rail" style="margin-top:6px">
+          <span><b class="is-exact">0:08</b>wave</span>
+          <span><b class="is-exact">1:12</b>siege</span>
+        </div>
+        <div class="rail">
+          <span><b class="is-est">~2:10</b>lvl 13</span>
+          <span><b class="is-exact">2:40</b>bruiser</span>
+        </div>
+        <button class="anchor">Objective ended</button>
+      </div>
+    </div>
+    <div class="tiers">
+      <span class="reached">1</span><span class="reached">4</span><span class="reached">7</span>
+      <span class="reached">10</span><span class="next">13</span><span>16</span><span>20</span>
+    </div>
+    <footer>
+      <span><b>0:28</b>death</span><span><b>~11</b>level</span><span><b>5</b>synced</span>
+      <span><b class="is-unknown">&mdash;</b>next beacons</span>
+    </footer>
+  </main>
+</div></div>
+
+</body>
+</html>
