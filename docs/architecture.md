@@ -148,7 +148,11 @@ interface ObjectiveModel {
 
 type RespawnRule =
   | { kind: 'afterResolution'
-      outcomes: Record<string, { minSeconds: Seconds; maxSeconds: Seconds }>
+      outcomes: Record<string, {
+        minSeconds: Seconds
+        maxSeconds: Seconds
+        possibleFromCycle?: number   // branch unreachable before this cycle
+      }>
       scalePerMinuteSeconds?: number }
   | { kind: 'fixedInterval'; minSeconds: Seconds; maxSeconds: Seconds }
   | { kind: 'none' }
@@ -166,9 +170,18 @@ to 1:20 after a seed but 1:30 to 2:00 after the Garden Terrors die. Hence `outco
 name.
 
 Crucially this needs **no extra input**. When the player has not said which outcome occurred,
-the band spans the union of all outcomes: the minimum of the minima to the maximum of the
-maxima. Wider, honest, no new button. A control naming the outcome could tighten it later, and
-would pass the input gate, but v1 does not need one.
+the band spans the union of the *reachable* outcomes: the minimum of the minima to the maximum
+of the maxima. Wider, honest, no new button. A control naming the outcome could tighten it
+later and would pass the input gate, but v1 does not need one.
+
+`possibleFromCycle` is what keeps that union from being needlessly pessimistic, and it matters
+more than it looks. On Cursed Hollow a curse requires one team to hold three tributes, so it
+cannot possibly have occurred on the first or second. Taking the union from cycle one would
+give a 110 second band before any fight spread is added, which alone nearly exhausts the 120
+second `maxUsefulBand` and makes the map go `Unknown` by its third cycle, around 9:30. Marking
+the curse branch `possibleFromCycle: 3` leaves the early cycles on the tight 0:50 to 1:30 band
+and only widens once a curse is actually possible. Garden of Terror has the same shape, needing
+three seeds before the Garden Terrors branch is reachable.
 
 **One map scales its offset with game time.** Alterac Pass reduces the respawn delay by 2
 seconds per minute of elapsed game time. `scalePerMinuteSeconds` exists solely for it. Nothing
@@ -333,31 +346,62 @@ These come from the published guides, from timing a handful of replays by hand, 
 judgement. They do not need to be precise, because they only govern how fast the app admits it
 is unsure, and admitting uncertainty slightly early is the safe direction to be wrong.
 
-The midpoint accumulates linearly, because expected values add. The spread does not:
+The midpoint accumulates linearly, because expected values add. The spread does not.
+
+**Each step contributes two independent uncertainties**, and both must be counted. The fight
+duration is one. The respawn offset is the other, because it is published as a range rather
+than a scalar on several maps: Cursed Hollow's 0:50 to 1:30, Alterac Pass's 1:50 to 2:30. An
+earlier version of this formula accumulated only the fight spread and silently ignored the
+offset range, which understates the band on exactly the maps with the widest offsets.
 
 ```
-spread(n) = spreadSeconds * sqrt(n + n * (n - 1) * r)      // r defaults to 0.3
-low  = max(at - spread(n), now + offsetMin)
-high = at + spread(n)
+stepSpread = sqrt(fightSpread^2 + offsetHalfWidth^2)
+             where offsetHalfWidth = (offsetMax - offsetMin) / 2
+
+spread(n)  = stepSpread * sqrt(n + n * (n - 1) * r)      // r defaults to 0.3
+low        = max(at - spread(n), now + offsetMin)
+high       = at + spread(n)
 ```
 
-Two things about that formula are worth understanding rather than copying.
+Two things about the outer term are worth understanding rather than copying.
 
-Accumulating the range linearly, `low += min` and `high += max` per step, would assume every
-cycle hits its extreme in the same direction. Independent draws partially cancel, so a sum of n
-draws spreads with `sqrt(n)`, not `n`. Linear over-widens, and the practical cost is that the
-app goes `Unknown` several cycles earlier than the evidence justifies. With a 40 second spread,
-linear reaches a 120 second band by the third unanchored cycle where uncorrelated growth does
-not until around the ninth.
+Accumulating linearly, `low += min` and `high += max` per step, would assume every cycle hits
+its extreme in the same direction. Independent draws partially cancel, so a sum of n draws
+spreads with `sqrt(n)`, not `n`. Linear over-widens, and the practical cost is that the app goes
+`Unknown` several cycles earlier than the evidence justifies.
 
 Pure `sqrt(n)` is also wrong, because fight durations are positively correlated: a team that
 resolves objectives slowly tends to do so every cycle. The `r` term interpolates, at `r = 0`
-giving `sqrt(n)` and at `r = 1` giving linear. **`r = 0.3` is a guess**, stated plainly so
-nobody mistakes it for a measurement. It is one constant, and it is the single thing most worth
-replacing with a real number later.
+giving `sqrt(n)` and at `r = 1` giving linear. **`r = 0.3` is a guess**, stated plainly so nobody
+mistakes it for a measurement. It is one constant and the single thing most worth replacing with
+a real number later.
 
 When band width exceeds `maxUsefulBand` (start at 120 seconds), confidence drops to `Unknown`
 and every later cycle does too.
+
+##### Expected behaviour, as a target to check against
+
+The intended shape, for a player who never taps once: objective timing stays useful for roughly
+four to six cycles and then admits it has lost the thread, somewhere in the region of ten to
+eighteen minutes depending on the map. Not going quiet early, and not bluffing to the end.
+
+Maps with a fast objective cadence and wide offset ranges degrade soonest. Cursed Hollow is the
+worst case in the pool, on both counts at once.
+
+A worked example, to check an implementation against rather than to treat as a specification.
+Take a `stepSpread` of 25 seconds and `r = 0.3`:
+
+```
+n=1   band  50s
+n=2   band  81s
+n=3   band 110s
+n=4   band 138s   -> exceeds 120, drops to Unknown
+```
+
+Deliberately no per-map table of cycle counts here. The fight estimates feeding it are
+judgement, and publishing derived numbers to the cycle would be exactly the false precision this
+project exists to avoid. If an implementation's numbers differ substantially from the curve
+above, linear accumulation of the range is the most likely cause.
 
 ##### The refinement path, if it is ever needed
 
@@ -1017,8 +1061,11 @@ The cases that matter:
 - `validUntil` being the earliest of its candidates, and the memo recomputing when it lapses.
 - Per-generator truncation: a merged timeline is never all waves.
 - Every `RespawnRule` variant: a ranged offset, a two-outcome rule producing the union band when
-  the outcome is unknown, `scalePerMinuteSeconds` shortening the offset late in a match,
-  `fixedInterval`, and `kind: 'none'`.
+  the outcome is unknown, `possibleFromCycle` keeping an unreachable branch out of the union in
+  early cycles, `scalePerMinuteSeconds` shortening the offset late in a match, `fixedInterval`,
+  and `kind: 'none'`.
+- The band accumulating both the fight spread and the offset half-width. A map with a wide
+  offset range and a narrow fight spread must not produce the same band as the reverse.
 - A map with no timed objective renders the no-objective state and not the unknown-map fallback.
 - `campsSuppressedDuringObjective`: no camp reads as standing while a phase is believed active,
   and `stall-camp` does not fire.
