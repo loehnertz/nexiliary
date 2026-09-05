@@ -1,0 +1,219 @@
+import type { AnchorSet, Confidence, Seconds } from './types.js'
+import type { MapDefinition, ObjectiveModel, RespawnRule } from './map-types.js'
+import { estimated, exact, unknown } from './confidence.js'
+import { objectiveEndedAnchors } from './anchors.js'
+import { spread, stepSpread } from './spread.js'
+import { maxUsefulBand } from './tuning.js'
+
+export interface OffsetRange {
+  readonly min: Seconds
+  readonly max: Seconds
+}
+
+export interface ChainStep {
+  readonly cycle: number
+  /** Median-accumulated, unclamped. */
+  readonly at: Seconds
+  readonly low: Seconds
+  readonly high: Seconds
+  /** Projected steps since the newest anchor, or since match start. */
+  readonly n: number
+  readonly spread: Seconds
+  readonly confidence: Confidence
+  /**
+   * The offset from the preceding resolution to this spawn, present only when that
+   * resolution has *not* been observed. The clamp is meaningless otherwise: the
+   * resolution already happened, so "no sooner than now plus the offset" is false.
+   */
+  readonly offset: OffsetRange | null
+  /** Estimated resolution band for this cycle's phase. */
+  readonly resolutionAt: Seconds
+  readonly resolutionLow: Seconds
+  readonly resolutionHigh: Seconds
+}
+
+export interface ChainWalk {
+  /** The cycle the clock has not yet passed. */
+  readonly pending: ChainStep
+  /** The one after it, so the rail can plan two events ahead. */
+  readonly following: ChainStep
+  /** The most recent cycle advancement walked past. Its phase may still be live. */
+  readonly elapsed: ChainStep | null
+  readonly anchored: boolean
+  readonly anchorTimeSeconds: Seconds | null
+}
+
+type TimedObjective = Extract<ObjectiveModel, { kind: 'timed' }>
+
+/**
+ * The offset that applies to a spawn at `cycle`, given the resolution it chains off.
+ *
+ * `possibleFromCycle` indexes the spawning cycle, not the resolving one. An
+ * off-by-one here produces false precision on the one map it was added for.
+ */
+export function offsetFor(
+  rule: RespawnRule,
+  cycle: number,
+  resolutionTimeSeconds: Seconds,
+): OffsetRange {
+  if (rule.kind === 'fixedInterval') {
+    return { min: rule.minSeconds, max: rule.maxSeconds }
+  }
+
+  let min = Number.POSITIVE_INFINITY
+  let max = Number.NEGATIVE_INFINITY
+  for (const outcome of Object.values(rule.outcomes)) {
+    if ((outcome.possibleFromCycle ?? 1) > cycle) continue
+    min = Math.min(min, outcome.minSeconds)
+    max = Math.max(max, outcome.maxSeconds)
+  }
+  if (!Number.isFinite(min) || !Number.isFinite(max)) {
+    // Every branch gated out. Take the union of all of them rather than inventing a
+    // number; a map authored this way fails the `maps` CI check.
+    for (const outcome of Object.values(rule.outcomes)) {
+      min = Math.min(min, outcome.minSeconds)
+      max = Math.max(max, outcome.maxSeconds)
+    }
+  }
+
+  const scale = rule.scalePerMinuteSeconds
+  if (scale !== undefined && scale !== 0) {
+    const floor = rule.minOffsetSeconds ?? 0
+    // Both ends move by the same amount, so the half-width is unchanged by scaling.
+    // Without the floor a 2s-per-minute reduction reaches zero at 55 minutes and goes
+    // negative after, and matches do run long.
+    const headroom = Math.max(0, min - floor)
+    const reduction = Math.min(Math.max(0, (scale * resolutionTimeSeconds) / 60), headroom)
+    min -= reduction
+    max -= reduction
+  }
+
+  return { min, max }
+}
+
+function stepSpreadFor(objective: TimedObjective, offset: OffsetRange): Seconds {
+  const halfWidth = (offset.max - offset.min) / 2
+  // A fixed-interval map's spawns do not chain off a fight, so the fight spread is
+  // not part of its step-to-step uncertainty.
+  const fightSpread = objective.respawn.kind === 'fixedInterval' ? 0 : objective.fight.spreadSeconds
+  return stepSpread(fightSpread, halfWidth)
+}
+
+function confidenceFor(low: Seconds, high: Seconds): Confidence {
+  if (high - low > maxUsefulBand) return unknown
+  return estimated(low, high)
+}
+
+function makeStep(
+  objective: TimedObjective,
+  cycle: number,
+  at: Seconds,
+  n: number,
+  spreadSeconds: Seconds,
+  confidence: Confidence,
+  offset: OffsetRange | null,
+): ChainStep {
+  const low = at - spreadSeconds
+  const high = at + spreadSeconds
+  const resolutionAt = at + objective.fight.medianSeconds
+  return {
+    cycle,
+    at,
+    low,
+    high,
+    n,
+    spread: spreadSeconds,
+    confidence,
+    offset,
+    resolutionAt,
+    resolutionLow: resolutionAt - spreadSeconds,
+    resolutionHigh: resolutionAt + spreadSeconds,
+  }
+}
+
+/** The first step of the chain: from the newest anchor, or from the fixed first spawn. */
+function firstStep(
+  objective: TimedObjective,
+  anchors: AnchorSet,
+): { step: ChainStep; anchored: boolean; anchorTimeSeconds: Seconds | null } {
+  const ended = objectiveEndedAnchors(anchors)
+  const newest = ended.length > 0 ? ended[ended.length - 1] : undefined
+
+  if (newest === undefined) {
+    const step = makeStep(objective, 1, objective.firstSpawnSeconds, 0, 0, exact, null)
+    return { step, anchored: false, anchorTimeSeconds: null }
+  }
+
+  // The chain walks from the anchor's *time*, not its index, so a missed tap leaves
+  // the count one short without moving any timing.
+  const t = newest.gameTimeSeconds
+  const cycle = ended.length + 1
+  const offset = offsetFor(objective.respawn, cycle, t)
+  const at = t + (offset.min + offset.max) / 2
+  const low = t + offset.min
+  const high = t + offset.max
+  // Exact only when the offset is a single number. Rendering a 40-second range as one
+  // green number is a claim that can be forty seconds wrong, made at the moment the
+  // player has most reason to trust it.
+  const confidence = confidenceFor(low, high)
+  const step: ChainStep = {
+    cycle,
+    at,
+    low,
+    high,
+    n: 0,
+    spread: (high - low) / 2,
+    confidence,
+    offset: null,
+    resolutionAt: at + objective.fight.medianSeconds,
+    resolutionLow: low + objective.fight.medianSeconds,
+    resolutionHigh: high + objective.fight.medianSeconds,
+  }
+  return { step, anchored: true, anchorTimeSeconds: t }
+}
+
+function advance(objective: TimedObjective, from: ChainStep): ChainStep {
+  const cycle = from.cycle + 1
+  // A fixed-interval map's next spawn is on its own clock, not after a fight.
+  const usesFight = objective.respawn.kind !== 'fixedInterval'
+  const resolutionTime = usesFight ? from.at + objective.fight.medianSeconds : from.at
+  const offset = offsetFor(objective.respawn, cycle, resolutionTime)
+  const at = resolutionTime + (offset.min + offset.max) / 2
+  const n = from.n + 1
+  const s = spread(n, stepSpreadFor(objective, offset))
+  return makeStep(objective, cycle, at, n, s, confidenceFor(at - s, at + s), offset)
+}
+
+/**
+ * Advancement runs on **unclamped** values, in `project`. The clamp lives in `view`.
+ *
+ * The two read the same silence and draw opposite conclusions from it, which is
+ * coherent only because they run in different places. Evaluated together they cancel:
+ * if the clamp raises `high` to `now + offsetMax` before advancement is tested, then
+ * `now > high` is never true, the cycle never advances, the band never widens, and
+ * the app sits indefinitely showing a green `Exact` objective at `now + offset`.
+ */
+export function walkChain(map: MapDefinition, anchors: AnchorSet, now: Seconds): ChainWalk | null {
+  if (map.objective.kind !== 'timed') return null
+  const objective = map.objective
+
+  const { step, anchored, anchorTimeSeconds } = firstStep(objective, anchors)
+  let pending = step
+  let elapsed: ChainStep | null = null
+
+  // Bounded defensively: a map authored with a non-positive step would otherwise spin.
+  for (let guard = 0; guard < 1000 && now > pending.high; guard += 1) {
+    const next = advance(objective, pending)
+    if (next.at <= pending.at) break
+    elapsed = pending
+    pending = next
+  }
+
+  return {
+    pending,
+    following: advance(objective, pending),
+    elapsed,
+    anchored,
+    anchorTimeSeconds,
+  }
+}
