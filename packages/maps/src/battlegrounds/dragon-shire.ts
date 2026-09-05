@@ -30,10 +30,10 @@ export const dragonShire: MapDefinition = {
     instances: '2 shrines',
   },
   camps: [
-    camp({ id: 'siege-w', label: 'siege w', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'siege-e', label: 'siege e', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'knight-s', label: 'knights s', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
-    camp({ id: 'knight-w', label: 'knights w', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
-    camp({ id: 'knight-e', label: 'knights e', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
+    camp({ id: 'siege-w', label: 'siege w', type: 'siege', bearing: 'w', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
+    camp({ id: 'siege-e', label: 'siege e', type: 'siege', bearing: 'e', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
+    camp({ id: 'knight-s', label: 'knights s', type: 'bruiser', bearing: 's', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
+    camp({ id: 'knight-w', label: 'knights w', type: 'bruiser', bearing: 'w', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
+    camp({ id: 'knight-e', label: 'knights e', type: 'bruiser', bearing: 'e', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
   ],
 }

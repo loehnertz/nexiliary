@@ -133,7 +133,27 @@ describe('the objective phase belief', () => {
       expect(during.since).toBe(90)
       expect(during.until).toBe(160)
     }
-    expect(project(braxis, anchorSet(), 260).objectivePhase.kind).toBe('idle')
+    // Past the resolution band with no anchor it is not live, but it is still the tap
+    // the app is waiting for.
+    expect(project(braxis, anchorSet(), 260).objectivePhase.kind).toBe('unreported')
+  })
+
+  it('is idle before anything has spawned, so there is nothing to tap', () => {
+    // Reported from a real match: "objective ended" could be pressed one second into
+    // the game, when the objective cannot have been there.
+    for (let now = 0; now < 90; now += 1) {
+      expect(project(braxis, anchorSet(), now).objectivePhase.kind, `at ${now}`).toBe('idle')
+    }
+  })
+
+  it('is idle again the moment the tap lands, so it cannot be pressed twice', () => {
+    // Reported from a real match: the objective could be reported ended repeatedly.
+    const anchors = anchorSet(anchor('ObjectiveEnded', '1', 200))
+    for (let now = 200; now < 320; now += 1) {
+      expect(project(braxis, anchors, now).objectivePhase.kind, `at ${now}`).toBe('idle')
+    }
+    // And comes back when the next phase actually goes live.
+    expect(project(braxis, anchors, 340).objectivePhase.kind).toBe('active')
   })
 
   it('renders the live state rather than a countdown to the following cycle', () => {
@@ -143,11 +163,15 @@ describe('the objective phase belief', () => {
     expect(view(project(braxis, anchorSet(), 150), braxis, 150).rail[0]!.kind).toBe('objective')
   })
 
-  it('goes quiet with the countdown once the cycle is Unknown', () => {
-    // An Unknown cycle cannot support a claim about the present either.
+  it('stops claiming a live phase once the cycle is Unknown, but still wants the tap', () => {
+    // An Unknown cycle cannot support a claim about the present. It falls through to
+    // `unreported` rather than `idle`, because when timing is lost the tap is the only
+    // way back and the design calls for the anchor button offered prominently.
     const anchors = anchorSet(anchor('ObjectiveEnded', '1', 300))
     for (let now = 1500; now < 2400; now += 20) {
-      expect(project(braxis, anchors, now).objectivePhase.kind).toBe('idle')
+      const t = project(braxis, anchors, now)
+      expect(t.objectiveTimingLost).toBe(true)
+      expect(t.objectivePhase.kind).toBe('unreported')
     }
   })
 
@@ -180,6 +204,28 @@ describe('the phase belief and the clamp never contradict each other', () => {
       const timeline = project(braxis, anchorSet(), now)
       if (timeline.objectivePhase.kind === 'active') continue
       expect(timeline.camps.every((c) => !c.suppressed), `suppressed with no live phase at ${now}`).toBe(true)
+    }
+  })
+})
+
+describe('the footer numbers', () => {
+  it('keeps the death timer and the level estimate consistent at every moment', () => {
+    // Reported as looking buggy: "0:16 death" beside "~2 level". Those agree — the
+    // published table gives 16 seconds at level 2 — so the fault is that neither is
+    // labelled well enough to read. Asserted so a real inconsistency is not mistaken
+    // for the same thing later.
+    for (let now = 0; now <= 2400; now += 1) {
+      const t = project(braxis, anchorSet(), now)
+      expect(t.deathTimer.seconds, `at ${now}`).toBe(deathTimerSeconds(t.level.estimate))
+    }
+  })
+
+  it('crosses each level exactly on the curve, never a moment early', () => {
+    for (const entry of levelCurve) {
+      expect(project(braxis, anchorSet(), entry.typicalSeconds).level.estimate).toBe(entry.level)
+      if (entry.level > 1) {
+        expect(project(braxis, anchorSet(), entry.typicalSeconds - 1).level.estimate).toBe(entry.level - 1)
+      }
     }
   })
 })

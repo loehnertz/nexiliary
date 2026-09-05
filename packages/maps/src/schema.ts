@@ -1,4 +1,4 @@
-import type { CampDefinition, CueText, MapDefinition } from '@nexiliary/engine'
+import type { Bearing, CampDefinition, CueText, MapDefinition } from '@nexiliary/engine'
 
 /**
  * Maps are data, not code. This validates more than shape, because the failures that
@@ -18,6 +18,8 @@ function validateCamp(mapId: string, camp: CampDefinition): ValidationIssue[] {
   const where = `${mapId}/${camp.id}`
   if (camp.id.trim() === '') issues.push({ where, problem: 'camp id is empty' })
   if (camp.label.trim() === '') issues.push({ where, problem: 'camp label is empty' })
+  const bearings: Bearing[] = ['nw', 'n', 'ne', 'w', 'c', 'e', 'sw', 's', 'se']
+  if (!bearings.includes(camp.bearing)) issues.push({ where, problem: `unknown bearing ${camp.bearing}` })
   if (!nonNegative(camp.firstSpawnSeconds)) issues.push({ where, problem: 'firstSpawnSeconds must be >= 0' })
   if (!positive(camp.respawnSeconds)) issues.push({ where, problem: 'respawnSeconds must be > 0' })
   if (!positive(camp.decaySeconds)) issues.push({ where, problem: 'decaySeconds must be > 0' })

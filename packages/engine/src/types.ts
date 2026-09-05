@@ -30,6 +30,24 @@ export type Belief =
   | { readonly kind: 'Likely'; readonly value: boolean; readonly since: Seconds }
   | { readonly kind: 'Stale' }
 
+/**
+ * Where a camp sits on the battleground. Data rather than a naming convention, because
+ * the view orders chips by it: a westerly camp belongs to the left of an easterly one,
+ * so the rail reads the way the map does.
+ */
+export type Bearing = 'nw' | 'n' | 'ne' | 'w' | 'c' | 'e' | 'sw' | 's' | 'se'
+
+/** West to east first, north to south within that, which is how a rail is read. */
+const bearingOrder: Record<Bearing, number> = {
+  nw: 0, w: 1, sw: 2,
+  n: 3, c: 4, s: 5,
+  ne: 6, e: 7, se: 8,
+}
+
+export function compareBearing(a: Bearing, b: Bearing): number {
+  return bearingOrder[a] - bearingOrder[b]
+}
+
 export type AnchorType = 'MatchStart' | 'ObjectiveEnded' | 'CampTaken' | 'CampUp'
 
 /**
@@ -93,6 +111,7 @@ export interface CampState {
   readonly id: string
   readonly label: string
   readonly campType: string
+  readonly bearing: Bearing
   /** Is the camp there right now. */
   readonly standing: Belief
   /** Respawn, when known. */
@@ -126,6 +145,7 @@ export interface LevelState {
  * re-anchor button — the core interaction — is not emphasised when the tap is wanted.
  */
 export type ObjectivePhase =
+  /** Nothing has spawned that has not already been reported. There is nothing to tap. */
   | { readonly kind: 'idle' }
   | {
       readonly kind: 'active'
@@ -134,6 +154,13 @@ export type ObjectivePhase =
       readonly until: Seconds
       readonly confidence: Confidence
     }
+  /**
+   * A phase went live and no anchor was written for it. The tap is still wanted — and
+   * this is the only other state in which it means anything, which is what keeps
+   * "objective ended" off the screen one second into a match, before any objective has
+   * existed, and off it again the moment the tap has landed.
+   */
+  | { readonly kind: 'unreported'; readonly cycle: number }
 
 export interface Timeline {
   /** Sorted by `at`. */

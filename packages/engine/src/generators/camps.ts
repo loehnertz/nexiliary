@@ -153,6 +153,7 @@ export function camps(
       id: camp.id,
       label: camp.label,
       campType: camp.type,
+      bearing: camp.bearing,
       standing,
       ...(nextUp !== undefined ? { nextUp } : {}),
       ...(effectiveSince !== undefined ? { availableSince: effectiveSince } : {}),

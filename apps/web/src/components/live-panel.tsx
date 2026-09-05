@@ -132,11 +132,12 @@ export function Rail({
 }
 
 export function PromptBar({ prompts }: { prompts: readonly Prompt[] }) {
-  if (prompts.length === 0) {
-    return <div className="mt-3 min-h-[3.2rem]" aria-hidden />
-  }
+  // Collapses rather than reserving space. The reserved band kept the layout still, but
+  // with no prompt and no anchor button to show it left a hole in the middle of the
+  // panel that reads as a rendering fault.
+  if (prompts.length === 0) return null
   return (
-    <div className="mt-3 flex min-h-[3.2rem] flex-col gap-1">
+    <div className="mt-3 flex flex-col gap-1">
       {prompts.map((prompt, index) => (
         <div
           key={prompt.key}
@@ -150,26 +151,37 @@ export function PromptBar({ prompts }: { prompts: readonly Prompt[] }) {
 }
 
 export function TierRow({ tiers }: { tiers: LiveView['tiers'] }) {
+  // Bare numerals are the game's own talent-screen idiom, and out of that context they
+  // read as seven unexplained numbers, so the row says what it is.
+  const next = tiers.find((t) => t.state === 'next')
   return (
-    <div className="mt-3 flex justify-between border-t border-[rgb(155_140_232_/_0.22)] pt-2.5">
-      {tiers.map((cell) => (
-        <span
-          key={cell.level}
-          className={`tier-cell ${cell.state === 'reached' ? 'tier-reached' : ''} ${cell.state === 'next' ? 'tier-next' : ''}`}
-        >
-          {cell.level}
-        </span>
-      ))}
+    <div className="mt-3 border-t border-[rgb(155_140_232_/_0.22)] pt-2.5">
+      <div className="label-tight mb-1.5 flex items-baseline justify-between">
+        <span>talent tiers</span>
+        <span className="tone-estimated">{next === undefined ? 'all reached' : `next ${next.level}`}</span>
+      </div>
+      <div className="flex justify-between">
+        {tiers.map((cell) => (
+          <span
+            key={cell.level}
+            className={`tier-cell ${cell.state === 'reached' ? 'tier-reached' : ''} ${cell.state === 'next' ? 'tier-next' : ''}`}
+          >
+            {cell.level}
+          </span>
+        ))}
+      </div>
     </div>
   )
 }
 
-export function Footer({ view, syncedPeers }: { view: LiveView; syncedPeers: number }) {
+export function Footer({ view }: { view: LiveView }) {
+  // "1 synced" was in the mockup and says nothing while there is no session to sync
+  // with. It comes back with the relay. The other two now say what they are: "death"
+  // beside "level" reads as two unexplained numbers rather than as the cost of dying.
   return (
-    <footer className="mt-2.5 flex justify-between">
-      <Stat value={view.deathTimer.text} label="death" tone={view.deathTimer.tone} />
-      <Stat value={view.level.text} label="level" tone={view.level.tone} />
-      <Stat value={String(syncedPeers)} label="synced" />
+    <footer className="mt-2.5 flex justify-between gap-4">
+      <Stat value={view.deathTimer.text} label="if you die now" tone={view.deathTimer.tone} />
+      <Stat value={view.level.text} label="team level" tone={view.level.tone} />
     </footer>
   )
 }

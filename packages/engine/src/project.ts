@@ -42,18 +42,28 @@ export function project(map: MapDefinition, anchors: AnchorSet, now: Seconds): T
   }
 
   const running = phaseInProgress(walk, now)
-  // An `Unknown` cycle cannot support a claim about the present either, so the phase
-  // readout goes quiet with the countdown rather than outliving it.
+  // An `Unknown` cycle cannot support a claim about the present, so the phase readout
+  // goes quiet with the countdown rather than outliving it — but the tap is still
+  // wanted, and when timing is lost it is the only way back, so it falls through to
+  // `unreported` rather than to `idle`.
+  //
+  // `walk.elapsed` is non-null exactly when advancement has passed a cycle that no
+  // anchor accounts for, since the chain always walks from the newest anchor. So it is
+  // the whole of "something spawned and nobody said what happened to it".
   const objectivePhase: ObjectivePhase =
-    running === null || running.confidence.kind === 'Unknown'
-      ? { kind: 'idle' }
-      : {
+    running !== null && running.confidence.kind !== 'Unknown'
+      ? {
           kind: 'active',
           cycle: running.cycle,
           since: running.low,
           until: running.resolutionHigh,
           confidence: running.confidence,
         }
+      : running !== null
+        ? { kind: 'unreported', cycle: running.cycle }
+        : walk?.elapsed != null
+          ? { kind: 'unreported', cycle: walk.elapsed.cycle }
+          : { kind: 'idle' }
 
   const objectiveTimingLost =
     walk !== null &&

@@ -2,6 +2,7 @@ import type { CampState, Confidence, Seconds, Timeline, TimedEvent } from './typ
 import type { MapDefinition } from './map-types.js'
 import { displayTime, mmss } from './confidence.js'
 import { isClaimable, isAvailable } from './belief.js'
+import { compareBearing } from './types.js'
 import { applyPresentClamp } from './clamp.js'
 import { currentTier } from './generators/tiers.js'
 import { talentTiers } from './game-constants.js'
@@ -249,11 +250,15 @@ function buildRail(timeline: Timeline, now: Seconds, objective: ObjectiveSlot): 
     }
   }
 
-  const claimable = timeline.camps
+  // Selection is by pressure, as the design specifies. Layout is by bearing, so the
+  // westerly of the two chosen camps sits on the left and the rail reads like the map.
+  const chosen = timeline.camps
     .filter((c) => isClaimable(c.standing))
     .sort((a, b) => b.pressureValue - a.pressureValue || a.id.localeCompare(b.id))
-  slots[2] = claimable[0] !== undefined ? campSlot(claimable[0], now) : null
-  slots[3] = claimable[1] !== undefined ? campSlot(claimable[1], now) : null
+    .slice(0, 2)
+    .sort((a, b) => compareBearing(a.bearing, b.bearing) || a.id.localeCompare(b.id))
+  slots[2] = chosen[0] !== undefined ? campSlot(chosen[0], now) : null
+  slots[3] = chosen[1] !== undefined ? campSlot(chosen[1], now) : null
 
   // Fill whatever did not qualify with the next tiers, then with further waves.
   const fallbacks: RailSlot[] = [
@@ -301,8 +306,9 @@ export function view(timeline: Timeline, map: MapDefinition, now: Seconds): Live
     mapName: map.name,
     objective,
     rail: buildRail(clamped, now, objective),
+    // The overflow list is a map of the battleground, so it reads west to east.
     overflowCamps: [...clamped.camps]
-      .sort((a, b) => b.pressureValue - a.pressureValue || a.id.localeCompare(b.id))
+      .sort((a, b) => compareBearing(a.bearing, b.bearing) || a.id.localeCompare(b.id))
       .map((c) => campSlot(c, now)),
     tiers: talentTiers.map((level) => ({
       level,

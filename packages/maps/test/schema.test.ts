@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cues, project, walkChain } from '@nexiliary/engine'
+import { cues, project, view, walkChain } from '@nexiliary/engine'
 import type { MapDefinition } from '@nexiliary/engine'
 import { appliesToBudget, battlegrounds, cueText, fallbackMap, mapById, validateCueText, validateMap } from '../src/index.js'
 
@@ -66,6 +66,48 @@ describe('every battleground', () => {
     for (const map of battlegrounds) {
       if (map.provenance === 'verified') expect((map.provenanceNote ?? '').length).toBeGreaterThan(10)
     }
+  })
+})
+
+describe('camp chips read the way the map does', () => {
+  it('lays the overflow list out west to east', () => {
+    for (const map of battlegrounds) {
+      if (map.camps.length < 2) continue
+      const order = view(project(map, new Map(), 400), map, 400).overflowCamps.map((s) => s.camp!.id)
+      const bearingOf = (id: string) => map.camps.find((c) => c.id === id)!.bearing
+      const rank: Record<string, number> = { nw: 0, w: 1, sw: 2, n: 3, c: 4, s: 5, ne: 6, e: 7, se: 8 }
+      for (let i = 1; i < order.length; i += 1) {
+        expect(
+          rank[bearingOf(order[i - 1]!)]!,
+          `${map.id}: ${order[i - 1]} before ${order[i]}`,
+        ).toBeLessThanOrEqual(rank[bearingOf(order[i]!)]!)
+      }
+    }
+  })
+
+  it('puts the westerly of the two rail camps on the left', () => {
+    const rank: Record<string, number> = { nw: 0, w: 1, sw: 2, n: 3, c: 4, s: 5, ne: 6, e: 7, se: 8 }
+    for (const map of battlegrounds) {
+      for (const now of [200, 400, 800]) {
+        const rail = view(project(map, new Map(), now), map, now).rail.filter((s) => s.kind === 'camp')
+        if (rail.length < 2) continue
+        const bearingOf = (id: string) => map.camps.find((c) => c.id === id)!.bearing
+        expect(
+          rank[bearingOf(rail[0]!.camp!.id)]!,
+          `${map.id} at ${now}`,
+        ).toBeLessThanOrEqual(rank[bearingOf(rail[1]!.camp!.id)]!)
+      }
+    }
+  })
+
+  it('still selects the two rail camps by pressure, not by position', () => {
+    // Position is layout. Which two camps are worth a slot is still the highest
+    // `pressureValue` among the claimable ones.
+    const map = battlegrounds.find((m) => m.id === 'cursed-hollow')!
+    const rail = view(project(map, new Map(), 400), map, 400).rail.filter((s) => s.kind === 'camp')
+    const chosen = rail.map((s) => map.camps.find((c) => c.id === s.camp!.id)!.pressureValue[0]!)
+    const best = [...map.camps].map((c) => c.pressureValue[0]!).sort((a, b) => b - a).slice(0, 2)
+    expect([...chosen].sort((a, b) => b - a)).toEqual(best)
   })
 })
 

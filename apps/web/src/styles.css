@@ -254,6 +254,28 @@ body {
   }
 }
 
+/* Undo is transient and secondary. A full-width button competes with the one control
+   that matters, and reads as an action to take rather than one to reach for. */
+.undo-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--color-ink-dim);
+  background: none;
+}
+
+.undo-glyph:hover {
+  color: var(--color-ink);
+}
+
 /* A rail chip is tappable only while its camp is believed available. Tapping writes a
    CampTaken anchor. Tap targets are at least 44px: these are pressed without looking,
    mid-game, and the rail's chromelessness is a virtue for reading and a liability for

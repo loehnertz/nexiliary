@@ -1,4 +1,4 @@
-import type { Seconds, Provenance } from './types.js'
+import type { Bearing, Seconds, Provenance } from './types.js'
 
 /**
  * How long humans take to resolve the objective. `spreadSeconds: 0` is legal and
@@ -48,6 +48,7 @@ export interface CampDefinition {
   readonly id: string
   readonly label: string
   readonly type: CampType
+  readonly bearing: Bearing
   readonly firstSpawnSeconds: Seconds
   readonly respawnSeconds: Seconds
   /** Belief becomes `Likely` after this long unconfirmed. Per camp, never global. */

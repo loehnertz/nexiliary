@@ -25,10 +25,10 @@ export const volskayaFoundry: MapDefinition = {
     instances: '1 capture point',
   },
   camps: [
-    camp({ id: 'trooper-w', label: 'troopers w', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 105, travelSeconds: [45] }),
-    camp({ id: 'trooper-e', label: 'troopers e', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 105, travelSeconds: [45] }),
-    camp({ id: 'fort-w', label: 'turret w', type: 'special', firstSpawnSeconds: 60, respawnSeconds: 105, travelSeconds: [40] }),
-    camp({ id: 'fort-e', label: 'turret e', type: 'special', firstSpawnSeconds: 60, respawnSeconds: 105, travelSeconds: [40] }),
-    camp({ id: 'support', label: 'support', type: 'special', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [30] }),
+    camp({ id: 'trooper-w', label: 'troopers w', type: 'siege', bearing: 'w', firstSpawnSeconds: 60, respawnSeconds: 105, travelSeconds: [45] }),
+    camp({ id: 'trooper-e', label: 'troopers e', type: 'siege', bearing: 'e', firstSpawnSeconds: 60, respawnSeconds: 105, travelSeconds: [45] }),
+    camp({ id: 'fort-w', label: 'turret w', type: 'special', bearing: 'w', firstSpawnSeconds: 60, respawnSeconds: 105, travelSeconds: [40] }),
+    camp({ id: 'fort-e', label: 'turret e', type: 'special', bearing: 'e', firstSpawnSeconds: 60, respawnSeconds: 105, travelSeconds: [40] }),
+    camp({ id: 'support', label: 'support', type: 'special', bearing: 'c', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [30] }),
   ],
 }

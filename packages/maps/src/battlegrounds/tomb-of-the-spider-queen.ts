@@ -24,9 +24,9 @@ export const tombOfTheSpiderQueen: MapDefinition = {
   provenance: 'published',
   objective: { kind: 'none' },
   camps: [
-    camp({ id: 'siege-s', label: 'siege', type: 'siege', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [35] }),
-    camp({ id: 'knight-w', label: 'knights w', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
-    camp({ id: 'knight-e', label: 'knights e', type: 'bruiser', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
-    camp({ id: 'golem', label: 'boss', type: 'boss', firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [55] }),
+    camp({ id: 'siege-s', label: 'siege', type: 'siege', bearing: 's', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [35] }),
+    camp({ id: 'knight-w', label: 'knights w', type: 'bruiser', bearing: 'w', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
+    camp({ id: 'knight-e', label: 'knights e', type: 'bruiser', bearing: 'e', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
+    camp({ id: 'golem', label: 'boss', type: 'boss', bearing: 'n', firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [55] }),
   ],
 }

@@ -1,4 +1,4 @@
-import type { CampDefinition, CampType } from '@nexiliary/engine'
+import type { Bearing, CampDefinition, CampType } from '@nexiliary/engine'
 
 /**
  * Camp shapes, so fifteen map files do not each restate the same six numbers.
@@ -37,6 +37,8 @@ export interface CampSpec {
   readonly id: string
   readonly label: string
   readonly type: CampType
+  /** Where it sits on the battleground, from the wiki's location text. */
+  readonly bearing: Bearing
   readonly firstSpawnSeconds: number
   readonly respawnSeconds: number
   /** Seconds for the mercenaries to reach the objective, by cycle, last repeating. */
@@ -53,6 +55,7 @@ export function camp(spec: CampSpec): CampDefinition {
     id: spec.id,
     label: spec.label,
     type: spec.type,
+    bearing: spec.bearing,
     firstSpawnSeconds: spec.firstSpawnSeconds,
     respawnSeconds: spec.respawnSeconds,
     decaySeconds: preset.decaySeconds,

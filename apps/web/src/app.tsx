@@ -8,6 +8,7 @@ import {
   newCueState,
   nextCampOccurrence,
   objectiveEndedKeyFor,
+  mmss,
   offsetFor,
   view,
 } from '@nexiliary/engine'
@@ -180,6 +181,8 @@ export function App() {
   const primary = offersFor('primary', buildContext(map, timeline, now))[0]
   const undoOffered =
     state.lastWrite !== null && Date.now() - state.lastWrite.atWallClock < undoWindowMillis
+  const lastWriteAt =
+    state.lastWrite === null ? null : (state.anchors.get(state.lastWrite.key)?.gameTimeSeconds ?? null)
 
   return (
     <div className="mx-auto flex w-full max-w-[420px] flex-col gap-3 p-3 sm:max-w-[620px]">
@@ -219,18 +222,25 @@ export function App() {
                 </button>
               )}
               {undoOffered && (
-                <button
-                  type="button"
-                  className="btn-slant btn-quiet mt-2 min-h-11 w-full py-2 text-[0.65rem]"
-                  onClick={() => dispatch({ type: 'ANCHOR_REVERTED' })}
-                >
-                  Undo that tap
-                </button>
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <span className="label-tight">
+                    recorded {lastWriteAt === null ? '' : mmss(lastWriteAt)}
+                  </span>
+                  <button
+                    type="button"
+                    className="undo-glyph"
+                    onClick={() => dispatch({ type: 'ANCHOR_REVERTED' })}
+                    aria-label="Undo that tap"
+                    title="Undo that tap"
+                  >
+                    &#8630;
+                  </button>
+                </div>
               )}
             </div>
           </div>
           <TierRow tiers={liveView.tiers} />
-          <Footer view={liveView} syncedPeers={1} />
+          <Footer view={liveView} />
         </main>
       </Frame>
 

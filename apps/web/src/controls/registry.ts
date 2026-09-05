@@ -56,18 +56,24 @@ const objectiveEnded: AnchorControl = {
     // Returning nothing on a map with no timed objective. Offering it there would
     // write an anchor no generator reads.
     if (ctx.map.objective.kind !== 'timed') return []
-    const cycle = ctx.nextObjective?.cycle ?? 1
-    // Urgent while the phase is believed to be running, which is when the tap is
-    // wanted. Reading the *next* spawn's band instead gets this backwards: by the time
-    // a phase is live the chain has already advanced past it, so the next spawn is
-    // minutes away and the button would sit quiet through the whole objective.
-    const running = ctx.timeline.objectivePhase.kind === 'active'
+    const phase = ctx.timeline.objectivePhase
+
+    // Offered only when there is an end to report. `idle` covers both the case one
+    // second into a match, before any objective has existed, and the moment after the
+    // tap lands — so the control cannot record an objective that never ran, and cannot
+    // record the same one twice.
+    if (phase.kind === 'idle') return []
+
     return [
       {
         key: 'objective-ended',
         label: `${ctx.map.objective.label} ended`,
-        subject: String(cycle),
-        emphasis: running ? 'urgent' : 'normal',
+        subject: String(ctx.nextObjective?.cycle ?? 1),
+        // Urgent while it is actually running. Reading the *next* spawn's band instead
+        // gets this backwards: by the time a phase is live the chain has advanced past
+        // it, so the next spawn is minutes away and the button would sit quiet through
+        // the whole objective.
+        emphasis: phase.kind === 'active' ? 'urgent' : 'normal',
         action: { kind: 'write', anchorType: 'ObjectiveEnded' },
       },
     ]

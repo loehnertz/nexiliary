@@ -101,31 +101,26 @@ export function OverflowSheet({
   onEndMatch: () => void
   onClose: () => void
 }) {
-  const [tab, setTab] = useState<'camps' | 'settings'>('camps')
+  const [tab, setTab] = useState<'camps' | 'guide' | 'settings'>('camps')
+  const title = tab === 'camps' ? 'All camps' : tab === 'guide' ? 'What am I looking at' : 'Settings'
   return (
-    <Sheet title={tab === 'camps' ? 'All camps' : 'Settings'} onClose={onClose}>
+    <Sheet title={title} onClose={onClose}>
       <div className="mb-4 flex gap-2">
-        <button
-          type="button"
-          className={`btn-slant min-h-11 flex-1 py-2 text-xs ${tab === 'camps' ? 'btn-primary' : 'btn-quiet'}`}
-          onClick={() => setTab('camps')}
-        >
-          Camps
-        </button>
-        <button
-          type="button"
-          className={`btn-slant min-h-11 flex-1 py-2 text-xs ${tab === 'settings' ? 'btn-primary' : 'btn-quiet'}`}
-          onClick={() => setTab('settings')}
-        >
-          Settings
-        </button>
+        {(['camps', 'guide', 'settings'] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            className={`btn-slant min-h-11 flex-1 py-2 text-xs ${tab === t ? 'btn-primary' : 'btn-quiet'}`}
+            onClick={() => setTab(t)}
+          >
+            {t}
+          </button>
+        ))}
       </div>
 
-      {tab === 'camps' ? (
-        <CampList camps={view.overflowCamps} onCampTaken={onCampTaken} onCampUp={onCampUp} />
-      ) : (
-        <SettingsPanel settings={settings} onSettings={onSettings} />
-      )}
+      {tab === 'camps' && <CampList camps={view.overflowCamps} onCampTaken={onCampTaken} onCampUp={onCampUp} />}
+      {tab === 'guide' && <Legend />}
+      {tab === 'settings' && <SettingsPanel settings={settings} onSettings={onSettings} />}
 
       <button
         type="button"
@@ -135,6 +130,63 @@ export function OverflowSheet({
         End match
       </button>
     </Sheet>
+  )
+}
+
+/**
+ * The readout is dense and most of it is unlabelled by design — the game's own idiom is
+ * bare numerals. That works when you already know what they are. This is where you find
+ * out, once.
+ */
+function Legend() {
+  return (
+    <div className="flex flex-col gap-4 text-sm leading-snug text-[var(--color-ink-dim)]">
+      <Entry term="The big number">
+        When the next objective spawns. <b className="tone-exact">Green</b> means exact,{' '}
+        <b className="tone-estimated">amber</b> means a range the app is not certain within, and{' '}
+        <b className="tone-unknown">grey</b> means it has lost the thread and will say so rather than
+        guess. <b>LIVE</b> means the objective is believed to be running right now.
+      </Entry>
+
+      <Entry term="The four chips">
+        The objective after this one, the next minion wave, and the two camps most worth taking for
+        the coming fight. They read west to east, like the map. A chip with a green outline is
+        tappable: tap it when that camp gets taken, and its respawn becomes exact.
+      </Entry>
+
+      <Entry term="1 4 7 10 13 16 20">
+        Talent tiers — the levels where everyone picks a talent. White is reached, amber is next.
+        The reason it is on screen: a tier advantage matters far more than a level advantage, so
+        never take an even fight into a tier deficit.
+      </Entry>
+
+      <Entry term="If you die now">
+        How long you would spend dead at the current team level. Fifteen seconds early, sixty-five
+        after level 20. It is the number that decides whether a camp or a chase is worth the risk,
+        and it is amber because it is read off an estimated level.
+      </Entry>
+
+      <Entry term="Team level">
+        Estimated, always. Team level depends on how well the lanes are soaked, which the app cannot
+        see, so it is never claimed as exact — and the tiers and the death timer both read off it.
+      </Entry>
+
+      <Entry term="Objective ended">
+        The one tap that matters. It appears while an objective is running or has run unreported,
+        and disappears once you have tapped it, so it cannot record the same objective twice. Four
+        to six taps a match keeps the objective timing accurate; none at all and it goes quiet about
+        objectives after a few cycles.
+      </Entry>
+    </div>
+  )
+}
+
+function Entry({ term, children }: { term: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="label mb-1">{term}</div>
+      <p className="m-0">{children}</p>
+    </div>
   )
 }
 

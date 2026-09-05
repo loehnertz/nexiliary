@@ -20,6 +20,7 @@ function camp(over: Partial<CampDefinition> & Pick<CampDefinition, 'id'>): CampD
   return {
     label: over.id,
     type: 'siege',
+    bearing: 'c',
     firstSpawnSeconds: 120,
     respawnSeconds: 180,
     decaySeconds: 45,
@@ -32,12 +33,13 @@ function camp(over: Partial<CampDefinition> & Pick<CampDefinition, 'id'>): CampD
   }
 }
 
-export const siegeTop = camp({ id: 'siege-top', label: 'siege', pressureValue: [7] })
-export const bruiser = camp({ id: 'bruiser', label: 'bruiser', type: 'bruiser', pressureValue: [5] })
+export const siegeTop = camp({ id: 'siege-top', label: 'siege', bearing: 'n', pressureValue: [7] })
+export const bruiser = camp({ id: 'bruiser', label: 'bruiser', type: 'bruiser', bearing: 'w', pressureValue: [5] })
 export const boss = camp({
   id: 'boss',
   label: 'boss',
   type: 'boss',
+  bearing: 'c',
   firstSpawnSeconds: 300,
   respawnSeconds: 300,
   decaySeconds: 300,
