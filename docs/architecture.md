@@ -395,36 +395,50 @@ and do collapse to `Exact`; Cursed Hollow, Garden of Terror and Alterac Pass do 
 ##### Advancing the chain as the clock moves
 
 `project` must decide what happens when `now` overtakes a projected spawn. Leaving that implicit
-produced a real defect.
+produced one defect; getting the order of operations wrong produced a worse one. Both are worth
+recording, because the correct rule looks arbitrary without them.
 
-**Rule:** when `now` passes a cycle's `high` with no anchor, the app presumes that cycle occurred,
-advances the cycle index, and adds a step to `n`, so the band widens accordingly.
+**The division of labour.** `project` walks the chain on **unclamped** values and assigns
+confidence from the unclamped width. `view` applies the present clamp to both ends, for display
+only, and never changes confidence.
 
-**The present clamp must widen the estimate, never narrow it.** The information at `now > at` is
-"no resolution has been reported yet", which pushes the near end out *and* removes any upper
-bound:
+**Advancement, in `project`:** while `now > high` for the cycle under consideration, presume that
+cycle occurred, advance the cycle index, add a step to `n`, and recompute
+`at += fight.median + offsetMid` with `spread(n)`. Repeat until `now <= high`.
+
+**The clamp, in `view`:**
 
 ```
-low  = max(at - spread(n), now + offsetMin)
-high = max(at + spread(n), now + offsetMax)
-at   = clamp(at, low, high)
+displayLow  = max(low,  now + offsetMin)
+displayHigh = max(high, now + offsetMax)
+displayAt   = clamp(at, displayLow, displayHigh)
 ```
 
-Clamping `low` alone inverts the interval. Worked through on Braxis Holdout with offset 130s,
-`stepSpread` 30 and an anchor at 5:00: `spawn(3).at` is 630 with a band of 600 to 660. At
-`now = 640` a one-sided clamp gives `low = 770` against an unmoved `high = 660`. The countdown
-reads minus ten and keeps falling, the band renders backwards, and because the width is
-*negative* it never exceeds `maxUsefulBand`, so the event stays amber and confident-looking
-instead of dropping to `Unknown`. The safety net was defeated by its own sign, roughly five
-minutes after one missed tap.
+Two failure modes this avoids, both of which existed in earlier drafts.
 
-With both ends clamped the interval stays ordered, retains at least `2 * stepSpread` of width, and
-grows past `maxUsefulBand` on schedule, so the chain reaches `Unknown` and the UI says "objective
-timing lost".
+*Clamping only the near end inverts the interval.* On Braxis with offset 130s, `stepSpread` 30
+and an anchor at 5:00, cycle 3 sits at 630 with a band of 600 to 660. At `now = 640` a one-sided
+clamp gives `low = 770` against an unmoved `high = 660`. The countdown reads minus ten, the band
+renders backwards, and because the width is *negative* it never exceeds `maxUsefulBand`, so the
+event stays amber and confident-looking instead of dropping to `Unknown`. The safety net was
+defeated by its own sign.
 
-The clamp is evaluated in `view`, not in `project`. Once it binds, `low` is a continuous function
-of `now`, so leaving it in `project` would collapse `validUntil` to `now` and force a projection
-every tick, which is the behaviour that section exists to prevent.
+*Advancing on clamped values freezes the chain forever.* If the clamp raises `high` to
+`now + offsetMax` before advancement is tested, then `now > high` is never true. The cycle never
+advances, `n` never grows, the band never widens, and confidence never reaches `Unknown`. The app
+would sit indefinitely showing a green `Exact` objective at `now + offset`: a confident false
+claim that never self-corrects, which is worse than the inverted band it replaced. This is why
+advancement reads unclamped values and the clamp lives in `view`.
+
+Worked through, the corrected rule behaves as intended. On Braxis with an anchor at 5:00 the next
+spawn is `Exact` until it passes, then `Estimated` and widening, reaching `Unknown` around 14:40,
+roughly nine and a half minutes after the last tap. On Alterac Pass, whose ranged offset means no
+step is ever `Exact`, the band starts at 40 seconds and reaches `Unknown` around 14:10. Neither
+produces an unordered interval at any point.
+
+Keeping the clamp in `view` has a second benefit: once it binds, `displayLow` is a continuous
+function of `now`, so leaving it in `project` would collapse `validUntil` to `now` and force a
+projection every tick, which is the behaviour that section exists to prevent.
 
 When every projected cycle is `Unknown`, the UI shows that deliberately rather than silently: the
 dominant countdown reads "objective timing lost" with the anchor button offered prominently. A
@@ -1300,7 +1314,9 @@ The cases that matter:
 - The two-sided present clamp: after an estimated band elapses with no anchor, assert
   `low <= at <= high` and that confidence has become `Unknown`, not merely that the numbers moved.
   A one-sided clamp inverts the interval and defeats the width test by its own sign.
-- Chain advancement: `now` passing a cycle's `high` advances the cycle index and adds a step.
+- Chain advancement on unclamped values: `now` passing a cycle's unclamped `high` advances the
+  index and adds a step. Explicitly assert that the chain does advance while the clamp is binding,
+  since advancing on clamped values freezes it forever in a confident `Exact` state.
 - An anchor collapsing to the tightest band the offset permits, asserting `Exact` only on
   scalar-offset maps and an offset-width band on the three ranged ones.
 - Downgrade to `Unknown` past `maxUsefulBand`, and that the UI receives a distinguishable
