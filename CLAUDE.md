@@ -17,7 +17,10 @@ read that design before making architectural choices, because the live prompts a
 match its grading dimensions.
 
 The next step is implementation, following the build order at the end of
-`docs/architecture.md`. Start with `packages/engine`: types, `project`, the objective chain
+`docs/architecture.md`. Read the "Before step 1" note there first: a one-day throwaway spike
+tests the product hypothesis before any of this gets built.
+
+Then start with `packages/engine`: types, `project`, the objective phase chain, the `now` clamp
 and the provenance clamp, with tests throughout and no UI.
 
 ## Documents
@@ -81,8 +84,8 @@ refactor:
 - pnpm workspaces.
 - Cloudflare Pages for the app; Cloudflare Workers and Durable Objects for the relay, via
   `partyserver`.
-- `heroprotocol` in an offline Node tool that derives map timing data from a replay corpus.
-  Not shipped to the browser in v1.
+- No replay parsing in v1. Timings are hand-authored from published guides and hand-timing.
+  `heroprotocol` is for a deferred offline tool, described in `docs/architecture.md`.
 - Web Speech API for spoken prompts.
 - Vitest for the pure packages, Playwright for live view timing against a mocked clock.
 
@@ -119,6 +122,7 @@ Development happens on macOS.
 ## Conventions
 
 - Branch per unit of work; do not commit directly to `master`.
-- The timing data in `docs/research.md` is unverified and sources conflict. A map never
-  renders `Exact` until its timings are confirmed. Unverified maps still render estimates;
-  only a map with no data falls back to waves, tiers and the death timer.
+- Timings are hand-authored and sources conflict. The validated per-map table is in
+  `docs/architecture.md` and supersedes the older seed table in `docs/research.md`. A map never
+  renders `Exact` until hand-timed and marked `verified`; unverified maps still render
+  estimates, and only a map with no data falls back to waves, tiers and the death timer.

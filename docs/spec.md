@@ -177,17 +177,21 @@ interface MapDefinition {
   id: string
   name: string
   provenance: Provenance            // governs the confidence its timings may claim
-  objectives: ObjectiveTrack[]      // most maps have one; some have several
+  objective: ObjectiveModel         // one phase chain, or 'none'
   camps: CampDefinition[]
 }
 ```
 
-A map has objective *tracks* rather than a single objective. One chain per map was a
-generalisation from four battlegrounds and it does not survive contact with the rest: Sky Temple
-runs three temples concurrently, Towers of Doom has multiple altars, Cursed Hollow's respawn is
-conditional on whether the curse triggered, Haunted Mines is phased, and Blackheart's Bay
-separates collection from turn-in. `architecture.md` defines `ObjectiveTrack` and the respawn
-rule variants.
+A map has one objective phase chain. Within a phase one or more instances activate: two temples
+on Sky Temple, two or three altars on Towers of Doom, three cavalry on Alterac Pass, one tribute
+on Cursed Hollow. Instance count varies by phase but does not affect when the phase happens.
+
+This was validated against all 15 battlegrounds and it forced four things into the model:
+offsets are ranges rather than scalars; some maps have two resolution outcomes with different
+offsets (Cursed Hollow, Garden of Terror); Alterac Pass shortens its offset by 2 seconds per
+minute of game time; and Tomb of the Spider Queen has no timed objective at all, which is a
+supported state rather than an error. `architecture.md` carries the model and the validated
+per-map table.
 
 Maps carry the data cues read, not cue definitions. Cues live in `engine` and are
 map-agnostic; a battleground shapes their behaviour through its camp metadata rather than by
@@ -208,12 +212,11 @@ someone has to remember. Development can proceed freely against `archive` data, 
 physically cannot claim precision it has not earned. Promoting a map to `verified` is a data
 change.
 
-Each track chains its cycle off the resolution of the previous one rather than off a fixed
-clock, so its respawn rule is expressed relative to an `ObjectiveEnded` anchor for that track,
-with a fallback estimation band for when no anchor exists.
+The chain runs off the resolution of the previous phase rather than off a fixed clock, so the
+respawn rule is expressed relative to an `ObjectiveEnded` anchor, with a fallback estimation
+band when no anchor exists. Blackheart's Bay is the exception and uses a fixed interval.
 
-Only five battlegrounds have been checked against this model. The other ten are validated before
-their data is written.
+All 15 battlegrounds have been checked against this model.
 
 An unrecognised map falls back to waves, tiers and the death timer. This covers ARAM maps and
 any future rotation change without a release.
@@ -452,58 +455,32 @@ needs to reuse it verbatim.
 
 ## Timing data sourcing and verification
 
-This is the largest non-code risk. Published sources conflict and predate patches. One
-guide gives siege camps as first spawn 2:00 with a 3:00 respawn; the wiki gives mercenaries
-at 0:30 and bosses at 5:00. Shipping wrong numbers is worse than shipping none, because the
-player trusts them during a fight.
+v1 hardcodes timings. They come from the published map guides, cross-checked between sources,
+and from timing a handful of matches by hand where the guides disagree. `architecture.md` carries
+a per-map table validated against all 15 battlegrounds in September 2026.
 
-Approach: seed from published guides, then verify and calibrate from a replay corpus using
-the offline `replay` tool. Measuring actual spawn times across real matches replaces trust
-in stale wikis with observation.
+This is enough to ship. A countdown does not need a replay parser, and making one a prerequisite
+would put a substantial reverse-engineering job on the critical path of the first useful version.
 
-Two kinds of number come out of this, and they need very different sample sizes.
+Two honesty mechanisms carry the risk instead of precision doing it:
 
-Fixed game rules (first objective spawn, the offset after resolution, camp respawn, the
-death timer curve) are constants in the game's code. A handful of replays per map settles
-each one; no statistics are involved.
+- `provenance` on each map governs what confidence its timings may claim. Hand-authored maps are
+  `published` and never render `Exact` until someone has hand-timed them in custom games and
+  marked them `verified`.
+- The estimation bands are deliberately generous. Their inputs are judgement rather than
+  measurement, and admitting uncertainty slightly early is the safe direction to be wrong.
 
-The estimation bands are not a game constant. They describe how long humans take to resolve
-an objective fight, so they are a distribution and need hundreds of samples to be worth
-anything. Bands only matter when the player has not anchored, so they can lag the fixed
-numbers without holding up a release.
+Where the sources conflict, and they do, the more recent guide wins and the map stays
+`published` until confirmed.
 
-Corpus sources are covered in `research.md`. Removing the review from v1 does not remove
-this work: the tool is on the critical path for the live feature, because without it the app
-has no trustworthy numbers to display.
+### If measurement is ever wanted
 
-Seed values gathered so far, all requiring verification:
+Deferred and possibly unnecessary. A corpus of replays would let an offline tool measure
+resolution spreads and camp survival directly rather than estimating them. `research.md` records
+the corpus that exists and its limits.
 
-| Map | First objective | Subsequent | Verified |
-| --- | --- | --- | --- |
-| Battlefield of Eternity | 3:00 | +1:45 after Immortal dies | no |
-| Towers of Doom | 3:00 | +1:50 after all Altars captured | no |
-| Infernal Shrines | 3:00 | +3:00 after Punisher dies | no |
-| Braxis Holdout | 1:30 | +2:10 after Zerg waves die | no |
-| Sky Temple | 1:30 | +2:00 after last shot | no |
-| Garden of Terror | 1:30 | +3:20 after plants killed | no |
-| Dragon Shire | 1:15 | +2:00 after Dragon Knight dies | no |
-| Haunted Mines | 2:00 | +2:00 after last grave golem dies | no |
-| Cursed Hollow | 1:30 | +0:50-1:40, or +3:00-4:00 if cursed | no |
-| Blackheart's Bay | 0:50 (chests) | +2:30-3:15 | no |
-| Alterac Pass | unknown | unknown | no |
-| Hanamura Temple | unknown | unknown | no |
-| Tomb of the Spider Queen | unknown | unknown | no |
-| Volskaya Foundry | unknown | unknown | no |
-| Warhead Junction | unknown | unknown | no |
-
-Supporting constants, same caveat: minion waves every 30 seconds; regeneration globe
-restores 9% health and 7% mana over 5 seconds, lives 6 seconds, becomes neutral after 3;
-talent tiers at levels 1, 4, 7, 10, 13, 16, 20; death timers scale from roughly 10 seconds
-early to roughly 60 seconds after level 20, exact curve to be derived from replays.
-
-A map never renders `Exact` without verified numbers. Unverified maps still render their
-objectives and camps as estimates; only a map with no data at all falls back to waves, tiers and
-the death timer.
+The interfaces are shaped so this is a data change: `FightEstimate` and the camp thresholds are
+the values a measurement would fill in. Nothing in v1 depends on it happening.
 
 ## Testing
 

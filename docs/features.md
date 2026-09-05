@@ -98,8 +98,9 @@ is fixed by them.
 | # | Feature | Status | Notes |
 | --- | --- | --- | --- |
 | 39 | Map definitions as data files | v1 | Adding a battleground is a data change, never a logic change |
-| 40 | Offline replay tool for timing verification | v1 | Node tool, no UI, not in the app bundle. On the critical path for the live feature: without it there are no trustworthy numbers to display |
-| 41 | Estimation band calibration from a corpus | v1 | Real cycle-length distributions rather than guessed bands. Same offline tool as row 40 |
+| 39a | Hand-authored timings with provenance | v1 | Published guides cross-checked, plus hand-timing in custom games to promote a map to `verified` |
+| 40 | Offline replay tool for timing verification | deferred | v1 hand-authors timings from published guides and spot-checks. A parser is a large build and a countdown does not need one |
+| 41 | Estimation band calibration from a corpus | deferred | v1 uses judgement-based estimates, deliberately generous. `FightEstimate` is the shape a measurement would fill, so this is a data change later |
 | 42 | Aggregate cross-user statistics | rejected | Needs accounts and storage; v1 is deliberately account-free |
 
 ## Rejected
@@ -127,8 +128,9 @@ The deferred items are not free. To keep them cheap, the following must hold fro
    changes are value edits rather than control-flow changes (16).
 5. Map definitions are data validated by schema, so drills and playbooks can be authored
    against the same source (15, 17).
-6. Replay parsing produces a neutral match timeline rather than review-shaped output, so the
-   same parse feeds timing verification and band calibration now, and grading later
-   (30, 40, 41).
-7. The live view is built without assuming a review exists. Nothing in v1 may depend on
+6. Timing estimates live in typed fields (`FightEstimate`, camp thresholds) rather than as
+   literals, so replacing judgement with measurement is a data change (40, 41).
+7. Replay parsing, when built, produces a neutral match timeline rather than review-shaped
+   output, so one parse can feed both timing measurement and grading (30, 40, 41).
+8. The live view is built without assuming a review exists. Nothing in v1 may depend on
    post-match data being available (31-38).

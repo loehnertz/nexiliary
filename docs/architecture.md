@@ -127,40 +127,99 @@ anchor, which is the mechanism used everywhere else.
 
 ### The objective model
 
-One chained objective per map was a generalisation from four battlegrounds and it does not
-hold. Sky Temple runs three temples concurrently, Towers of Doom has multiple altars, Cursed
-Hollow's respawn is conditional on whether the curse triggered, Haunted Mines is phased, and
-Blackheart's Bay separates collection from turn-in.
+Validated against all 15 battlegrounds. Two earlier versions were wrong, in opposite
+directions.
 
-A map therefore has tracks, each with its own independent chain:
+The first assumed one chained objective per map. The second replaced it with independent
+concurrent *tracks*, on the theory that Sky Temple's three temples each ran their own chain.
+Both are wrong. A map has **one objective phase chain**. Within a phase, one or more
+*instances* activate: two temples on Sky Temple, two or three altars on Towers of Doom, three
+cavalry on Alterac Pass, one tribute on Cursed Hollow. Instance count varies by phase index
+and is sometimes random, but it does not affect *when* the phase happens, so it is a display
+hint rather than a timing input.
 
 ```ts
-interface ObjectiveTrack {
-  id: string
-  label: string                     // "Beacons", "Temple (west)", "Tribute"
+interface ObjectiveModel {
+  label: string                   // "Beacons", "Altars", "Tribute"
   firstSpawnSeconds: Seconds
   respawn: RespawnRule
-  concurrentWith?: string[]         // sibling track ids, for display grouping
+  instancesByPhase?: number[]     // display only; last value repeats
 }
 
 type RespawnRule =
-  | { kind: 'afterResolution'; offsetSeconds: Seconds }
-  | { kind: 'afterResolutionConditional'
-      branches: { conditionId: string; offsetSeconds: Seconds }[]
-      defaultOffsetSeconds: Seconds }
-  | { kind: 'fixedCadence'; periodSeconds: Seconds }
-  | { kind: 'none' }                // one-shot, never returns
+  | { kind: 'afterResolution'
+      outcomes: Record<string, { minSeconds: Seconds; maxSeconds: Seconds }>
+      scalePerMinuteSeconds?: number }
+  | { kind: 'fixedInterval'; minSeconds: Seconds; maxSeconds: Seconds }
+  | { kind: 'none' }
 ```
 
-Most maps have one track with `afterResolution`. Sky Temple has three. Cursed Hollow uses
-`afterResolutionConditional`, and since the app cannot observe whether the curse triggered it
-takes `defaultOffsetSeconds` with a band wide enough to span the branches. That is the honest
-answer: the condition exists, we cannot see it, so the uncertainty is shown rather than
-guessed.
+Four things forced this shape, each found on a real map:
 
-Only five battlegrounds have been checked against this model. The remaining ten must be
-validated before their data is written, and the model extended if a shape does not fit. That
-validation is part of build order step 5, not an assumption.
+**Offsets are ranges, not scalars.** Cursed Hollow respawns 0:50 to 1:30 after a tribute is
+collected; Garden of Terror 0:50 to 1:20 after a seed; Alterac Pass 1:50 to 2:30. A scalar
+offset cannot express these, and pretending it can would manufacture false precision.
+
+**Some maps have two resolution outcomes with different offsets.** Cursed Hollow respawns 0:50
+to 1:30 after an ordinary tribute but 2:00 to 2:40 after a curse ends. Garden of Terror is 0:50
+to 1:20 after a seed but 1:30 to 2:00 after the Garden Terrors die. Hence `outcomes` keyed by
+name.
+
+Crucially this needs **no extra input**. When the player has not said which outcome occurred,
+the band spans the union of all outcomes: the minimum of the minima to the maximum of the
+maxima. Wider, honest, no new button. A control naming the outcome could tighten it later, and
+would pass the input gate, but v1 does not need one.
+
+**One map scales its offset with game time.** Alterac Pass reduces the respawn delay by 2
+seconds per minute of elapsed game time. `scalePerMinuteSeconds` exists solely for it. Nothing
+else in the model would have caught this, and it would have shown visibly wrong numbers by the
+twenty minute mark.
+
+**One map has no timed objective at all.** Tomb of the Spider Queen drops gems continuously
+from minions, and the turn-in is player-initiated with no clock. There is nothing to count down
+to. `kind: 'none'` is a supported, tested state, not an error: the app shows waves, camps, tiers
+and the death timer, and the objective slot reads "no objective timer on this battleground"
+rather than sitting blank or falling back to the unknown-map path.
+
+Blackheart's Bay is the one `fixedInterval` map: chests respawn every 3:00 on their own clock,
+paused during a bombardment, rather than chaining off a resolution.
+
+#### Validated map table
+
+Source: Icy Veins map guides, September 2026. Every figure still requires confirmation, but the
+*structure* below is what the model must support.
+
+| Map | First | Respawn trigger | Offset | Instances |
+| --- | --- | --- | --- | --- |
+| Alterac Pass | 3:00 | after completion | 1:50-2:30, minus 2s per game minute | 3 cavalry |
+| Battlefield of Eternity | 3:00 | Immortal dies | 1:45 | 2 immortals |
+| Blackheart's Bay | 1:30 | fixed interval, paused in bombardment | 3:00 | 1, then 2, then 3 chests |
+| Braxis Holdout | 1:30 | zerg waves die | 2:10 | 2 beacons |
+| Cursed Hollow | 3:00 | tribute collected / curse ends | 0:50-1:30 / 2:00-2:40 | 1 tribute |
+| Dragon Shire | 1:30 | Dragon Knight dies | 2:00 | 2 shrines |
+| Garden of Terror | 2:30 | seed collected / terrors die | 0:50-1:20 / 1:30-2:00 | 1 seed |
+| Hanamura Temple | 3:00 | last shot fired | 3:00 | 1 payload |
+| Haunted Mines | 3:00 | grave golems die | 2:00 | 1 mine |
+| Infernal Shrines | 3:00 | Punisher dies | 3:00 | 1 shrine |
+| Sky Temple | 3:00 | phase ends | 2:00 | 1-2 temples |
+| Tomb of the Spider Queen | none | none | none | continuous gems |
+| Towers of Doom | 3:00 | all altars captured | 1:50 | 2-3 altars |
+| Volskaya Foundry | 3:00 | Triglav Protector dies | 3:00 | 1 capture point |
+| Warhead Junction | 3:00 | all warheads collected | 2:55 | 2-4 warheads |
+
+These figures disagree with the older seed table in `research.md` on several maps, including
+Cursed Hollow, Sky Temple, Garden of Terror and Haunted Mines. The disagreements are patch
+drift; the Icy Veins guides are the more current source and this table supersedes the other.
+
+#### Camps vanish during some objective phases
+
+Alterac Pass and Braxis Holdout remove mercenary camps from the battlefield while the objective
+is active, returning them when it ends. A camp model that does not know this will advise
+starting a camp that is not there.
+
+`MapDefinition` therefore carries `campsSuppressedDuringObjective: boolean`. When true and an
+objective phase is believed active, every camp's `standing` is `Known(false)` and `stall-camp`
+does not fire.
 
 ### Projection
 
@@ -237,37 +296,56 @@ button offered prominently. A blank countdown reads as a bug.
 
 #### How the band grows
 
-The obvious approach is wrong. Accumulating percentiles linearly, `low += p10` and
-`high += p90` per step, assumes every cycle hits its extreme in the same direction. Independent
-draws partially cancel, so a sum of n draws spreads with `sqrt(n)`, not `n`.
+v1 hardcodes the inputs. Measurement is a refinement path, not a prerequisite.
 
-Pure `sqrt(n)` is also wrong. Fight durations are positively correlated: a team that resolves
-objectives slowly tends to do so every cycle. For n draws with pairwise correlation r:
+Each map carries a hand-authored estimate of how long the objective takes to resolve:
+
+```ts
+interface FightEstimate {
+  medianSeconds: Seconds
+  spreadSeconds: Seconds     // roughly an 80% half-width
+}
+```
+
+These come from the published guides, from timing a handful of replays by hand, or from
+judgement. They do not need to be precise, because they only govern how fast the app admits it
+is unsure, and admitting uncertainty slightly early is the safe direction to be wrong.
+
+The midpoint accumulates linearly, because expected values add. The spread does not:
 
 ```
-var(sum) = n * sigma^2 + n * (n - 1) * r * sigma^2
-```
-
-At `r = 0` growth is `sqrt(n)`; at `r = 1` it is linear. The truth is between, and it is
-measurable rather than assumable:
-
-```
-spread(n) = z * sigma * sqrt(n + n * (n - 1) * r)      // z = 1.28, an 80% interval
-low  = max(at - spread(n), now + offset)
+spread(n) = spreadSeconds * sqrt(n + n * (n - 1) * r)      // r defaults to 0.3
+low  = max(at - spread(n), now + offsetMin)
 high = at + spread(n)
 ```
 
-Preferred once the corpus supports it: measure the n-step spread directly, as the observed
-distribution of time from a cycle spawn to the spawn n cycles later. That needs no
-distributional assumption and no correlation estimate. The formula is the interim model for
-tracks with too few samples.
+Two things about that formula are worth understanding rather than copying.
 
-The difference is not academic. With a 40 second p10-to-p90 fight spread, linear accumulation
-reaches a 120 second band by the third unanchored cycle; uncorrelated growth does not until
-around the ninth.
+Accumulating the range linearly, `low += min` and `high += max` per step, would assume every
+cycle hits its extreme in the same direction. Independent draws partially cancel, so a sum of n
+draws spreads with `sqrt(n)`, not `n`. Linear over-widens, and the practical cost is that the
+app goes `Unknown` several cycles earlier than the evidence justifies. With a 40 second spread,
+linear reaches a 120 second band by the third unanchored cycle where uncorrelated growth does
+not until around the ninth.
 
-When band width exceeds `maxUsefulBand` (start at 120 seconds, tune against real data),
-confidence drops to `Unknown`, and every later cycle in that track is `Unknown` too.
+Pure `sqrt(n)` is also wrong, because fight durations are positively correlated: a team that
+resolves objectives slowly tends to do so every cycle. The `r` term interpolates, at `r = 0`
+giving `sqrt(n)` and at `r = 1` giving linear. **`r = 0.3` is a guess**, stated plainly so
+nobody mistakes it for a measurement. It is one constant, and it is the single thing most worth
+replacing with a real number later.
+
+When band width exceeds `maxUsefulBand` (start at 120 seconds), confidence drops to `Unknown`
+and every later cycle does too.
+
+##### The refinement path, if it is ever needed
+
+Deferred, and possibly never necessary. A corpus of replays would let the offline tool measure
+`spreadSeconds` and `r` per map, or skip the model entirely and measure the n-step spread
+directly as the observed distribution of time from one phase spawn to the spawn n phases later.
+
+Nothing in v1 depends on that happening. The shape of `FightEstimate` is what a measurement
+would fill in, so replacing guesses with data is a data change and not a redesign. That is the
+whole of what "keeping the door open" requires here.
 
 #### Camps
 
@@ -305,9 +383,14 @@ contested siege camp falls in twenty seconds, so one pair of constants would mak
 availability `Stale` in essentially every match and quietly kill boss timers. `decaySeconds`
 and `staleSeconds` live on `CampDefinition` and are asserted by the `maps` CI check.
 
-Calibration target: these encode the point at which belief is worthless, so they are quantiles
-of the survival function, not of time-to-first-capture. Define them as the times by which 50%
-and 90% of camps of that type have been taken.
+v1 hardcodes these per camp type from judgement: a siege camp in a contested lane goes stale
+fast, a boss can stand for a whole match. Start around 45 and 120 seconds for regular camps and
+far longer for bosses, then adjust by feel after a few games.
+
+If they are ever measured, the target is the point at which belief becomes worthless, which is a
+quantile of the survival function rather than of time-to-first-capture: the times by which
+roughly 50% and 90% of camps of that type have been taken. That is a refinement, not a
+prerequisite.
 
 `Stale` means the app stops claiming anything about that camp. It does not mean the camp
 vanishes from the UI, and it does not remove the control that could correct it. See "Input
@@ -849,7 +932,15 @@ Stored anchors are typed with a widened `type: AnchorType | (string & {})` so an
 type is representable under `strict: true` and can be stored and ignored rather than forced
 through with `as any`. Generators must not assume the set contains only types they know.
 
-## packages/replay
+## packages/replay (deferred, not v1)
+
+Not built for v1. Map timings are hand-authored from published guides and from timing a handful
+of replays by hand, which is enough to ship and avoids making a replay parser a prerequisite for
+a countdown.
+
+It is described here because two later things want it and the interfaces should not have to
+change when they arrive: replacing hand-authored estimates with measurements, and the post-game
+review.
 
 An offline Node tool. Not shipped, not bundled, never loaded in a browser.
 
@@ -902,6 +993,12 @@ The cases that matter:
 - The provenance clamp at every value, including that waves and tiers are exempt.
 - `validUntil` being the earliest of its candidates, and the memo recomputing when it lapses.
 - Per-generator truncation: a merged timeline is never all waves.
+- Every `RespawnRule` variant: a ranged offset, a two-outcome rule producing the union band when
+  the outcome is unknown, `scalePerMinuteSeconds` shortening the offset late in a match,
+  `fixedInterval`, and `kind: 'none'`.
+- A map with no timed objective renders the no-objective state and not the unknown-map fallback.
+- `campsSuppressedDuringObjective`: no camp reads as standing while a phase is believed active,
+  and `stall-camp` does not fire.
 - Cue confidence filtering via `basedOn`, including a multi-fact cue with mixed confidence.
 - Re-fire on a large anchor correction, and no re-fire on a small one.
 - `CueState` scoped to `matchId`, so a second match is not silent.
@@ -960,6 +1057,14 @@ subscribers appear without touching the engine.
 
 `MatchTimeline` is neutral. Two consumers, one now and one later.
 
+One objective phase chain per map, with instances inside a phase. Independent per-instance
+chains were a second wrong model: Sky Temple's temples activate together within one cadence, not
+on separate clocks.
+
+v1 hardcodes timing inputs rather than measuring them. A replay parser is a large build and
+nothing about a countdown requires one. `FightEstimate` is the shape a measurement would fill,
+so the door stays open as a data change.
+
 Cues and controls are registries of small objects, not a plugin system. The subsystems that grow
 need a shape that makes growth cheap, but dynamic registration and a condition DSL would buy
 flexibility nobody asked for at the cost of debuggability.
@@ -978,17 +1083,32 @@ revisiting before proceeding.
 
 ## Build order
 
-1. `engine` types, `project`, one objective track, the `now` clamp, the band model, the
-   provenance clamp. Tests throughout. No UI.
-2. `maps` schema, one battleground seeded as `published`, plus one hand-timed map marked
-   `verified` so the exact path is reachable and milestone 3 is tunable.
+1. `engine` types, `project`, the objective phase chain with every `RespawnRule` variant, the
+   `now` clamp, the band model, the provenance clamp. Tests throughout. No UI.
+2. `maps` schema plus two or three battlegrounds, hand-authored from the validated table with
+   `provenance: 'published'`, and one of them hand-timed in custom games and marked `verified`
+   so the exact path is reachable.
 3. `apps/web`: clock, live view, input surface, speech, wake lock, and the match lifecycle
-   including end-match and the between-matches flow. Local anchors only.
-4. `packages/replay`: parse against the archive, derive, emit. Promotes maps to `archive`, then
-   to `verified` once current replays exist.
-5. Remaining battlegrounds, validating the objective model against each before writing data. Ten
-   of fifteen are unchecked against the track model.
-6. `apps/relay` and shared sessions.
+   including end-match and the between-matches flow. Local anchors only. This is the first
+   point at which the product hypothesis can be tested, and it should be tested here before
+   going further.
+4. Remaining battlegrounds as data.
+5. `apps/relay` and shared sessions.
 
-Steps 1 to 5 produce a working local app. The relay is last because nothing else depends on it,
-and because it is the piece that could be dropped without disturbing the rest.
+Steps 1 to 4 produce a working local app. The relay is last because nothing else depends on it
+and it could be dropped from v1 without disturbing the rest.
+
+No replay parsing in v1. Timings are hand-authored, which removes a parser from the critical
+path of a countdown. `packages/replay` is described above so that adding it later replaces
+values rather than reshaping interfaces.
+
+### Before step 1
+
+Spend a day on a throwaway spike: one battleground, timings hand-stopwatched in a few custom
+games, hardcoded, a countdown and the Web Speech API, no engine and no packages. Play four
+games with it.
+
+The central bet of this project is that a voice giving timed coaching mid-match is helpful
+rather than irritating, and nothing in this document tests it. The spike answers that in a day.
+If the voice is good, everything here is worth building. If it is noise, that is a product
+finding no architecture would have surfaced, and it is far cheaper to learn now.
