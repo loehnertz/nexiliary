@@ -159,9 +159,12 @@ Maps are data, not code. Adding or correcting a battleground is a data change va
 schema tests in CI, never a logic change.
 
 ```ts
+type Provenance = 'verified' | 'archive' | 'published' | 'unknown'
+
 interface MapDefinition {
   id: string
   name: string
+  provenance: Provenance            // governs the confidence its timings may claim
   objective: {
     name: string                    // "Beacons", "Altars", "Tributes"
     firstSpawnSeconds: number
@@ -171,6 +174,20 @@ interface MapDefinition {
   prompts: PromptDefinition[]
 }
 ```
+
+`provenance` records where a map's timings came from, and the engine reads it rather than
+trusting the numbers on sight:
+
+- `verified` - measured from current replays. May be presented as `Exact`.
+- `archive` - measured from the 2015-2019 replay archive. Development use only. Never
+  presented as `Exact`; degrades to `Estimated` with a wide band.
+- `published` - taken from a wiki or guide. Same treatment as `archive`.
+- `unknown` - no data. The map falls back to the always-exact events.
+
+This is what makes "no map ships without verified numbers" enforceable rather than a note
+someone has to remember. Development can proceed freely against `archive` data, and the app
+physically cannot claim precision it has not earned. Promoting a map to `verified` is a data
+change.
 
 Because every battleground chains its objective cycle off the resolution of the previous
 one rather than a fixed clock, `respawnRule` is always expressed relative to an

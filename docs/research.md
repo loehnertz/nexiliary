@@ -72,6 +72,13 @@ truncated, and map identity must come from parsed replay content rather than fil
 because the archive mixes German and English client locales (`Drachengärten` and
 `Dragon Shire` are the same map).
 
+Archive-derived timings are acceptable as development placeholders. They must be recorded
+with `provenance: 'archive'` in the map definition, which prevents the app from presenting
+them as `Exact`. See "Map definitions" in `spec.md`.
+
+The archive is a Google Drive backup mounted under `~/Library/CloudStorage` on the
+development machine, under a `Documents/Heroes of the Storm` tree.
+
 **Current replays, for verification.** The primary source. Matches are played several times
 a week on Linux under Proton, so fresh replays accrue continuously. Since the fixed
 constants need only a handful of replays per map, this covers the critical numbers within a
