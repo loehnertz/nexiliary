@@ -19,6 +19,45 @@ describe('every battleground', () => {
     }
   })
 
+  it('covers all fifteen battlegrounds in rotation', () => {
+    expect(battlegrounds).toHaveLength(15)
+  })
+
+  it('exercises every RespawnRule variant, so no variant is dead code', () => {
+    const timed = battlegrounds.filter((m) => m.objective.kind === 'timed')
+    const kinds = timed.map((m) => (m.objective.kind === 'timed' ? m.objective.respawn.kind : ''))
+    expect(kinds.filter((k) => k === 'fixedInterval')).toHaveLength(1)
+    expect(kinds.filter((k) => k === 'afterResolution')).toHaveLength(13)
+    expect(battlegrounds.filter((m) => m.objective.kind === 'none')).toHaveLength(1)
+
+    // Three maps have a ranged offset and therefore never collapse to Exact after an
+    // anchor; two of those carry a second outcome gated by `possibleFromCycle`.
+    const ranged = timed.filter(
+      (m) =>
+        m.objective.kind === 'timed' &&
+        m.objective.respawn.kind === 'afterResolution' &&
+        Object.values(m.objective.respawn.outcomes).some((o) => o.maxSeconds !== o.minSeconds),
+    )
+    expect(ranged.map((m) => m.id).sort()).toEqual(['alterac-pass', 'cursed-hollow', 'garden-of-terror'])
+
+    const gated = timed.filter(
+      (m) =>
+        m.objective.kind === 'timed' &&
+        m.objective.respawn.kind === 'afterResolution' &&
+        Object.values(m.objective.respawn.outcomes).some((o) => o.possibleFromCycle !== undefined),
+    )
+    expect(gated.map((m) => m.id).sort()).toEqual(['cursed-hollow', 'garden-of-terror'])
+
+    // And exactly one map scales its offset with game time.
+    const scaled = timed.filter(
+      (m) =>
+        m.objective.kind === 'timed' &&
+        m.objective.respawn.kind === 'afterResolution' &&
+        m.objective.respawn.scalePerMinuteSeconds !== undefined,
+    )
+    expect(scaled.map((m) => m.id)).toEqual(['alterac-pass'])
+  })
+
   it('has a unique id', () => {
     expect(new Set(battlegrounds.map((m) => m.id)).size).toBe(battlegrounds.length)
   })
