@@ -45,6 +45,12 @@ import { buildMatchLog } from './services/match-log.js'
 
 type Sheet = 'none' | 'clock' | 'overflow'
 
+/**
+ * How long a fired prompt stays on screen. Long enough to read at a glance mid-fight,
+ * short enough that the panel is not carrying stale advice into the next decision.
+ */
+const promptDisplaySeconds = 8
+
 export function App() {
   const [state, dispatch] = useReducer(matchReducer, initialMatchState)
   const [settings, setSettings] = useState<StoredSettings>(loadSettings)
@@ -308,17 +314,35 @@ function CueRunner({
   matchId: string
   settings: StoredSettings
 }) {
-  const [active, setActive] = useState<readonly Prompt[]>([])
+  // What fired, and how long to keep showing it.
+  //
+  // `evaluateCues` reports what fired *this second*, which is right for speech and wrong
+  // for the screen: once a key is in `fired` it is correctly dropped from the next
+  // evaluation, so a prompt was visible for exactly one second and then vanished.
+  const [shown, setShown] = useState<{ prompts: readonly Prompt[]; untilSecond: number } | null>(null)
   const cueState = useRef<CueState>(newCueState(matchId))
   const lastSpokenKey = useRef<string | null>(null)
+  const lastEvaluated = useRef<number | null>(null)
   const second = Math.floor(now)
 
   if (cueState.current.matchId !== matchId) {
     cueState.current = newCueState(matchId)
     lastSpokenKey.current = null
+    lastEvaluated.current = null
   }
 
   useEffect(() => {
+    // Exactly once per second, whatever else re-runs this effect.
+    //
+    // `evaluateCues` is not idempotent — it records what fired, which is the point —
+    // so a second call within the same second finds every key already in `fired` and
+    // returns nothing, blanking a prompt that is mid-display. StrictMode does that on
+    // mount, and in production so does changing a setting while a prompt is up.
+    // Verbosity changes therefore take effect on the next tick rather than instantly,
+    // which is under a second and not worth the whole class of bug.
+    if (lastEvaluated.current === second) return
+    lastEvaluated.current = second
+
     const promptSettings: PromptSettings = {
       maxTier: settings.maxTier,
       speechEnabled: settings.speechEnabled,
@@ -327,7 +351,11 @@ function CueRunner({
     const ctx = buildContext(map, timeline, second)
     const result = evaluateCues(cues, cueText, promptSettings, ctx, cueState.current)
     cueState.current = result.state
-    setActive(result.active)
+    if (result.active.length > 0) {
+      setShown({ prompts: result.active, untilSecond: second + promptDisplaySeconds })
+    } else {
+      setShown((current) => (current !== null && second > current.untilSecond ? null : current))
+    }
     if (result.speak !== null && result.speak.key !== lastSpokenKey.current) {
       lastSpokenKey.current = result.speak.key
       speak(result.speak.spoken, settings.voiceId)
@@ -337,5 +365,5 @@ function CueRunner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [second, map, settings.maxTier, settings.speechEnabled, settings.voiceId])
 
-  return <PromptBar prompts={active} />
+  return <PromptBar prompts={shown?.prompts ?? []} />
 }

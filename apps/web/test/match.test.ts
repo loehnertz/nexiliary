@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { Anchor } from '@nexiliary/engine'
-import { project, view } from '@nexiliary/engine'
-import { braxisHoldout, mapById } from '@nexiliary/maps'
+import { buildContext, cues, evaluateCues, newCueState, project, view } from '@nexiliary/engine'
+import { braxisHoldout, cueText, mapById } from '@nexiliary/maps'
 import {
   gameTimeSeconds,
   initialMatchState,
@@ -209,5 +209,35 @@ describe('the map registry', () => {
 
   it('resolves every battleground the picker offers', () => {
     expect(mapById(braxisHoldout.id)).toBe(braxisHoldout)
+  })
+})
+
+describe('prompts stay on screen long enough to read', () => {
+  it('holds a fired prompt for several seconds, not one', () => {
+    // `evaluateCues` reports what fired *this second* and correctly drops a key once it
+    // is in `fired`, which is right for speech and wrong for the screen: read as "what
+    // to display", a prompt appeared for exactly one second and vanished. The web layer
+    // holds it; this asserts the engine behaviour that makes the hold necessary, so the
+    // reason survives.
+    const anchors = new Map([
+      [
+        'ObjectiveEnded:1',
+        { type: 'ObjectiveEnded', subject: '1', gameTimeSeconds: 60, wallClock: 60_000, source: 'l', schema: 1 },
+      ],
+    ])
+    const settings = { maxTier: 'verbose' as const, speechEnabled: true }
+    let state = newCueState('m1')
+    const secondsWithAFiring: number[] = []
+    for (let now = 100; now <= 260; now += 1) {
+      const ctx = buildContext(braxisHoldout, project(braxisHoldout, anchors, now), now)
+      const result = evaluateCues(cues, cueText, settings, ctx, state)
+      state = result.state
+      if (result.active.length > 0) secondsWithAFiring.push(now)
+    }
+    expect(secondsWithAFiring.length).toBeGreaterThan(0)
+    // Every firing is a single second: no two consecutive.
+    for (let i = 1; i < secondsWithAFiring.length; i += 1) {
+      expect(secondsWithAFiring[i]! - secondsWithAFiring[i - 1]!).toBeGreaterThan(1)
+    }
   })
 })

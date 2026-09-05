@@ -78,3 +78,42 @@ describe('the provenance clamp', () => {
     expect(v.rail.some((s) => s.kind === 'tier')).toBe(true)
   })
 })
+
+describe('nothing map-derived escapes the clamp', () => {
+  it('renders nothing as Exact on a published map except the game-wide floor', () => {
+    // The phase belief leaked past the clamp once, so this is a sweep rather than a
+    // named case: across a whole match, on every path the view can take, the only green
+    // thing on an unverified map is a minion wave.
+    const map = withProvenance(braxis, 'published')
+    for (let now = 0; now < 1800; now += 3) {
+      const t = project(map, anchorSet(), now)
+      expect(t.objectivePhase.kind === 'active' ? t.objectivePhase.confidence.kind : 'Estimated')
+        .not.toBe('Exact')
+      for (const event of t.events) {
+        if (event.kind === 'wave') continue
+        expect(event.confidence.kind, `${event.id} at ${now}`).not.toBe('Exact')
+      }
+      for (const camp of t.camps) {
+        if (camp.nextUp === undefined) continue
+        expect(camp.nextUp.confidence.kind, `${camp.id} at ${now}`).not.toBe('Exact')
+      }
+
+      const v = view(t, map, now)
+      if (v.objective.kind === 'live') expect(v.objective.tone).not.toBe('exact')
+      if (v.objective.kind === 'countdown') expect(v.objective.countdown.tone).not.toBe('exact')
+      for (const slot of v.rail) {
+        if (slot.kind === 'wave') continue
+        expect(slot.tone, `rail ${slot.key} at ${now}`).not.toBe('exact')
+      }
+    }
+  })
+
+  it('does render Exact once a map has been hand-timed and verified', () => {
+    // The other half: the clamp must not be the reason nothing is ever exact.
+    const t = project(braxis, anchorSet(), 60)
+    expect(t.objectivePhase.kind).toBe('idle')
+    expect(view(t, braxis, 60).objective.kind).toBe('countdown')
+    const live = project(braxis, anchorSet(), 120)
+    expect(live.objectivePhase.kind === 'active' && live.objectivePhase.confidence.kind).toBe('Exact')
+  })
+})

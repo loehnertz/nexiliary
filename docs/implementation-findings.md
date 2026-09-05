@@ -200,6 +200,23 @@ all waves and this was the *view*. The fallback order now prefers a `Stale` camp
 a second wave, since that chip is the control that corrects it, and those chips are
 tappable, which they had not been.
 
+**25. The phase belief leaked straight past the provenance clamp.** On a `published` map
+the first objective's spawn is `Exact` from map data, so the live readout rendered green
+and said "Exact" about a number the map is not allowed to claim — the exact failure the
+clamp exists to prevent, reached through a field added after it was written. The clamp now
+covers it, and a sweep asserts that across a whole match on an unverified map the only
+green thing anywhere in the view is a minion wave.
+
+**26. Prompts were visible for exactly one second.** `evaluateCues` reports what fired
+*this* second and correctly drops a key once it is in `fired`. That is right for speech and
+wrong for the screen, and the view treated one as the other, so a prompt flashed and
+vanished. The web layer holds a fired prompt for eight seconds.
+
+**27. Cue evaluation ran more than once per second.** It is not idempotent — recording what
+fired is the point — so a second call within the same second finds every key already fired
+and returns nothing, blanking a prompt mid-display. StrictMode does that on mount, and in
+production so does changing a setting while a prompt is up.
+
 ## Data
 
 **17. Camps are removed during the objective on seven maps, not two.** Alterac Pass,

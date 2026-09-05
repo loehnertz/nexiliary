@@ -46,7 +46,20 @@ export function applyProvenance(t: Timeline): Timeline {
           ? c
           : { ...c, nextUp: { ...c.nextUp, confidence: widen(c.nextUp.confidence, c.nextUp.at) } },
       )
-      return { ...t, events, camps }
+      // The phase belief is derived from the same chain and had been leaking straight
+      // past this clamp: on a `published` map the first objective's spawn is `Exact` from
+      // map data, so the live readout rendered green and said "Exact" about a number the
+      // map is not allowed to claim. Its far end widens too, since that is what bounds
+      // "up to X left".
+      const objectivePhase =
+        t.objectivePhase.kind === 'active'
+          ? {
+              ...t.objectivePhase,
+              until: t.objectivePhase.until + clampBandSeconds,
+              confidence: widen(t.objectivePhase.confidence, t.objectivePhase.since),
+            }
+          : t.objectivePhase
+      return { ...t, events, camps, objectivePhase }
     }
 
     case 'unknown': {
