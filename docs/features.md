@@ -7,7 +7,6 @@ with the deferred items in view.
 Status values:
 
 - `v1` - in scope for the first release
-- `v1-stretch` - in scope if it falls out cheaply, droppable without redesign
 - `deferred` - wanted later, architecture must keep the door open
 - `rejected` - deliberately excluded, with the reason recorded
 
@@ -37,7 +36,7 @@ See `spec.md` for the design these are drawn from.
 | 13 | Talent tier spike warnings | v1 | Levels 10, 16, 20 |
 | 14 | Prompt verbosity tiers | v1 | Objectives and level 10 on by default; waves off |
 | 15 | Per-map playbooks as pull-up reference | deferred | Considered and not chosen for the live surface; would suit a between-matches screen |
-| 16 | Review-driven prompt priority | v1-stretch | Promote the prompts a given player keeps failing. Needs the review shipped first |
+| 16 | Review-driven prompt priority | deferred | Promote the prompts a given player keeps failing. Depends on the review |
 | 17 | Drill and quiz mode between matches | deferred | Was a candidate product shape of its own; useful once the map data is verified |
 
 ## Audio
@@ -72,25 +71,29 @@ become publishers on an existing channel rather than an engine change.
 
 ## Post-game review
 
+All deferred. v1 ends when the match does. The design is kept in `spec.md` because the live
+prompts are chosen to match these grading dimensions, and because the parser's output shape
+is fixed by them.
+
 | # | Feature | Status | Notes |
 | --- | --- | --- | --- |
-| 30 | Client-side replay parsing | v1 | `heroprotocol` in a Web Worker. Replays never leave the machine |
-| 31 | Objective readiness grading | v1 | Alive and in position at spawn |
-| 32 | Costly death grading | v1 | Deaths inside the pre-objective window |
-| 33 | Camp timing grading | v1 | Captures in dead time vs synced to objectives |
-| 34 | Soak grading | v1 | XP lost to unattended lanes |
-| 35 | Tier window grading | v1 | Periods with a talent tier lead and what was done with them |
-| 36 | Conversion grading | v1 | Structures taken inside a won fight's death timers |
-| 37 | Ranked findings with clock times | v1 | Three to five per match, scrubbable in the replay |
-| 38 | Trend across recent matches | v1-stretch | Shows whether a habit is actually shifting |
+| 30 | Client-side replay parsing | deferred | Would run `heroprotocol` in a Web Worker so replays never leave the machine. Distinct from the offline tool in row 40 |
+| 31 | Objective readiness grading | deferred | Alive and in position at spawn |
+| 32 | Costly death grading | deferred | Deaths inside the pre-objective window |
+| 33 | Camp timing grading | deferred | Captures in dead time vs synced to objectives |
+| 34 | Soak grading | deferred | XP lost to unattended lanes |
+| 35 | Tier window grading | deferred | Periods with a talent tier lead and what was done with them |
+| 36 | Conversion grading | deferred | Structures taken inside a won fight's death timers |
+| 37 | Ranked findings with clock times | deferred | Three to five per match, scrubbable in the replay |
+| 38 | Trend across recent matches | deferred | Shows whether a habit is actually shifting |
 
 ## Data pipeline
 
 | # | Feature | Status | Notes |
 | --- | --- | --- | --- |
 | 39 | Map definitions as data files | v1 | Adding a battleground is a data change, never a logic change |
-| 40 | Timing verification from a replay corpus | v1 | The parser built for the review also produces verified timings |
-| 41 | Estimation band calibration from a corpus | v1 | Real cycle-length distributions rather than guessed bands |
+| 40 | Offline replay tool for timing verification | v1 | Node tool, no UI, not in the app bundle. On the critical path for the live feature: without it there are no trustworthy numbers to display |
+| 41 | Estimation band calibration from a corpus | v1 | Real cycle-length distributions rather than guessed bands. Same offline tool as row 40 |
 | 42 | Aggregate cross-user statistics | rejected | Needs accounts and storage; v1 is deliberately account-free |
 
 ## Rejected
@@ -119,4 +122,7 @@ The deferred items are not free. To keep them cheap, the following must hold fro
 5. Map definitions are data validated by schema, so drills and playbooks can be authored
    against the same source (15, 17).
 6. Replay parsing produces a neutral match timeline rather than review-shaped output, so the
-   same parse feeds grading, timing verification and band calibration (30, 40, 41).
+   same parse feeds timing verification and band calibration now, and grading later
+   (30, 40, 41).
+7. The live view is built without assuming a review exists. Nothing in v1 may depend on
+   post-match data being available (31-38).

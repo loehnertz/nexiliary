@@ -10,10 +10,13 @@ deferred and rejected, `research.md` for game timing data and technical constrai
 
 ## Purpose
 
-nexiliary is a companion for playing Heroes of the Storm. During a match it tells the
-player what is coming and when, by voice and on a phone or second screen. After the
-match it reads the replay file and grades the same decisions it was coaching, so the
-advice and the review measure the same things.
+nexiliary is a companion for playing Heroes of the Storm. From the moment the player spawns
+into a match it tells them what is coming and when, by voice and on a phone or second
+screen.
+
+v1 covers the live match only. A post-game review that reads the replay file and grades the
+same decisions the app was coaching is designed below but deferred; the design is retained
+because it shapes decisions that have to be made now.
 
 The game has no official API and none is coming, so nexiliary derives everything from
 the match clock plus a small number of user-supplied anchor points.
@@ -38,9 +41,12 @@ player acts on it mid-fight.
 
 ### In scope for v1
 
-Live coaching, spoken and displayed, driven by the match clock and re-anchor taps. Shared
-sessions over a relay so a whole team runs one clock. Post-game review from local replay
-files.
+The live match only, from the moment the player spawns in. Coaching spoken and displayed,
+driven by the match clock and re-anchor taps. Shared sessions over a relay so a whole team
+runs one clock.
+
+Nothing before the match (no draft support) and nothing after it (no review). The app's job
+starts at spawn and ends when the match does.
 
 All 15 battlegrounds are the target, but a map ships only once its timings are verified
 (see "Timing data sourcing and verification"). Five maps currently have no published
@@ -49,9 +55,23 @@ absent, so the app is never useless on a map, only less specific.
 
 ### Deferred, with the architecture kept open for it
 
+The post-game review, designed in full below because it constrains decisions that have to
+be made now. Its grading dimensions are what the live prompts are chosen to match, and the
+obligation that replay parsing emit a neutral match timeline comes from it.
+
 A desktop companion running on the gaming PC (screen OCR of the in-game clock, global
 hotkey re-anchoring, replay folder watching, speech output routed into voice chat). A
 Discord bot that joins the team voice channel and speaks the prompts.
+
+### Replay parsing in v1
+
+Replay parsing stays in v1, but as an offline development tool rather than a shipped
+feature. It has no UI, does not run in the browser, and `heroprotocol` is not in the app
+bundle. Its job is to derive verified objective and camp timings and to calibrate the
+estimation bands from a corpus of matches, emitting `maps` data files.
+
+This is not optional. Five battlegrounds have no published timings at all and the ten that
+do have contradictory sources, so the live feature cannot ship accurate numbers without it.
 
 ### Out of scope
 
@@ -70,9 +90,9 @@ The core of the product is one pure function:
 project(mapDefinition, clockNow, anchors) -> TimedEvent[]
 ```
 
-It has no I/O, no framework dependency and no clock of its own. Time is a parameter. Both
-the live view and the replay review call it, which is what makes the review cheap to build
-on top of the live coach.
+It has no I/O, no framework dependency and no clock of its own. Time is a parameter. The
+live view calls it, and so does the offline timing tool, and so would the deferred review.
+That is what makes the review cheap to add later rather than something to build now.
 
 ### Anchors
 
@@ -232,7 +252,10 @@ change.
 Host disconnection does not end a session. Any remaining participant can continue to
 publish anchors, and the session expires after a period of inactivity.
 
-## Post-game review
+## Post-game review (deferred)
+
+Not in v1. Retained here because the live prompts are chosen to match these dimensions, and
+because the parser's output shape is fixed by it.
 
 The replay supplies every anchor exactly, so the review runs the same `project()` call with
 all confidence resolved to `Exact` and can be fully assertive.
@@ -261,8 +284,8 @@ review into a stats page that gets read once.
 A trend across recent matches shows whether a habit is shifting. Findings feed back into
 prompt priority, so a player who repeatedly misses soak gets soak prompts promoted.
 
-Parsing runs client-side, so replays never leave the machine and v1 needs no storage,
-uploads or accounts.
+When built, parsing would run client-side, so replays never leave the machine and no
+storage, uploads or accounts are needed.
 
 ## Packages and architecture
 
@@ -270,11 +293,13 @@ uploads or accounts.
   evaluation, map definition types. The zero-dependency constraint is deliberate: it lets
   the deferred desktop companion reuse it verbatim.
 - `maps` - the 15 map definitions as data, plus schema and validation tests.
-- `web` - the app. Live view, review view, settings. Owns speech, wake lock and layout.
-  Contains no timing logic.
+- `web` - the app. Live view and settings. Owns speech, wake lock and layout. Contains no
+  timing logic.
 - `relay` - Cloudflare Worker with a Durable Object per session, via `partyserver`.
-- `replay` - `heroprotocol` running in a Web Worker, producing anchors and match events for
-  the engine.
+- `replay` - offline Node tool wrapping `heroprotocol`. Not shipped to the browser in v1.
+  Produces a neutral match timeline, from which the timing derivation and band calibration
+  scripts read. The deferred review reads the same timeline, which is why it is neutral
+  rather than shaped to either consumer.
 
 ## Stack
 
@@ -346,7 +371,8 @@ domain; write it by hand where a library would cost more than the code it replac
 
 Taken as dependencies:
 
-- `heroprotocol` for replay parsing. MPQ archive handling and Blizzard's versioned replay
+- `heroprotocol` for replay parsing, as a development dependency of the offline `replay`
+  tool rather than of the app. MPQ archive handling and Blizzard's versioned replay
   protocols are not something to reimplement.
 - `partyserver` for the relay. WebSocket lifecycle, room to Durable Object routing,
   broadcast and hibernation handling.
@@ -375,11 +401,13 @@ guide gives siege camps as first spawn 2:00 with a 3:00 respawn; the wiki gives 
 at 0:30 and bosses at 5:00. Shipping wrong numbers is worse than shipping none, because the
 player trusts them during a fight.
 
-Approach: seed from published guides, then verify and calibrate from a replay corpus. The
-replay parser is already being built for the review feature, so it can measure actual
-objective spawn times across many matches. That yields both the exact deterministic timings
-and the real distributions the estimation bands need. Heroes Profile exposes parsed replay
-data and an upload path for obtaining a corpus.
+Approach: seed from published guides, then verify and calibrate from a replay corpus using
+the offline `replay` tool. Measuring actual objective spawn times across many matches yields
+both the exact deterministic timings and the real distributions the estimation bands need.
+Heroes Profile exposes parsed replay data and an upload path for obtaining a corpus.
+
+Removing the review from v1 does not remove this work. The tool is on the critical path for
+the live feature, because without it the app has no trustworthy numbers to display.
 
 Seed values gathered so far, all requiring verification:
 
@@ -423,22 +451,25 @@ what happens when an anchor never arrives.
 
 ## Milestones
 
-1. `engine` and `maps` with one battleground, fully tested. No UI.
+1. `engine` and `maps` with one battleground, fully tested. No UI. Seed timings from
+   published guides so development is not blocked on verification.
 2. Live view on phone and desktop, manual start, re-anchor tap, speech. Single map.
-3. Remaining battlegrounds as data, seeded from published guides.
-4. Replay reading and the review, which also produces verified timing data feeding back
-   into step 3.
+3. Offline `replay` tool: derive verified timings and calibrate estimation bands from a
+   corpus, emitting `maps` data files.
+4. Remaining battlegrounds, verified by step 3.
 5. Relay and shared sessions.
 
 Steps 1 through 4 have no relay dependency and work as a purely local app, so the relay can
-slip without blocking anything.
+slip without blocking anything. Step 3 gates shipping, not development: milestone 2 can be
+built and tuned against seeded data.
 
 ## Risks
 
 Timing data accuracy is the main one, handled above.
 
-Speech becoming noise is the second. Mitigated by verbosity tiers, conservative defaults,
-and the review's ability to promote the prompts a given player actually needs.
+Speech becoming noise is the second. Mitigated by verbosity tiers and conservative
+defaults. The stronger mitigation, letting the review promote the prompts a given player
+actually needs, is unavailable until the review is built.
 
 Prompt wording is unproven until used in real matches. Milestone 2 deliberately ships one
 map so wording can be tuned before authoring 15 maps' worth.

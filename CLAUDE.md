@@ -1,8 +1,7 @@
 # nexiliary
 
-A companion app for playing Heroes of the Storm. During a match it says what is coming and
-when, by voice and on screen. After the match it reads the replay file and grades the same
-decisions it was coaching.
+A companion app for playing Heroes of the Storm. From the moment the player spawns into a
+match it says what is coming and when, by voice and on screen.
 
 This is a personal hobby project and it is self-contained. No conventions from outside this
 repository apply to it: the stack, the principles and the constraints are the ones described
@@ -11,6 +10,11 @@ below and in `docs/spec.md`, and nothing else.
 ## Current state
 
 Design is complete and approved. No application code has been written yet.
+
+v1 is the live match only, from the moment the player spawns in. No draft support before it
+and no review after it. The post-game review is designed in `docs/spec.md` but deferred;
+read that design before making architectural choices, because the live prompts are chosen to
+match its grading dimensions.
 
 The next step is a software architecture design pass, which should be done before any
 implementation. It needs to set the project up to build the v1 features while leaving the
@@ -21,7 +25,7 @@ deferred features in `docs/features.md` cheap to add later.
 | File | What it is |
 | --- | --- |
 | `docs/spec.md` | The approved design. Read this first |
-| `docs/features.md` | Every feature discovered, marked v1 / v1-stretch / deferred / rejected |
+| `docs/features.md` | Every feature discovered, marked v1 / deferred / rejected |
 | `docs/research.md` | Game timing data, technical constraints, and sources |
 | `docs/design/live-view-mockup.html` | Approved visual direction as a static reference. Open it in a browser |
 
@@ -56,7 +60,8 @@ Carry these from the start or the deferred features get expensive:
 - Prompts are data with a priority field, so review-driven promotion is a value change.
 - Map definitions are data validated by schema, never code.
 - Replay parsing produces a neutral match timeline rather than review-shaped output, so one
-  parse feeds grading, timing verification and estimation-band calibration.
+  parse feeds timing verification and estimation-band calibration now, and grading later.
+- The live view assumes no review exists. Nothing in v1 may depend on post-match data.
 
 ## Stack
 
@@ -68,7 +73,8 @@ Carry these from the start or the deferred features get expensive:
 - pnpm workspaces.
 - Cloudflare Pages for the app; Cloudflare Workers and Durable Objects for the relay, via
   `partyserver`.
-- `heroprotocol` for replay parsing, client-side in a Web Worker.
+- `heroprotocol` in an offline Node tool that derives map timing data from a replay corpus.
+  Not shipped to the browser in v1.
 - Web Speech API for spoken prompts.
 - Vitest for the pure packages, Playwright for live view timing against a mocked clock.
 
