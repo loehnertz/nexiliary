@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { deathTimerSeconds, levelCurve, project, validUntilFallbackSeconds } from '../src/index.js'
+import { buildContext, deathTimerSeconds, levelCurve, project, validUntilFallbackSeconds, view } from '../src/index.js'
 import { anchor, anchorSet, braxis, tomb } from './fixtures.js'
 
 describe('validUntil', () => {
@@ -17,13 +17,16 @@ describe('validUntil', () => {
 
   it('is the earliest candidate strictly in the future', () => {
     // Individual wave boundaries are not candidates: wave events do not move, so the
-    // projection stays valid until the end of the block already emitted. What does
-    // change is a camp's `standing`, so the first camp spawn at 2:00 wins here.
-    expect(project(tomb, anchorSet(), 10).validUntil).toBe(120)
-    // Once that camp is up, its decay boundary at 2:00 + 45 is the next thing to move.
-    expect(project(tomb, anchorSet(), 125).validUntil).toBe(165)
-    // Then its stale boundary at 2:00 + 120.
-    expect(project(tomb, anchorSet(), 170).validUntil).toBe(240)
+    // projection stays valid until the end of the block already emitted, and `view`
+    // picks the next wave within it. What does change is a camp's `standing`, a tier
+    // passing, and a level boundary — which the death timer reads off.
+    const nextLevelAfter = (now: number) => levelCurve.find((e) => e.typicalSeconds > now)!.typicalSeconds
+    expect(project(tomb, anchorSet(), 10).validUntil).toBe(nextLevelAfter(10))
+    expect(project(tomb, anchorSet(), 125).validUntil).toBe(nextLevelAfter(125))
+    // The level curve is dense early, so it usually wins; a camp boundary wins once
+    // the curve thins out.
+    expect(project(tomb, anchorSet(), 200).validUntil).toBe(nextLevelAfter(200))
+    expect(project(tomb, anchorSet(), 230).validUntil).toBe(240)
   })
 
   it('falls back rather than returning infinity when nothing is pending', () => {
@@ -88,5 +91,95 @@ describe('the floor', () => {
     const withNoise = project(braxis, anchorSet(anchor('FortLost', 'top', 400)), 500)
     const without = project(braxis, anchorSet(), 500)
     expect(withNoise.events).toEqual(without.events)
+  })
+})
+
+describe('reading an emitted block after time has moved inside it', () => {
+  it('never shows a wave that has already spawned', () => {
+    // Waves are emitted as a block and the block stays valid until it ends, which is
+    // what keeps `validUntil` from forcing a projection every thirty seconds. So the
+    // first entry in the block is routinely in the past, and reading it renders a wave
+    // countdown frozen at 0:00.
+    const timeline = project(tomb, anchorSet(), 0)
+    for (let now = 0; now <= timeline.validUntil; now += 1) {
+      const v = view(timeline, tomb, now)
+      const wave = v.rail.find((s) => s.kind === 'wave')
+      expect(wave, `no wave slot at ${now}`).toBeDefined()
+      // 0:00 is only truthful at the instant a wave spawns.
+      if (now % 30 !== 0) expect(wave!.text, `stale wave at ${now}`).not.toBe('0:00')
+    }
+  })
+
+  it('never offers a cue a fact that has already happened', () => {
+    const timeline = project(tomb, anchorSet(), 0)
+    for (let now = 0; now <= timeline.validUntil; now += 1) {
+      const ctx = buildContext(tomb, timeline, now)
+      if (ctx.nextWave !== null) expect(ctx.nextWave.at).toBeGreaterThanOrEqual(now)
+      if (ctx.tier.next !== null) expect(ctx.tier.next.at).toBeGreaterThanOrEqual(now)
+    }
+  })
+})
+
+describe('the objective phase belief', () => {
+  it('reports the phase live between the spawn and the resolution band', () => {
+    // Without this the app counts down to the objective *after* the one being fought,
+    // at the moment it exists for, and the re-anchor button — the core interaction —
+    // is not emphasised when the tap is wanted.
+    expect(project(braxis, anchorSet(), 80).objectivePhase.kind).toBe('idle')
+    const during = project(braxis, anchorSet(), 150).objectivePhase
+    expect(during.kind).toBe('active')
+    if (during.kind === 'active') {
+      expect(during.cycle).toBe(1)
+      expect(during.since).toBe(90)
+      expect(during.until).toBe(160)
+    }
+    expect(project(braxis, anchorSet(), 260).objectivePhase.kind).toBe('idle')
+  })
+
+  it('renders the live state rather than a countdown to the following cycle', () => {
+    const slot = view(project(braxis, anchorSet(), 150), braxis, 150).objective
+    expect(slot.kind).toBe('live')
+    // And the pending spawn moves to the rail rather than disappearing.
+    expect(view(project(braxis, anchorSet(), 150), braxis, 150).rail[0]!.kind).toBe('objective')
+  })
+
+  it('goes quiet with the countdown once the cycle is Unknown', () => {
+    // An Unknown cycle cannot support a claim about the present either.
+    const anchors = anchorSet(anchor('ObjectiveEnded', '1', 300))
+    for (let now = 1500; now < 2400; now += 20) {
+      expect(project(braxis, anchors, now).objectivePhase.kind).toBe('idle')
+    }
+  })
+
+  it('is dropped with everything else map-derived under unknown provenance', () => {
+    const map = { ...braxis, provenance: 'unknown' as const }
+    expect(project(map, anchorSet(), 150).objectivePhase.kind).toBe('idle')
+  })
+})
+
+describe('the phase belief and the clamp never contradict each other', () => {
+  it('does not call a cycle live while the clamp says it cannot be sooner than now', () => {
+    // Advancement and the clamp deliberately draw opposite conclusions from the same
+    // silence. That is coherent while they live in different places, but a phase
+    // readout built on the unclamped values puts both sentences on screen at once:
+    // "no sooner than two minutes" above "it is happening now", about one cycle.
+    for (let now = 0; now < 2400; now += 3) {
+      const timeline = project(braxis, anchorSet(), now)
+      const phase = timeline.objectivePhase
+      if (phase.kind !== 'active') continue
+      const clamped = view(timeline, braxis, now)
+      const spawn = clamped.timeline.events.find((e) => e.role === 'spawn' && e.cycle === phase.cycle)
+      if (spawn === undefined) continue
+      const low = spawn.confidence.kind === 'Estimated' ? spawn.confidence.low : spawn.at
+      expect(low, `cycle ${phase.cycle} called live at ${now} but clamped to ${low}`).toBeLessThanOrEqual(now)
+    }
+  })
+
+  it('does not remove camps from a battlefield the countdown has not reached', () => {
+    for (let now = 0; now < 2400; now += 3) {
+      const timeline = project(braxis, anchorSet(), now)
+      if (timeline.objectivePhase.kind === 'active') continue
+      expect(timeline.camps.every((c) => !c.suppressed), `suppressed with no live phase at ${now}`).toBe(true)
+    }
   })
 })

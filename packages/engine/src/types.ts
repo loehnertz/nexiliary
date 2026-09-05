@@ -98,6 +98,8 @@ export interface CampState {
   /** Respawn, when known. */
   readonly nextUp?: TimedEvent
   readonly availableSince?: Seconds
+  /** Removed from the battlefield by an active objective phase, rather than taken. */
+  readonly suppressed: boolean
   /** Highest-`pressureValue` first is a view concern; this is the raw value for `now`. */
   readonly pressureValue: number
 }
@@ -114,6 +116,25 @@ export interface LevelState {
   readonly confidence: Confidence
 }
 
+/**
+ * Whether an objective phase is believed to be running right now.
+ *
+ * This is a `Belief` about the present derived from the chain's own band, not a new
+ * kind of fact, and it carries the cycle's `Confidence` so it can be rendered and
+ * filtered like anything else. Without it the app counts down to the *next* objective
+ * while the current one is being fought, which is the moment it exists for, and the
+ * re-anchor button — the core interaction — is not emphasised when the tap is wanted.
+ */
+export type ObjectivePhase =
+  | { readonly kind: 'idle' }
+  | {
+      readonly kind: 'active'
+      readonly cycle: number
+      readonly since: Seconds
+      readonly until: Seconds
+      readonly confidence: Confidence
+    }
+
 export interface Timeline {
   /** Sorted by `at`. */
   readonly events: readonly TimedEvent[]
@@ -125,6 +146,7 @@ export interface Timeline {
   readonly provenance: Provenance
   /** True when the map has an objective chain but every projected cycle is `Unknown`. */
   readonly objectiveTimingLost: boolean
+  readonly objectivePhase: ObjectivePhase
 }
 
 export type Provenance = 'verified' | 'archive' | 'published' | 'unknown'

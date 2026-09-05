@@ -1,0 +1,338 @@
+@import 'tailwindcss';
+
+/*
+  Tailwind is a design token layer here, not a look. Everything below the @theme block
+  is the Heroes of the Storm interface language rebuilt in CSS: double-stroke bevelled
+  frames over hex-tiled fills, gradient rules that fade at both ends, slanted
+  parallelogram buttons, glow for selection, condensed uppercase labels and large
+  tabular numerals. No Blizzard assets are used.
+
+  The tension to manage is that the game's own UI is decorative and fairly low
+  contrast, purple on purple, because the player studies it at rest, whereas the live
+  countdown is read in peripheral vision under stress. So the ornament goes in the
+  chrome and the data area stays high contrast, with the countdown sized to dominate
+  whatever surrounds it.
+*/
+
+@theme {
+  --color-void: #0a0714;
+  --color-panel-top: #2e2254;
+  --color-panel-bot: #110b22;
+  --color-edge: #9688e0;
+  --color-edge-dim: #5a4e96;
+  --color-ink: #e9e6f7;
+  --color-ink-dim: #a99fdc;
+  --color-ink-faint: #8f86c4;
+
+  /* Confidence. Green for exact and amber for estimated reads natively, because the
+     game already uses amber for "your attention is required" and green for health. */
+  --color-exact: #4ade80;
+  --color-estimated: #f5b942;
+  --color-unknown: #5d5590;
+
+  /* Team colours keep their existing meaning and are never reused for confidence. */
+  --color-ally: #58b8f0;
+  --color-enemy: #e0456f;
+
+  --font-display: 'Rajdhani', system-ui, sans-serif;
+}
+
+:root {
+  --bevel: 11px;
+  --bevel-inner: 10px;
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-void);
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* ---------------------------------------------------------------- frame ---- */
+
+/* The outer element paints the stroke, the inner one the fill, both bevel-cut.
+   drop-shadow rather than box-shadow, because clip-path clips box-shadow. */
+.frame {
+  background: linear-gradient(180deg, rgb(150 136 224 / 0.72), rgb(90 78 150 / 0.42));
+  padding: 1.5px;
+  filter: drop-shadow(0 0 16px rgb(96 74 190 / 0.42));
+  clip-path: polygon(
+    var(--bevel) 0,
+    100% 0,
+    100% calc(100% - var(--bevel)),
+    calc(100% - var(--bevel)) 100%,
+    0 100%,
+    0 var(--bevel)
+  );
+}
+
+.frame-inner {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='24'%3E%3Cpath d='M7 0h14l7 12-7 12H7L0 12z' fill='none' stroke='%239b8ce8' stroke-opacity='.04'/%3E%3C/svg%3E"),
+    linear-gradient(180deg, var(--color-panel-top), var(--color-panel-bot));
+  clip-path: polygon(
+    var(--bevel-inner) 0,
+    100% 0,
+    100% calc(100% - var(--bevel-inner)),
+    calc(100% - var(--bevel-inner)) 100%,
+    0 100%,
+    0 var(--bevel-inner)
+  );
+}
+
+/* Divider rules fade out at both ends. */
+.rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(155 140 232 / 0.65), transparent);
+}
+
+/* ------------------------------------------------------------ typography ---- */
+
+.label {
+  font-size: 0.75rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-ink-dim);
+}
+
+.label-tight {
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+
+.numerals {
+  font-variant-numeric: tabular-nums;
+}
+
+.countdown {
+  font-size: clamp(3.25rem, 17vw, 4.5rem);
+  font-weight: 700;
+  line-height: 0.98;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.countdown small {
+  font-size: 0.45em;
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------- colour ---- */
+
+.tone-exact {
+  color: var(--color-exact);
+}
+.tone-estimated {
+  color: var(--color-estimated);
+}
+.tone-unknown {
+  color: var(--color-unknown);
+}
+
+.glow-exact {
+  text-shadow: 0 0 22px rgb(74 222 128 / 0.45);
+}
+.glow-estimated {
+  text-shadow: 0 0 22px rgb(245 185 66 / 0.45);
+}
+.glow-unknown {
+  text-shadow: none;
+}
+
+/* --------------------------------------------------------------- chrome ---- */
+
+/* Slanted parallelogram, matching the game's panel buttons. */
+.btn-slant {
+  font-family: inherit;
+  font-weight: 700;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+  border: 0;
+  cursor: pointer;
+  clip-path: polygon(13px 0, 100% 0, calc(100% - 13px) 100%, 0 100%);
+  transition: filter 120ms ease;
+}
+
+.btn-slant:active {
+  filter: brightness(1.25);
+}
+
+.btn-slant:disabled {
+  cursor: default;
+  filter: grayscale(0.7) brightness(0.7);
+}
+
+.btn-primary {
+  color: #7ff0aa;
+  background: linear-gradient(180deg, rgb(74 222 128 / 0.24), rgb(74 222 128 / 0.07));
+  box-shadow: inset 0 0 0 1px rgb(122 240 170 / 0.5);
+}
+
+.btn-quiet {
+  color: var(--color-ink-dim);
+  background: linear-gradient(180deg, rgb(150 136 224 / 0.18), rgb(150 136 224 / 0.05));
+  box-shadow: inset 0 0 0 1px rgb(150 136 224 / 0.4);
+}
+
+.btn-urgent {
+  color: #ffd88a;
+  background: linear-gradient(180deg, rgb(245 185 66 / 0.28), rgb(245 185 66 / 0.08));
+  box-shadow: inset 0 0 0 1px rgb(245 185 66 / 0.55);
+  animation: urgent-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes urgent-pulse {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.25);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-urgent {
+    animation: none;
+  }
+}
+
+/* A rail chip is tappable only while its camp is believed available. Tapping writes a
+   CampTaken anchor. Tap targets are at least 44px: these are pressed without looking,
+   mid-game, and the rail's chromelessness is a virtue for reading and a liability for
+   tapping. */
+.chip {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: none;
+  font-family: inherit;
+  color: inherit;
+  text-align: center;
+}
+
+.chip-tappable {
+  cursor: pointer;
+  border-color: rgb(74 222 128 / 0.42);
+  background: rgb(74 222 128 / 0.09);
+}
+
+.chip-stale {
+  cursor: pointer;
+  border-color: rgb(93 85 144 / 0.6);
+  background: rgb(93 85 144 / 0.12);
+}
+
+.chip-hint {
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+  opacity: 0.75;
+}
+
+.prompt {
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #ded9f5;
+  background: linear-gradient(90deg, rgb(245 185 66 / 0.14), rgb(245 185 66 / 0.03));
+  border-left: 2px solid var(--color-estimated);
+}
+
+.prompt-critical {
+  background: linear-gradient(90deg, rgb(224 69 111 / 0.16), rgb(224 69 111 / 0.03));
+  border-left-color: var(--color-enemy);
+}
+
+/* Talent tiers, in the idiom of the game's own talent screen column headers. */
+.tier-cell {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-unknown);
+}
+.tier-reached {
+  color: var(--color-ink);
+  font-weight: 700;
+}
+.tier-next {
+  color: var(--color-estimated);
+  text-shadow: 0 0 12px rgb(245 185 66 / 0.5);
+}
+
+/* Selection and activity are shown by soft outer glow rather than by fill. */
+.map-tile {
+  position: relative;
+  padding: 12px 10px;
+  min-height: 58px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  color: var(--color-ink-dim);
+  background: linear-gradient(180deg, rgb(46 34 84 / 0.85), rgb(17 11 34 / 0.9));
+  box-shadow: inset 0 0 0 1px rgb(150 136 224 / 0.28);
+  clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
+  transition: box-shadow 140ms ease, color 140ms ease;
+}
+
+.map-tile:hover {
+  color: var(--color-ink);
+  box-shadow: inset 0 0 0 1px rgb(150 136 224 / 0.55);
+}
+
+.map-tile-selected {
+  color: var(--color-ink);
+  box-shadow:
+    inset 0 0 0 1px rgb(174 160 245 / 0.9),
+    inset 0 0 22px rgb(122 100 220 / 0.35),
+    0 0 18px rgb(122 100 220 / 0.45);
+}
+
+.field {
+  font-family: inherit;
+  color: var(--color-ink);
+  background: rgb(17 11 34 / 0.9);
+  box-shadow: inset 0 0 0 1px rgb(150 136 224 / 0.35);
+  padding: 8px 10px;
+  min-height: 44px;
+  width: 100%;
+}
+
+.dotted-underline {
+  border-bottom: 1px dotted rgb(155 140 232 / 0.55);
+}
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+  background: rgb(4 2 10 / 0.72);
+  backdrop-filter: blur(2px);
+}
+
+@media (min-width: 640px) {
+  .sheet {
+    align-items: center;
+  }
+}

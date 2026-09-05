@@ -3,7 +3,7 @@ import type { MapDefinition } from './map-types.js'
 import type { ChainWalk } from './objective-chain.js'
 import type { SuppressionState } from './generators/camps.js'
 import { validUntilFallbackSeconds } from './tuning.js'
-import { waveIntervalSeconds } from './game-constants.js'
+import { levelCurve, waveIntervalSeconds } from './game-constants.js'
 
 /**
  * Re-running `project` every tick is unnecessary: event times do not move as the clock
@@ -36,6 +36,15 @@ export function validUntilFor(
     if (event.confidence.kind === 'Estimated') candidates.push(event.confidence.high)
     else if (event.confidence.kind === 'Exact') candidates.push(event.at)
   }
+
+  // A tier passing changes the rail, and a level boundary changes both the level
+  // readout and the death timer that reads off it. Neither was a candidate, so the
+  // death timer went stale until something else happened to expire the projection.
+  for (const event of timeline.events) {
+    if (event.kind === 'tier') candidates.push(event.at)
+  }
+  const nextLevel = levelCurve.find((e) => e.typicalSeconds > now)
+  if (nextLevel !== undefined) candidates.push(nextLevel.typicalSeconds)
 
   for (const camp of timeline.camps) {
     const definition = map.camps.find((c) => c.id === camp.id)

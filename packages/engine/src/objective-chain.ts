@@ -131,6 +131,30 @@ function makeStep(
   }
 }
 
+/**
+ * The cycle whose phase window contains `now`, if any. The window runs from the spawn's
+ * `low` to the resolution band's `high`. Both the camp suppression rule and the
+ * live-phase readout ask this question, so it is answered once.
+ *
+ * The pending cycle counts only when its spawn is **unclampable** — that is, when its
+ * predecessor's resolution was observed. A clampable pending spawn is one the present
+ * clamp pushes to `now + offsetMin` or later, so the display is simultaneously saying
+ * "no sooner than two minutes" and "it is happening now" about the same cycle. Reading
+ * unclamped values here would put those two sentences on screen together, and the same
+ * disagreement would make camps read as removed from a battlefield the countdown says
+ * the objective has not reached.
+ *
+ * An elapsed cycle is never clamped — its spawn is in the past and is not emitted as an
+ * event — so it always counts.
+ */
+export function phaseInProgress(walk: ChainWalk | null, now: Seconds): ChainStep | null {
+  if (walk === null) return null
+  const { pending, elapsed } = walk
+  if (pending.offset === null && now >= pending.low && now <= pending.resolutionHigh) return pending
+  if (elapsed !== null && now >= elapsed.low && now <= elapsed.resolutionHigh) return elapsed
+  return null
+}
+
 /** The first step of the chain: from the newest anchor, or from the fixed first spawn. */
 function firstStep(
   objective: TimedObjective,

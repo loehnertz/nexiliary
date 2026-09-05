@@ -1,6 +1,6 @@
-import type { AnchorSet, Seconds, Timeline, TimedEvent } from './types.js'
+import type { AnchorSet, ObjectivePhase, Seconds, Timeline, TimedEvent } from './types.js'
 import type { MapDefinition } from './map-types.js'
-import { walkChain } from './objective-chain.js'
+import { phaseInProgress, walkChain } from './objective-chain.js'
 import { waves } from './generators/waves.js'
 import { tiers, estimateLevel } from './generators/tiers.js'
 import { camps, suppressionState } from './generators/camps.js'
@@ -41,6 +41,20 @@ export function project(map: MapDefinition, anchors: AnchorSet, now: Seconds): T
     confidence: level.confidence,
   }
 
+  const running = phaseInProgress(walk, now)
+  // An `Unknown` cycle cannot support a claim about the present either, so the phase
+  // readout goes quiet with the countdown rather than outliving it.
+  const objectivePhase: ObjectivePhase =
+    running === null || running.confidence.kind === 'Unknown'
+      ? { kind: 'idle' }
+      : {
+          kind: 'active',
+          cycle: running.cycle,
+          since: running.low,
+          until: running.resolutionHigh,
+          confidence: running.confidence,
+        }
+
   const objectiveTimingLost =
     walk !== null &&
     walk.pending.confidence.kind === 'Unknown' &&
@@ -54,6 +68,7 @@ export function project(map: MapDefinition, anchors: AnchorSet, now: Seconds): T
     validUntil: now + 30,
     provenance: map.provenance,
     objectiveTimingLost,
+    objectivePhase,
   }
 
   const clamped = applyProvenance(raw)

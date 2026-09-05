@@ -45,6 +45,20 @@ export interface Countdown {
  */
 export type ObjectiveSlot =
   | { readonly kind: 'countdown'; readonly countdown: Countdown; readonly cycle: number; readonly instances?: string }
+  /**
+   * The phase is believed to be running. The countdown to the *next* spawn is still
+   * available on the rail; showing it here instead would count down to the objective
+   * after the one being fought, at the moment the app exists for.
+   */
+  | {
+      readonly kind: 'live'
+      readonly label: string
+      readonly cycle: number
+      readonly tone: Tone
+      readonly confidenceLabel: string
+      readonly endsText: string
+      readonly instances?: string
+    }
   | { readonly kind: 'noObjective'; readonly message: string }
   | { readonly kind: 'timingLost'; readonly message: string }
   | { readonly kind: 'unknownMap'; readonly message: string }
@@ -92,6 +106,18 @@ export interface LiveView {
   readonly timeline: Timeline
 }
 
+/**
+ * The earliest emitted event of a kind that has not yet happened.
+ *
+ * `find` on the emitted list is not the same thing. Waves are emitted as a block and
+ * the block stays valid until it ends — that is what keeps `validUntil` from forcing a
+ * projection every thirty seconds — so the first entry in the block is routinely in the
+ * past, and reading it renders a wave countdown frozen at 0:00.
+ */
+function nextOfKind(timeline: Timeline, kind: TimedEvent['kind'], now: Seconds): TimedEvent | undefined {
+  return timeline.events.find((e) => e.kind === kind && e.at >= now)
+}
+
 function objectiveSpawns(timeline: Timeline): TimedEvent[] {
   return timeline.events
     .filter((e) => e.kind === 'objective' && e.role === 'spawn')
@@ -116,6 +142,22 @@ function objectiveSlot(map: MapDefinition, timeline: Timeline, now: Seconds): Ob
   if (spawns.length === 0) {
     return { kind: 'unknownMap', message: 'No timings for this battleground' }
   }
+
+  const phase = timeline.objectivePhase
+  if (phase.kind === 'active') {
+    return {
+      kind: 'live',
+      label: map.objective.label,
+      cycle: phase.cycle,
+      tone: toneOf(phase.confidence),
+      confidenceLabel: confidenceLabel(phase.confidence),
+      // How much longer the phase could plausibly run. The far end of the resolution
+      // band is the honest answer: the near end is "any moment now".
+      endsText: mmss(Math.max(0, phase.until - now)),
+      ...(map.objective.instances !== undefined ? { instances: map.objective.instances } : {}),
+    }
+  }
+
   const next = spawns[0]!
   if (timeline.objectiveTimingLost || next.confidence.kind === 'Unknown') {
     // Shown deliberately rather than silently. A blank countdown reads as a bug.
@@ -138,9 +180,15 @@ function campSlot(camp: CampState, now: Seconds): RailSlot {
       ? 'UP'
       : camp.nextUp !== undefined
         ? displayTime(camp.nextUp.confidence, camp.nextUp.at, now)
-        : '—'
-  const tone: Tone = stale
-    ? 'unknown'
+        : camp.suppressed
+          // Removed from the battlefield while the objective is live, rather than
+          // taken. An em-dash here reads as missing data instead of as a fact.
+          ? 'AWAY'
+          : '—'
+  const tone: Tone = stale || camp.suppressed
+    ? // "AWAY" is not a number, and green here reads as "available" rather than as
+      // "you can rely on this".
+      'unknown'
     : camp.nextUp !== undefined
       ? toneOf(camp.nextUp.confidence)
       : camp.standing.kind === 'Known'
@@ -173,8 +221,14 @@ function buildRail(timeline: Timeline, now: Seconds, objective: ObjectiveSlot): 
   const slots: (RailSlot | null)[] = [null, null, null, null]
 
   const spawns = objectiveSpawns(timeline)
-  const following = spawns[1]
-  if (objective.kind === 'countdown' && following !== undefined && following.confidence.kind !== 'Unknown') {
+  // While a phase is live the dominant slot shows that, so slot 1 carries the pending
+  // spawn rather than the one after it.
+  const following = objective.kind === 'live' ? spawns[0] : spawns[1]
+  if (
+    (objective.kind === 'countdown' || objective.kind === 'live') &&
+    following !== undefined &&
+    following.confidence.kind !== 'Unknown'
+  ) {
     slots[0] = {
       key: following.id,
       kind: 'objective',
@@ -184,7 +238,7 @@ function buildRail(timeline: Timeline, now: Seconds, objective: ObjectiveSlot): 
     }
   }
 
-  const wave = timeline.events.find((e) => e.kind === 'wave')
+  const wave = nextOfKind(timeline, 'wave', now)
   if (wave !== undefined) {
     slots[1] = {
       key: wave.id,
@@ -204,7 +258,7 @@ function buildRail(timeline: Timeline, now: Seconds, objective: ObjectiveSlot): 
   // Fill whatever did not qualify with the next tiers, then with further waves.
   const fallbacks: RailSlot[] = [
     ...timeline.events
-      .filter((e) => e.kind === 'tier')
+      .filter((e) => e.kind === 'tier' && e.at >= now)
       .map((e) => ({
         key: e.id,
         kind: 'tier' as const,
@@ -213,7 +267,7 @@ function buildRail(timeline: Timeline, now: Seconds, objective: ObjectiveSlot): 
         tone: toneOf(e.confidence),
       })),
     ...timeline.events
-      .filter((e) => e.kind === 'wave')
+      .filter((e) => e.kind === 'wave' && e.at >= now)
       .slice(1)
       .map((e) => ({
         key: e.id,

@@ -14,6 +14,11 @@ export interface AdviceContext {
   readonly map: MapDefinition
   readonly timeline: Timeline
   readonly nextObjective: TimedEvent | null
+  /**
+   * Not in the design note's `AdviceContext`, which left `wave-reminder` to search the
+   * timeline itself and find a wave that had already spawned.
+   */
+  readonly nextWave: TimedEvent | null
   readonly camps: readonly CampState[]
   readonly tier: { readonly current: number; readonly next: TimedEvent | null }
   readonly deathTimer: Timeline['deathTimer']

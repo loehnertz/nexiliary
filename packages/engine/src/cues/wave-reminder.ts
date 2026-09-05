@@ -9,8 +9,8 @@ export const waveReminder: Cue = {
   id: 'wave-reminder',
   thresholds: ['warnSeconds'],
   evaluate(ctx, t) {
-    const wave = ctx.timeline.events.find((e) => e.kind === 'wave')
-    if (wave === undefined) return null
+    const wave = ctx.nextWave
+    if (wave === null) return null
     if (!isWithin(ctx, wave, t.warnSeconds ?? 10)) return null
     return { key: wave.id, basedOn: [wave.id] }
   },

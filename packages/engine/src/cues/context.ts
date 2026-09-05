@@ -17,7 +17,10 @@ export function buildContext(map: MapDefinition, timeline: Timeline, now: Second
     .filter((e) => e.kind === 'objective' && e.role === 'spawn')
     .sort((a, b) => (a.cycle ?? 0) - (b.cycle ?? 0))
   const nextObjective: TimedEvent | null = spawns[0] ?? null
-  const nextTier: TimedEvent | null = clamped.events.find((e) => e.kind === 'tier') ?? null
+  // `at >= now`, not simply the first emitted: generators emit blocks, and a block's
+  // earlier entries are routinely in the past by the time the projection expires.
+  const nextTier: TimedEvent | null = clamped.events.find((e) => e.kind === 'tier' && e.at >= now) ?? null
+  const nextWave: TimedEvent | null = clamped.events.find((e) => e.kind === 'wave' && e.at >= now) ?? null
 
   return {
     now,
@@ -26,6 +29,7 @@ export function buildContext(map: MapDefinition, timeline: Timeline, now: Second
     nextObjective,
     camps: clamped.camps,
     tier: { current: currentTier(clamped.level.estimate), next: nextTier },
+    nextWave,
     deathTimer: clamped.deathTimer,
     level: clamped.level,
   }

@@ -51,11 +51,13 @@ export function applyProvenance(t: Timeline): Timeline {
 
     case 'unknown': {
       const events = t.events.filter((e) => !isMapDerived(e))
+      // The phase belief is derived from the objective chain, so a map with no data
+      // may not claim it either.
       const camps: CampState[] = t.camps.map((c) => {
         const { nextUp: _dropped, ...rest } = c
         return { ...rest, standing: clampBelief(c.standing) }
       })
-      return { ...t, events, camps }
+      return { ...t, events, camps, objectivePhase: { kind: 'idle' } }
     }
   }
 }

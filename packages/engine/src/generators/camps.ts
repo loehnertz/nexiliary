@@ -4,6 +4,7 @@ import { byCycle } from '../map-types.js'
 import { exact } from '../confidence.js'
 import { decayFrom } from '../belief.js'
 import { latestCampAnchor } from '../anchors.js'
+import { phaseInProgress } from '../objective-chain.js'
 import type { ChainWalk } from '../objective-chain.js'
 
 /**
@@ -33,15 +34,16 @@ export function suppressionState(
   // The window opens at the spawn, not at the resolution band. Camps vanish when the
   // objective becomes active, so a window opening at the band's start would advise
   // starting a camp through the minute when the objective is live and camps are gone.
-  const { pending, elapsed } = walk
-
-  if (now >= pending.low && now <= pending.resolutionHigh) {
-    return { kind: 'active', since: pending.low, until: pending.resolutionHigh }
+  const running = phaseInProgress(walk, now)
+  // An `Unknown` cycle cannot support a claim about camps either. Removing every camp
+  // from the battlefield on the strength of a window the countdown itself has given up
+  // on is a confident negative built on nothing.
+  if (running !== null && running.confidence.kind !== 'Unknown') {
+    return { kind: 'active', since: running.low, until: running.resolutionHigh }
   }
+
+  const { elapsed } = walk
   if (elapsed !== null) {
-    if (now <= elapsed.resolutionHigh) {
-      return { kind: 'active', since: elapsed.low, until: elapsed.resolutionHigh }
-    }
     // Elapsed with no anchor: the phase must have ended, but not when. The app stops
     // claiming rather than asserting a camp is back.
     return { kind: 'lifted', at: elapsed.resolutionHigh, confirmed: false }
@@ -154,6 +156,7 @@ export function camps(
       standing,
       ...(nextUp !== undefined ? { nextUp } : {}),
       ...(effectiveSince !== undefined ? { availableSince: effectiveSince } : {}),
+      suppressed: suppression.kind === 'active',
       pressureValue: byCycle(camp.pressureValue, objectiveCycle, 0),
     })
   }
