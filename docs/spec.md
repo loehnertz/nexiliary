@@ -237,7 +237,8 @@ of upcoming events:
 
 Only starting the match is strictly required, in the sense that nothing breaks without the rest.
 That is not how the app is meant to be used: without objective anchors, objective timing is good for
-roughly the first ten minutes and then honestly goes quiet. The re-anchor tap is a core interaction.
+two to six cycles depending on the map, roughly four to seventeen minutes, and then
+honestly goes quiet. The re-anchor tap is a core interaction.
 - Match clock and map name in a header strip.
 - A talent tier row rendering 1, 4, 7, 10, 13, 16, 20 with the current tier highlighted and
   the next one marked, in the style of the game's own talent screen.

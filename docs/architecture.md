@@ -577,11 +577,22 @@ and every later cycle does too.
 Working the model through with real numbers gives a blunter answer than an earlier draft of this
 section claimed, and the model is right.
 
-**Without any taps, objective timing is good for roughly the first ten minutes**, which is about
-three unanchored cycles at a generous `stepSpread` of 25 seconds. After that the band exceeds
-`maxUsefulBand` and the chain honestly reports that it has lost the thread. Reaching five or six
-cycles would require a `maxUsefulBand` near 170 seconds, and "sometime in the next three minutes"
-is not coaching.
+**Without any taps, objective timing is good for two to six cycles after the last anchor, which
+varies a lot by map.** Worked through with the per-map offsets and plausible fight estimates:
+
+| Map | Cycles | Time from last anchor |
+| --- | --- | --- |
+| Cursed Hollow | 2 | about 4 minutes |
+| Alterac Pass | 3 | about 8 minutes |
+| Braxis Holdout | 3 | about 10 minutes |
+| Towers of Doom | 6 | about 15 minutes |
+| Infernal Shrines | 4 | about 17 minutes |
+
+Ten minutes is a rough middle, not a floor: fast-cadence maps with wide offset ranges are
+considerably worse, and Sky Temple and Hanamura never reach `Unknown` at all because their phases
+are near-deterministic. After the threshold the band exceeds `maxUsefulBand` and the chain honestly
+reports that it has lost the thread. Reaching five or six cycles everywhere would require a
+`maxUsefulBand` near 170 seconds, and "sometime in the next three minutes" is not coaching.
 
 That reframes the interaction. "Only starting the match is required input" is true in the sense
 that nothing breaks without taps, and misleading as a description of how the app is meant to be
@@ -595,8 +606,7 @@ should test whether people actually tap, not only whether they like the voice.
 Two maps are the other extreme. Sky Temple and Hanamura have deterministic phase durations and
 scalar offsets, so with only `minStepSpread` driving the widening they stay `Estimated` for an
 entire match rather than reaching `Unknown`. That is defensible, since those cycles genuinely are
-near-deterministic, but it means the ten-minute figure is a floor across the pool and not a
-description of every map.
+near-deterministic, but it is why the figure above is a range rather than a single number.
 
 Maps with a fast objective cadence and wide offset ranges degrade soonest. Cursed Hollow is the
 worst case in the pool, on both counts at once: past `possibleFromCycle: 3` its union offset is
@@ -1240,7 +1250,8 @@ replaces.
 | Undo | live, transient | reverts last anchor | rare |
 
 Only `Start match` is required. But see "Expected behaviour": without objective anchors the app
-is good for roughly the first ten minutes and then goes quiet on objectives, so "optional"
+is good for two to six cycles depending on the map, roughly four to seventeen minutes, and then
+goes quiet on objectives, so "optional"
 describes what does not break rather than how the app is meant to be used.
 
 The objective control's `offer()` returns `null` on a map whose `ObjectiveModel` is

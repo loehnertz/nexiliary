@@ -39,7 +39,8 @@ These are load-bearing. Most of the design falls out of them, and breaking one p
 app that is worse than useless, because the player acts on its output mid-fight.
 
 0. **The re-anchor tap is a core interaction, not an optional extra.** Without objective anchors
-   the app is good for roughly the first ten minutes and then honestly goes quiet on objectives.
+   the app is good for two to six objective cycles depending on the map, roughly four to seventeen
+   minutes, and then honestly goes quiet on objectives.
    Nothing breaks, but do not design or write copy as though tapping were incidental.
 1. **Never assert what cannot be derived.** Every displayed fact carries a confidence level
    of `Exact`, `Estimated` or `Unknown`. Confidence governs both colour and wording,
