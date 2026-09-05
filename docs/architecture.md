@@ -181,8 +181,30 @@ to. `kind: 'none'` is a supported, tested state, not an error: the app shows wav
 and the death timer, and the objective slot reads "no objective timer on this battleground"
 rather than sitting blank or falling back to the unknown-map path.
 
-Blackheart's Bay is the one `fixedInterval` map: chests respawn every 3:00 on their own clock,
-paused during a bombardment, rather than chaining off a resolution.
+Blackheart's Bay is the one `fixedInterval` map: chests respawn every 3:00 on their own clock
+rather than chaining off a resolution.
+
+It carries a known residual limitation. The chest timer **pauses during a bombardment**, and a
+bombardment is triggered by a player turning in doubloons, which the app cannot see. Over a
+match with several bombardments the interval drifts by minutes. `fixedInterval` cannot express
+a pause driven by an unobservable event, and inventing an anchor for "a bombardment started"
+would fail the input gate's rule 4, since nobody is tapping a phone while a bombardment is
+being contested.
+
+The honest handling: Blackheart's Bay ships with a deliberately wide band and depends more than
+other maps on the objective anchor to re-sync. This is a case where the app is simply less
+useful, stated here so it is a known limitation rather than a bug report later. If it proves
+annoying, the fallback is to model it as `afterResolution` keyed off chest collection, which
+anchors naturally and drops the fixed interval entirely.
+
+Thirteen of the fifteen maps use `afterResolution`, one uses `fixedInterval`, and one uses
+`none`. Three variants cover the whole pool, and no speculative fourth is carried.
+
+One row needs confirming when its data is written: sources disagree on whether Warhead
+Junction's 2:55 is a true clock cadence or an offset from all warheads being collected. It is
+recorded as `afterResolution` because that is what the more detailed source says. If it turns
+out to be a genuine cadence, it becomes the second `fixedInterval` map rather than needing a new
+variant.
 
 #### Validated map table
 
