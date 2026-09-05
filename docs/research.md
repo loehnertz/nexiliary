@@ -79,6 +79,45 @@ them as `Exact`. See "Map definitions" in `spec.md`.
 The archive is a Google Drive backup mounted under `~/Library/CloudStorage` on the
 development machine, under a `Documents/Heroes of the Storm` tree.
 
+### Archive locale mapping
+
+The archive spans a period when the client language changed, so the same battleground appears
+under two names. Recorded here for triaging files by hand; the tool itself must take map
+identity from parsed replay content, not from filenames.
+
+| German | English |
+| --- | --- |
+| Drachengärten | Dragon Shire |
+| Garten der Ängste | Garden of Terror |
+| Geisterminen | Haunted Mines |
+| Grabkammer der Spinnenkönigin | Tomb of the Spider Queen |
+| Höllenschreine | Infernal Shrines |
+| Schlachtfeld der Ewigkeit | Battlefield of Eternity |
+| Schwarzherzbucht | Blackheart's Bay |
+| Sprengkopfmanufaktur | Warhead Junction |
+| Tempel des Himmels | Sky Temple |
+| Türme des Unheils | Towers of Doom |
+| Verfluchtes Tal | Cursed Hollow |
+| Volskaya-Fertigung | Volskaya Foundry |
+
+Alterac Pass, Braxis Holdout and Hanamura Temple appear only in English, since they released
+after the client had been switched.
+
+### Non-battleground content in the archive
+
+Not every file is a standard 5v5 match, and a run that assumes otherwise will derive garbage.
+Observed and to be filtered out:
+
+- `Escape From Braxis` / `Endstation Braxis`, a co-op event map with no objective cycle.
+- `Silver City`, a brawl map.
+- `Kein Limit #1`, a brawl.
+- `Tutorial02`.
+- Filenames containing a machine name and `Desync` or `Disconnect`, which come from the
+  `GameLogs` folders and are frequently truncated.
+
+Filtering belongs on parsed content (game mode and map id) rather than on these names, which
+are only listed so the cases are known to exist.
+
 **Current replays, for verification.** The primary source. Matches are played several times
 a week on Linux under Proton, so fresh replays accrue continuously. Since the fixed
 constants need only a handful of replays per map, this covers the critical numbers within a
