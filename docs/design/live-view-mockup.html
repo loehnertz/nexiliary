@@ -49,7 +49,8 @@
   header { display:flex; justify-content:space-between; align-items:baseline; padding:11px 15px 9px;
            font-size:12px; font-weight:600; letter-spacing:.15em; text-transform:uppercase; color:var(--ink-dim); }
   header .clock { font-size:17px; font-weight:700; color:var(--ink); letter-spacing:.04em;
-                  font-variant-numeric:tabular-nums; }
+                  font-variant-numeric:tabular-nums; cursor:pointer;
+                  border-bottom:1px dotted rgba(155,140,232,.55); }
   .rule { height:1px; background:linear-gradient(90deg, transparent, rgba(155,140,232,.65), transparent); }
   main { padding:17px 15px 15px; }
 
@@ -65,6 +66,14 @@
   .rail span { text-align:center; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); }
   .rail b { display:block; font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:0; }
   .is-exact{color:var(--exact)} .is-est{color:var(--estimated)} .is-unknown{color:var(--unknown)}
+
+  /* A rail chip is tappable only while its camp is believed available.
+     Tapping writes a CampTaken anchor, collapsing it to an exact respawn countdown. */
+  .tappable { cursor:pointer; padding:5px 7px 4px; margin:-5px -3px -4px;
+              border:1px solid rgba(74,222,128,.42); border-radius:3px;
+              background:rgba(74,222,128,.09); }
+  .tappable::after { content:'tap if taken'; display:block; font-size:7.5px; letter-spacing:.08em;
+                     color:var(--exact); opacity:.75; margin-top:2px; }
 
   .prompt { margin:13px 0 0; padding:10px 12px; font-size:13.5px; line-height:1.4; color:#ded9f5;
             background:linear-gradient(90deg, rgba(245,185,66,.14), rgba(245,185,66,.03));
@@ -108,7 +117,7 @@
 
     <div class="rail">
       <span><b class="is-exact">0:08</b>wave</span>
-      <span><b class="is-exact">1:12</b>siege</span>
+      <span class="tappable"><b class="is-exact">UP</b>siege</span>
       <span><b class="is-est">~2:10</b>lvl 13</span>
       <span><b class="is-exact">2:40</b>bruiser</span>
     </div>
@@ -141,11 +150,11 @@
       <div>
         <div class="rail" style="margin-top:6px">
           <span><b class="is-exact">0:08</b>wave</span>
-          <span><b class="is-exact">1:12</b>siege</span>
+          <span class="tappable"><b class="is-exact">UP</b>siege</span>
         </div>
         <div class="rail">
           <span><b class="is-est">~2:10</b>lvl 13</span>
-          <span><b class="is-exact">2:40</b>bruiser</span>
+          <span><b class="is-unknown">?</b>bruiser</span>
         </div>
         <button class="anchor">Objective ended</button>
       </div>
@@ -158,6 +167,28 @@
       <span><b>0:28</b>death</span><span><b>~11</b>level</span><span><b>5</b>synced</span>
       <span><b class="is-unknown">&mdash;</b>next beacons</span>
     </footer>
+  </main>
+</div></div>
+
+<h1>Input surface</h1>
+<div class="frame desktop" style="filter:none"><div class="inner">
+  <main style="font-size:13px; line-height:1.7; color:var(--ink-dim)">
+    <p style="margin:0 0 10px"><b style="color:var(--ink)">Start match</b> is the only required
+      input. It also unlocks speech on iOS, which needs a user gesture.</p>
+    <p style="margin:0 0 10px"><b style="color:var(--ink)">Objective ended</b> is the primary
+      button, four to six times a match, during the regroup after a fight.</p>
+    <p style="margin:0 0 10px"><b style="color:var(--ink)">Camp chips</b> are the rail entries
+      themselves, tappable only while a camp is believed available. No separate row of camp
+      buttons. The tap does not record who took it; the respawn is the same either way.</p>
+    <p style="margin:0 0 10px"><b style="color:var(--ink)">The clock</b> is tappable to nudge
+      the match start, since that is the one required input that is easy to fumble.</p>
+    <p style="margin:0 0 10px"><b style="color:var(--ink)">Undo</b> appears briefly after any
+      anchor. Anchors overwrite rather than accumulate, so undo restores one previous value
+      and there is no undo stack.</p>
+    <p style="margin:14px 0 0; color:var(--ink-faint)">Camp availability decays. Freshly
+      spawned reads exact, then estimated, then unknown, shown as
+      <b class="is-unknown">?</b> on the desktop rail above. Forgetting a camp tap produces
+      silence rather than a false claim that a camp is still there.</p>
   </main>
 </div></div>
 

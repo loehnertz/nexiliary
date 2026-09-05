@@ -239,7 +239,10 @@ of upcoming events:
   colouring, which answers "what is after this" for camp-stall decisions that plan two
   events ahead.
 - The active prompt.
-- One large "objective ended" re-anchor button.
+- One large "objective ended" re-anchor button. The rail entries double as camp buttons: a
+  camp chip is tappable while that camp is believed available, and tapping marks it taken.
+  Only starting the match is required input; everything else improves precision and nothing
+  else is needed for correctness.
 - Match clock and map name in a header strip.
 - A talent tier row rendering 1, 4, 7, 10, 13, 16, 20 with the current tier highlighted and
   the next one marked, in the style of the game's own talent screen.

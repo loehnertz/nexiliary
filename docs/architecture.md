@@ -145,12 +145,41 @@ amber state that does carry meaning.
 
 #### Camps
 
-Camps are simpler because each is independent. First spawn is a constant. A `CampTaken`
-anchor for that camp gives `respawn = anchor + camp.respawnSeconds`, `Exact`. With no anchor,
-the camp is either up (if past first spawn and never taken) or `Unknown`.
+Camps are independent of each other and never chain, so no camp band widens the way the
+objective chain does. All the chain-widening logic lives in one generator.
 
-Camps never chain, so a camp band never widens. This is worth knowing when reading the code:
-all the widening logic lives in one generator.
+Camps do have their own failure mode, and it is the opposite shape. A missing objective
+anchor produces a widened band, which is honest. A missing camp anchor would produce a false
+positive: the app saying a camp is available when someone took it two minutes ago. That is
+principle 1 violated from the inside, and it is worse than saying nothing, because the
+camp-stall cue would fire on it.
+
+So camp availability decays rather than latching:
+
+```ts
+interface CampState {
+  id: string
+  status: 'down' | 'up' | 'unknown'
+  availableSince?: Seconds      // when it is believed to have become available
+  nextUp?: TimedEvent           // respawn, when a CampTaken anchor exists
+  confidence: Confidence
+}
+```
+
+- Before first spawn: `down`, with an `Exact` countdown to spawn.
+- Given a `CampTaken` anchor at time t: `down` until `t + camp.respawnSeconds`, then `up`.
+  Both `Exact`, because the anchor supplies the fact directly.
+- With no anchor after first spawn: `up`, but confidence falls with elapsed time. Fresh spawn
+  is `Exact`; after `campDecaySeconds` it is `Estimated`; past `campStaleSeconds` it is
+  `Unknown` and the app stops claiming anything about that camp.
+
+Start `campDecaySeconds` at 45 and `campStaleSeconds` at 120, then calibrate against how
+long camps actually survive in the corpus. This is a real measurement the offline tool can
+make: the distribution of time from camp spawn to first capture.
+
+Cues read `confidence` and not just `status`, so the camp-stall cue naturally goes quiet on a
+camp nobody has confirmed in two minutes rather than advising a push into a camp that is not
+there.
 
 #### Waves and tiers
 
@@ -452,6 +481,48 @@ The rule that keeps this maintainable: components receive a `LiveView` and rende
 No component calls `project`, computes a countdown, or reasons about confidence beyond
 choosing a colour from a value it was handed.
 
+### Input surface
+
+Every button writes an anchor, and anchors overwrite, so no input can put the app into an
+inconsistent state. The worst outcome of a mistap is a wrong number that the next correct tap
+or an undo replaces. That property is what allows the input surface to be generous without
+being risky.
+
+| Control | Where | Writes | Frequency |
+| --- | --- | --- | --- |
+| Start match | setup screen | `MatchStart` | once, required |
+| Objective ended | live, primary button | `ObjectiveEnded` | 4-6 per match, optional |
+| Camp chip | live, in the rail | `CampTaken` | opportunistic, optional |
+| Clock adjust | live, tap the header clock | `MatchStart` | rarely, corrective |
+| Undo | live, transient after any anchor | restores previous | rarely |
+
+Only `Start match` is required. Everything else improves precision and nothing else is
+needed for the app to remain correct.
+
+**Camp chips are the rail entries themselves.** There is no separate row of camp buttons.
+A chip is tappable only while its camp is believed available, and tapping marks it taken,
+which collapses that camp to an `Exact` respawn countdown. This puts the affordance where the
+information already is and adds no chrome.
+
+The tap does not record who took the camp. Ownership would double the input for little
+return: the respawn timer is identical either way, and the camp-stall cue only cares whether
+a camp is available.
+
+**Clock adjust** exists because the start tap is the one input that is both required and
+easy to fumble. Tapping the header clock opens a small plus and minus control that rewrites
+the `MatchStart` anchor, re-deriving everything downstream.
+
+**Undo** covers the one way input can actively hurt: a mistapped `ObjectiveEnded` shifts the
+whole chain. Because anchors overwrite rather than accumulate, undo is restoring the previous
+value of one map entry, and a transient control offering it for a few seconds after any
+anchor is sufficient. There is no undo stack.
+
+Camp taps are the input most likely to be forgotten when playing alone, since a teammate
+often takes the camp, and the most likely to be covered in a shared session, since five
+people watching four camps collectively catch nearly all of them. Camp tracking therefore
+improves with the relay rather than depending on it, and the decay model means the solo case
+degrades to silence rather than to a wrong claim.
+
 ### The clock
 
 Naive `setInterval` accumulates drift and is throttled hard in background tabs, which is
@@ -604,6 +675,9 @@ a parameter. The cases that matter most:
 - Cue edge triggering, specifically that re-anchoring does not re-fire a fired cue, since
   keys are stable across re-derivation.
 - Degradation to the always-exact floor on an unknown map.
+- Camp availability decaying to `Unknown` with no anchor, and a `CampTaken` anchor restoring
+  an `Exact` respawn.
+- Undo restoring the previous anchor value, including that downstream cycles re-derive.
 
 `maps` gets schema and cross-reference validation in CI, including that every camp carries
 the metadata the cues rely on (`clearSeconds`, `travelSeconds`, `pressureValue`).
