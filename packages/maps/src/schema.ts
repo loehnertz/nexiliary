@@ -1,0 +1,139 @@
+import type { CampDefinition, CueText, MapDefinition } from '@nexiliary/engine'
+
+/**
+ * Maps are data, not code. This validates more than shape, because the failures that
+ * matter are semantic: a missing field silently disables a cue in play, so it fails
+ * the build instead.
+ */
+export interface ValidationIssue {
+  readonly where: string
+  readonly problem: string
+}
+
+const positive = (n: number) => Number.isFinite(n) && n > 0
+const nonNegative = (n: number) => Number.isFinite(n) && n >= 0
+
+function validateCamp(mapId: string, camp: CampDefinition): ValidationIssue[] {
+  const issues: ValidationIssue[] = []
+  const where = `${mapId}/${camp.id}`
+  if (camp.id.trim() === '') issues.push({ where, problem: 'camp id is empty' })
+  if (camp.label.trim() === '') issues.push({ where, problem: 'camp label is empty' })
+  if (!nonNegative(camp.firstSpawnSeconds)) issues.push({ where, problem: 'firstSpawnSeconds must be >= 0' })
+  if (!positive(camp.respawnSeconds)) issues.push({ where, problem: 'respawnSeconds must be > 0' })
+  if (!positive(camp.decaySeconds)) issues.push({ where, problem: 'decaySeconds must be > 0' })
+  if (!positive(camp.staleSeconds)) issues.push({ where, problem: 'staleSeconds must be > 0' })
+  if (camp.staleSeconds <= camp.decaySeconds) {
+    issues.push({ where, problem: 'staleSeconds must exceed decaySeconds' })
+  }
+  if (!positive(camp.clearSeconds)) issues.push({ where, problem: 'clearSeconds must be > 0' })
+  if (!nonNegative(camp.approachSeconds)) issues.push({ where, problem: 'approachSeconds must be >= 0' })
+  // `stall-camp` reads both by cycle. An empty table would make it silently late.
+  if (camp.travelSeconds.length === 0) issues.push({ where, problem: 'travelSeconds is empty' })
+  if (camp.pressureValue.length === 0) issues.push({ where, problem: 'pressureValue is empty' })
+  // A boss standing untaken for a whole match is normal, so its staleSeconds has to
+  // exceed the typical remaining match length after it first spawns, or boss
+  // availability goes Stale in the last third of every game.
+  if (camp.type === 'boss' && camp.staleSeconds < 900) {
+    issues.push({ where, problem: 'a boss needs staleSeconds >= 900, or its timer dies late in every match' })
+  }
+  return issues
+}
+
+export function validateMap(map: MapDefinition): ValidationIssue[] {
+  const issues: ValidationIssue[] = []
+  const where = map.id
+
+  if (map.id.trim() === '') issues.push({ where, problem: 'map id is empty' })
+  if (map.name.trim() === '') issues.push({ where, problem: 'map name is empty' })
+  // `verified` is what unlocks the exact display path, exact spoken wording and any
+  // cue requiring an exact objective, so it needs evidence rather than optimism.
+  if (map.provenance === 'verified' && (map.provenanceNote ?? '').trim() === '') {
+    issues.push({ where, problem: 'verified requires a corpus reference or a hand-timing note' })
+  }
+
+  if (map.objective.kind === 'none') {
+    if (map.campsSuppressedDuringObjective === true) {
+      // Suppression is derived from the objective chain's spawn and resolution band.
+      // With no chain there is nothing to derive it from, so setting the flag would
+      // ask the app to assert a window it cannot compute.
+      issues.push({
+        where,
+        problem: 'campsSuppressedDuringObjective needs an objective chain to derive its window from',
+      })
+    }
+  } else {
+    const o = map.objective
+    if (o.label.trim() === '') issues.push({ where, problem: 'objective label is empty' })
+    if (!nonNegative(o.firstSpawnSeconds)) issues.push({ where, problem: 'firstSpawnSeconds must be >= 0' })
+    if (!positive(o.fight.medianSeconds)) issues.push({ where, problem: 'fight.medianSeconds must be > 0' })
+    if (!nonNegative(o.fight.spreadSeconds)) issues.push({ where, problem: 'fight.spreadSeconds must be >= 0' })
+
+    const rule = o.respawn
+    if (rule.kind === 'afterResolution') {
+      const names = Object.keys(rule.outcomes)
+      if (names.length === 0) issues.push({ where, problem: 'afterResolution needs at least one outcome' })
+      for (const [name, outcome] of Object.entries(rule.outcomes)) {
+        if (!positive(outcome.minSeconds)) issues.push({ where: `${where}/${name}`, problem: 'minSeconds must be > 0' })
+        if (!positive(outcome.maxSeconds)) issues.push({ where: `${where}/${name}`, problem: 'maxSeconds must be > 0' })
+        if (outcome.maxSeconds < outcome.minSeconds) {
+          issues.push({ where: `${where}/${name}`, problem: 'maxSeconds is below minSeconds' })
+        }
+        if (outcome.possibleFromCycle !== undefined && outcome.possibleFromCycle < 1) {
+          issues.push({ where: `${where}/${name}`, problem: 'possibleFromCycle is 1-based' })
+        }
+      }
+      // At least one branch has to be reachable from the first cycle, or the union is
+      // empty exactly when the app needs it most.
+      const fromFirst = Object.values(rule.outcomes).some((o2) => (o2.possibleFromCycle ?? 1) <= 1)
+      if (names.length > 0 && !fromFirst) {
+        issues.push({ where, problem: 'no outcome is reachable at cycle 1' })
+      }
+      if (rule.scalePerMinuteSeconds !== undefined && rule.minOffsetSeconds === undefined) {
+        // Without a floor, a per-minute reduction reaches zero and then goes negative,
+        // and matches do run long.
+        issues.push({ where, problem: 'scalePerMinuteSeconds requires minOffsetSeconds as a floor' })
+      }
+    } else {
+      if (!positive(rule.minSeconds)) issues.push({ where, problem: 'minSeconds must be > 0' })
+      if (rule.maxSeconds < rule.minSeconds) issues.push({ where, problem: 'maxSeconds is below minSeconds' })
+    }
+  }
+
+  const seen = new Set<string>()
+  for (const camp of map.camps) {
+    if (seen.has(camp.id)) issues.push({ where, problem: `duplicate camp id ${camp.id}` })
+    seen.add(camp.id)
+    issues.push(...validateCamp(map.id, camp))
+  }
+
+  return issues
+}
+
+/** Cross-references cue text against the registered cues. */
+export function validateCueText(
+  text: Readonly<Record<string, CueText>>,
+  cueIds: readonly string[],
+  declaredThresholds: Readonly<Record<string, readonly string[]>>,
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = []
+  for (const [id, entry] of Object.entries(text)) {
+    if (id !== entry.id) issues.push({ where: id, problem: `key does not match id ${entry.id}` })
+    if (!cueIds.includes(id)) issues.push({ where: id, problem: 'no cue is registered under this id' })
+    if (entry.display.trim() === '') issues.push({ where: id, problem: 'display is empty' })
+    if (entry.spoken.trim() === '') issues.push({ where: id, problem: 'spoken is empty' })
+    // Reading thresholds by string key inside arbitrary TypeScript would leave this as
+    // a note someone has to remember. The declaration is what makes it checkable.
+    for (const key of declaredThresholds[id] ?? []) {
+      if (!(key in entry.thresholds)) {
+        issues.push({ where: id, problem: `declared threshold "${key}" has no value` })
+      }
+    }
+  }
+  for (const id of cueIds) {
+    if (!(id in text)) issues.push({ where: id, problem: 'registered cue has no CueText entry' })
+  }
+  return issues
+}
+
+/** `appliesTo` is a sanctioned escape hatch, kept under budget so it is not a fork. */
+export const appliesToBudget = 2

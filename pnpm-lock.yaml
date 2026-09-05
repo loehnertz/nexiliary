@@ -17,6 +17,12 @@ importers:
 
   packages/engine: {}
 
+  packages/maps:
+    dependencies:
+      '@nexiliary/engine':
+        specifier: workspace:*
+        version: link:../engine
+
 packages:
 
   '@esbuild/aix-ppc64@0.28.2':
