@@ -711,7 +711,8 @@ CI validates more than shape:
 - Every camp carries `clearSeconds`, `travelSeconds`, `approachSeconds`, `pressureValue`,
   `decaySeconds`, `staleSeconds`. A missing field silently disables a cue in play, so it fails
   the build instead.
-- Every `ObjectiveTrack` has a `RespawnRule` of a kind the objective generator implements.
+- Every map's `ObjectiveModel` has a `RespawnRule` of a kind the objective generator
+  implements, and every named outcome in an `afterResolution` rule has a min and a max.
 - `provenance` is present, and `verified` requires a corpus reference or a hand-timing note.
 - Every `CueText` id matches a registered cue, and every threshold a cue reads exists.
 - The count of cues using `appliesTo` stays under budget.
