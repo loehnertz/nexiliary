@@ -77,6 +77,14 @@ export interface LiveView {
   readonly mapName: string
   readonly objective: ObjectiveSlot
   readonly rail: readonly RailSlot[]
+  /**
+   * Every camp, in rail order, including the ones that did not win a slot and the
+   * `Stale` ones the rail's `isClaimable` filter excludes by construction. Without it a
+   * typical map with five or six camps leaves three or four with no control anywhere,
+   * and a boss is the common casualty: its long `staleSeconds` is exactly what makes it
+   * lose to two siege camps on `pressureValue`.
+   */
+  readonly overflowCamps: readonly RailSlot[]
   readonly tiers: readonly TierCell[]
   readonly deathTimer: { readonly text: string; readonly tone: Tone }
   readonly level: { readonly text: string; readonly tone: Tone }
@@ -239,6 +247,9 @@ export function view(timeline: Timeline, map: MapDefinition, now: Seconds): Live
     mapName: map.name,
     objective,
     rail: buildRail(clamped, now, objective),
+    overflowCamps: [...clamped.camps]
+      .sort((a, b) => b.pressureValue - a.pressureValue || a.id.localeCompare(b.id))
+      .map((c) => campSlot(c, now)),
     tiers: talentTiers.map((level) => ({
       level,
       state: level <= tier ? 'reached' : level === nextTier ? 'next' : 'future',

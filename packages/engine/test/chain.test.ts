@@ -134,7 +134,8 @@ describe('the objective chain', () => {
 
 describe('respawn rule variants', () => {
   it('keeps an unreachable branch out of the union, at both boundaries', () => {
-    const rule = (cursed.objective as { respawn: never }).respawn as never
+    if (cursed.objective.kind !== 'timed') throw new Error('fixture')
+    const rule = cursed.objective.respawn
     // cycle 2: only the tribute branch is reachable.
     expect(offsetFor(rule, 2, 0)).toEqual({ min: 50, max: 90 })
     // cycle 3: the curse branch becomes reachable and widens the union.
@@ -142,7 +143,8 @@ describe('respawn rule variants', () => {
   })
 
   it('shortens a scaled offset late in a match without changing its width', () => {
-    const rule = (alterac.objective as { respawn: never }).respawn as never
+    if (alterac.objective.kind !== 'timed') throw new Error('fixture')
+    const rule = alterac.objective.respawn
     expect(offsetFor(rule, 2, 0)).toEqual({ min: 110, max: 150 })
     expect(offsetFor(rule, 2, 600)).toEqual({ min: 90, max: 130 })
     // Floored at minOffsetSeconds, and the floor moves both ends together so the

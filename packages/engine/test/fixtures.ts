@@ -66,6 +66,14 @@ export const braxis: MapDefinition = {
   camps: [siegeTop, bruiser, boss],
 }
 
+/** Scalar offset, camps stay on the field. Modelled on Dragon Shire. */
+export const dragon: MapDefinition = {
+  ...braxis,
+  id: 'dragon',
+  name: 'Dragon Shire',
+  campsSuppressedDuringObjective: false,
+}
+
 /** Ranged offset that shortens with game time. Modelled on Alterac Pass. */
 export const alterac: MapDefinition = {
   id: 'alterac',
@@ -149,7 +157,7 @@ export const tomb: MapDefinition = {
   provenance: 'verified',
   provenanceNote: 'fixture',
   objective: { kind: 'none' },
-  camps: [siegeTop],
+  camps: [siegeTop, boss],
 }
 
 export const unknownMap: MapDefinition = {

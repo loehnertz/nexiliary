@@ -1,0 +1,61 @@
+import type { CueText } from '../src/index.js'
+
+/** Stands in for the data that lives in `packages/maps`. */
+export const cueText: Record<string, CueText> = {
+  'objective-prep': {
+    id: 'objective-prep',
+    display: 'Reset now if you are not full.',
+    spoken: '{label} {time}. Reset if you are not full.',
+    tier: 'essential',
+    basePriority: 'high',
+    priorityWithinBand: 50,
+    thresholds: { warnSeconds: 45 },
+  },
+  'stall-camp': {
+    id: 'stall-camp',
+    display: 'Start the camp now and it lands during the fight.',
+    spoken: 'Start the camp now. Objective {time}.',
+    tier: 'essential',
+    basePriority: 'high',
+    priorityWithinBand: 60,
+    thresholds: { windowSeconds: 15 },
+  },
+  'camp-available': {
+    id: 'camp-available',
+    display: 'Camp is up.',
+    spoken: 'Camp is up.',
+    tier: 'standard',
+    basePriority: 'normal',
+    priorityWithinBand: 40,
+    cooldownSeconds: 60,
+    thresholds: { freshSeconds: 20 },
+  },
+  'tier-spike': {
+    id: 'tier-spike',
+    display: 'Tier spike close. Avoid an even fight if they hit it first.',
+    spoken: 'Talent tier {time}. Avoid an even fight if they hit it first.',
+    tier: 'essential',
+    basePriority: 'high',
+    priorityWithinBand: 40,
+    thresholds: { warnSeconds: 45 },
+  },
+  'wave-reminder': {
+    id: 'wave-reminder',
+    display: 'Wave about to spawn. Soak it if nobody is there.',
+    spoken: 'Wave {time}.',
+    tier: 'verbose',
+    basePriority: 'low',
+    priorityWithinBand: 10,
+    thresholds: { warnSeconds: 10 },
+  },
+  'death-timer-warning': {
+    id: 'death-timer-warning',
+    display: 'Dying is expensive now.',
+    spoken: 'Death timer is long now. Do not trade a death for this.',
+    tier: 'standard',
+    basePriority: 'normal',
+    priorityWithinBand: 20,
+    cooldownSeconds: 180,
+    thresholds: { costlySeconds: 30 },
+  },
+}
