@@ -99,6 +99,15 @@ Confidence colours are green for `Exact` and amber for `Estimated`, which matche
 own use of green for health and amber for "your attention is required". Team blue and enemy
 crimson keep their existing meaning and are never reused for confidence.
 
+## Environment
+
+The game is played on Linux under Proton, several sessions a week, so current replays are
+available on request. This matters twice: replay paths live inside a Wine prefix rather than
+at the native Windows location, and the deferred desktop companion targets Linux, where
+global hotkeys and screen capture behave differently under Wayland than under X11.
+
+Development happens on macOS.
+
 ## Conventions
 
 - Branch per unit of work; do not commit directly to `master`.

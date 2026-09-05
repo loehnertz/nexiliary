@@ -56,6 +56,35 @@ Other constants, same caveat:
   +5:00. Contradicted by the wiki; needs verification.
 - Towers of Doom sappers: 0:30 initial, +2:30 after capture.
 
+## Replay corpus
+
+Two sources, for two different jobs.
+
+**Archive, for building and testing the parser.** Roughly 1000 `.StormReplay` files exist in
+a Google Drive backup of an old Windows machine, covering all 15 battlegrounds with between
+12 and 70 each. They span May 2015 to July 2019, so they cannot verify current timings: the
+patches in that gap are the reason the published numbers are unreliable in the first place.
+What they are good for is developing the parser against real files, and the wide spread of
+replay protocol versions stress-tests version handling better than a clean modern sample.
+
+Two practical notes for the tool: some of these sit in `GameLogs` desync folders and may be
+truncated, and map identity must come from parsed replay content rather than filenames,
+because the archive mixes German and English client locales (`Drachengärten` and
+`Dragon Shire` are the same map).
+
+**Current replays, for verification.** The primary source. Matches are played several times
+a week on Linux under Proton, so fresh replays accrue continuously. Since the fixed
+constants need only a handful of replays per map, this covers the critical numbers within a
+few weeks of ordinary play, with Quick Match providing map variety.
+
+Under Proton the replay directory lives inside a Wine prefix rather than at the native
+Windows path, something like
+`<prefix>/drive_c/users/steamuser/Documents/Heroes of the Storm/Accounts/<id>/<hero id>/Replays/Multiplayer/`.
+
+**Heroes Profile, optional.** Now a fallback rather than a requirement. Worth using only if
+the bands need more volume than ordinary play provides, or for maps that rarely come up.
+Using it means checking their terms for bulk access.
+
 ## Data availability
 
 - Blizzard never shipped a Heroes of the Storm API and the game is in maintenance mode, so

@@ -402,12 +402,23 @@ at 0:30 and bosses at 5:00. Shipping wrong numbers is worse than shipping none, 
 player trusts them during a fight.
 
 Approach: seed from published guides, then verify and calibrate from a replay corpus using
-the offline `replay` tool. Measuring actual objective spawn times across many matches yields
-both the exact deterministic timings and the real distributions the estimation bands need.
-Heroes Profile exposes parsed replay data and an upload path for obtaining a corpus.
+the offline `replay` tool. Measuring actual spawn times across real matches replaces trust
+in stale wikis with observation.
 
-Removing the review from v1 does not remove this work. The tool is on the critical path for
-the live feature, because without it the app has no trustworthy numbers to display.
+Two kinds of number come out of this, and they need very different sample sizes.
+
+Fixed game rules (first objective spawn, the offset after resolution, camp respawn, the
+death timer curve) are constants in the game's code. A handful of replays per map settles
+each one; no statistics are involved.
+
+The estimation bands are not a game constant. They describe how long humans take to resolve
+an objective fight, so they are a distribution and need hundreds of samples to be worth
+anything. Bands only matter when the player has not anchored, so they can lag the fixed
+numbers without holding up a release.
+
+Corpus sources are covered in `research.md`. Removing the review from v1 does not remove
+this work: the tool is on the critical path for the live feature, because without it the app
+has no trustworthy numbers to display.
 
 Seed values gathered so far, all requiring verification:
 

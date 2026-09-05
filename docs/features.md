@@ -61,6 +61,12 @@ See `spec.md` for the design these are drawn from.
 All deferred. The relay protocol treats anchors as source-agnostic specifically so these
 become publishers on an existing channel rather than an engine change.
 
+Platform note: the game is played on Linux under Proton, not Windows. That changes what each
+of these entails and should not be assumed away. Folder watching has to handle a Wine prefix
+path. Global hotkeys are straightforward on X11 and awkward on Wayland. Screen capture for
+OCR needs portals under Wayland. None of this is blocking, but a companion designed for
+Windows would need rework.
+
 | # | Feature | Status | Notes |
 | --- | --- | --- | --- |
 | 25 | Screen OCR of the in-game clock | deferred | Removes the start tap and clock drift entirely. The single highest-value deferred item |
