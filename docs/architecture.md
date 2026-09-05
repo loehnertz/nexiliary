@@ -106,7 +106,7 @@ type EventKind = 'objective' | 'camp' | 'wave' | 'tier'
 interface TimedEvent {
   id: string               // stable across re-projection
   kind: EventKind
-  trackId?: string         // objective track or camp id
+  subjectId?: string       // camp id; objectives have one chain per map
   label: string
   at: Seconds              // the median-accumulated estimate; see "at is the median"
   confidence: Confidence
@@ -127,7 +127,7 @@ The subject is what makes an occurrence identifiable:
 | Type | Subject | Example key |
 | --- | --- | --- |
 | `MatchStart` | empty | `MatchStart:` |
-| `ObjectiveEnded` | `trackId:cycle` | `ObjectiveEnded:beacons:2` |
+| `ObjectiveEnded` | `cycle` | `ObjectiveEnded:2` |
 | `CampTaken` | `campId:occurrence` | `CampTaken:siege-top:3` |
 
 Including the occurrence index in the subject is deliberate and fixes a real defect. Without
@@ -142,7 +142,7 @@ match length rather than by tap count, and no entry is ever appended to.
 The occurrence index is derived from the anchor set, not from the projection:
 
 ```
-cycle = (number of ObjectiveEnded entries for this track) + 1
+cycle = (number of ObjectiveEnded entries) + 1
 ```
 
 Taking it from the projection's belief about the current cycle was wrong, and wrong in a way that
@@ -353,8 +353,8 @@ merge keeps all of them. A single global horizon over an `at`-sorted list is the
 waves recur every 30 seconds, so the next four events are always four waves, and the objective,
 camps and tiers get evicted along with everything the cues depend on.
 
-Suggested horizons: waves emit the next 4, so `view` can pick without re-projecting; each
-objective track emits the next 2 cycles; each camp emits its next availability; tiers emit the
+Suggested horizons: waves emit the next 4, so `view` can pick without re-projecting; the
+objective chain emits the next 2 cycles; each camp emits its next availability; tiers emit the
 next 2.
 
 #### `at` is the median
@@ -856,7 +856,7 @@ interface AdviceContext {
   now: Seconds
   map: MapDefinition
   timeline: Timeline
-  nextObjectiveByTrack: Record<string, TimedEvent | null>
+  nextObjective: TimedEvent | null
   camps: CampState[]
   tier: { current: number; next: TimedEvent | null }
   deathTimerSeconds: Seconds
