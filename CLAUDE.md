@@ -9,22 +9,23 @@ below and in `docs/spec.md`, and nothing else.
 
 ## Current state
 
-Design is complete and approved. No application code has been written yet.
+Design and architecture are complete. No application code has been written yet.
 
 v1 is the live match only, from the moment the player spawns in. No draft support before it
 and no review after it. The post-game review is designed in `docs/spec.md` but deferred;
 read that design before making architectural choices, because the live prompts are chosen to
 match its grading dimensions.
 
-The next step is a software architecture design pass, which should be done before any
-implementation. It needs to set the project up to build the v1 features while leaving the
-deferred features in `docs/features.md` cheap to add later.
+The next step is implementation, following the build order at the end of
+`docs/architecture.md`. Start with `packages/engine`: types, `project`, the objective chain
+and the provenance clamp, with tests throughout and no UI.
 
 ## Documents
 
 | File | What it is |
 | --- | --- |
 | `docs/spec.md` | The approved design. Read this first |
+| `docs/architecture.md` | How it is built: packages, projection, clock, relay, test seams |
 | `docs/features.md` | Every feature discovered, marked v1 / deferred / rejected |
 | `docs/research.md` | Game timing data, technical constraints, and sources |
 | `docs/design/live-view-mockup.html` | Approved visual direction as a static reference. Open it in a browser |
@@ -51,7 +52,8 @@ does not belong here. `docs/features.md` records several such rejections and why
 
 ## Architecture obligations
 
-Carry these from the start or the deferred features get expensive:
+Designed in full in `docs/architecture.md`. The load-bearing ones, which must survive any
+refactor:
 
 - `engine` has **zero dependencies**, so the deferred desktop companion can reuse it
   verbatim.

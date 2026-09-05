@@ -12,9 +12,10 @@ number. It never asserts something it cannot derive.
 
 ## Status
 
-Design complete, implementation not started. Architecture design is the next step.
+Design and architecture complete, implementation not started.
 
 - [`docs/spec.md`](docs/spec.md) - the approved design
+- [`docs/architecture.md`](docs/architecture.md) - packages, projection, clock, relay, tests
 - [`docs/features.md`](docs/features.md) - full feature catalogue, v1 and deferred
 - [`docs/research.md`](docs/research.md) - timing data, constraints, sources
 - [`docs/design/live-view-mockup.html`](docs/design/live-view-mockup.html) - visual direction

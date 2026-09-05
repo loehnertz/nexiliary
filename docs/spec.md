@@ -1,12 +1,13 @@
 # nexiliary design
 
 Date: 2026-09-05
-Status: approved. Next step is a software architecture design pass, before any
-implementation.
+Status: approved. The architecture is designed in `architecture.md`; implementation has not
+started.
 
-Companion documents: `features.md` for the full feature catalogue including everything
-deferred and rejected, `research.md` for game timing data and technical constraints,
-`design/live-view-mockup.html` for the approved visual direction.
+Companion documents: `architecture.md` for how this is built, `features.md` for the full
+feature catalogue including everything deferred and rejected, `research.md` for game timing
+data and technical constraints, `design/live-view-mockup.html` for the approved visual
+direction.
 
 ## Purpose
 
@@ -490,6 +491,9 @@ what happens when an anchor never arrives.
 Steps 1 through 4 have no relay dependency and work as a purely local app, so the relay can
 slip without blocking anything. Step 3 gates shipping, not development: milestone 2 can be
 built and tuned against seeded data.
+
+`architecture.md` carries a finer-grained build order that supersedes this list for
+implementation purposes.
 
 ## Risks
 
