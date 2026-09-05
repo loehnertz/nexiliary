@@ -37,7 +37,7 @@ import type { StoredMatch, StoredSettings } from './services/storage.js'
 import { initSpeech, speak, stopSpeech, unlockSpeech } from './services/speech.js'
 import { installWakeLockRecovery, releaseWakeLock, requestWakeLock } from './services/wake-lock.js'
 import { Frame } from './components/chrome.js'
-import { Footer, Header, ObjectivePanel, PromptBar, Rail, Rule, TierRow } from './components/live-panel.js'
+import { Footer, Header, ObjectivePanel, PromptBar, Rail, Rule } from './components/live-panel.js'
 import { ClockAdjustSheet, OverflowSheet } from './components/sheets.js'
 import { Setup } from './components/setup.js'
 import { offersFor } from './controls/registry.js'
@@ -213,7 +213,13 @@ export function App() {
               <ObjectivePanel slot={liveView.objective} />
             </div>
             <div className="area-rail">
-              {settings.showRail && <Rail rail={liveView.rail} onCampTaken={onCampTaken} />}
+              {settings.showRail && (
+                <Rail
+                  rail={liveView.rail}
+                  onCampTaken={onCampTaken}
+                  onCampUnknown={() => setSheet('overflow')}
+                />
+              )}
             </div>
             <div className="area-prompt">
               <CueRunner
@@ -261,11 +267,6 @@ export function App() {
               )}
             </div>
           </div>
-          <TierRow
-            tiers={liveView.tiers}
-            anchored={liveView.level.estimated === false}
-            onTierReached={onTierReached}
-          />
           <Footer view={liveView} />
         </main>
       </Frame>
@@ -283,6 +284,9 @@ export function App() {
           settings={settings}
           onSettings={setSettings}
           matchLog={buildMatchLog(map, [...state.anchors.values()], now)}
+          tiers={liveView.tiers}
+          levelExact={liveView.level.estimated === false}
+          onTierReached={onTierReached}
           onCampTaken={onCampTaken}
           onCampUp={onCampUp}
           onEndMatch={endMatch}

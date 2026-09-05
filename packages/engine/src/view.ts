@@ -89,6 +89,19 @@ export interface TierCell {
   readonly known: boolean
 }
 
+/**
+ * The next talent tier and when it lands.
+ *
+ * The tier a team is *on* is visible in the game and does not belong here — the app's job
+ * is what is coming and when. When the next one lands is not visible, and it is the fact
+ * `tier-spike` speaks about: never take an even fight into a tier deficit.
+ */
+export interface NextTier {
+  readonly level: number
+  readonly text: string
+  readonly tone: Tone
+}
+
 export interface LiveView {
   readonly clock: string
   readonly mapName: string
@@ -105,6 +118,7 @@ export interface LiveView {
   readonly tiers: readonly TierCell[]
   readonly deathTimer: { readonly text: string; readonly tone: Tone }
   readonly level: { readonly text: string; readonly estimated: boolean; readonly tone: Tone }
+  readonly nextTier: NextTier | null
   /** The clamped timeline, for controls and anything that needs the raw facts. */
   readonly timeline: Timeline
 }
@@ -262,7 +276,13 @@ function buildRail(timeline: Timeline, now: Seconds, objective: ObjectiveSlot): 
   slots[2] = chosen[0] !== undefined ? campSlot(chosen[0], now) : null
   slots[3] = chosen[1] !== undefined ? campSlot(chosen[1], now) : null
 
-  // Fill whatever did not qualify with the next tiers, then with further waves.
+  // Fill whatever did not qualify, in descending order of usefulness.
+  //
+  // A `Stale` camp comes before a second wave: its chip is the control that corrects it,
+  // and four identical wave countdowns is the degenerate rail the fixed allocation exists
+  // to prevent — reached from the other direction, when *nothing* qualifies rather than
+  // when too much does.
+  const chosenIds = new Set(chosen.map((c) => c.id))
   const fallbacks: RailSlot[] = [
     ...timeline.events
       .filter((e) => e.kind === 'tier' && e.at >= now)
@@ -273,13 +293,22 @@ function buildRail(timeline: Timeline, now: Seconds, objective: ObjectiveSlot): 
         text: displayTime(e.confidence, e.at, now),
         tone: toneOf(e.confidence),
       })),
+    // On a map with no data a camp chip would be a control that writes an anchor read
+    // back through respawn figures the provenance clamp has already declared worthless.
+    // Elsewhere a `Stale` chip is exactly the control that corrects it.
+    ...(timeline.provenance === 'unknown'
+      ? []
+      : timeline.camps
+          .filter((c) => !chosenIds.has(c.id))
+          .sort((a, b) => compareBearing(a.bearing, b.bearing) || a.id.localeCompare(b.id))
+          .map((c) => campSlot(c, now))),
     ...timeline.events
       .filter((e) => e.kind === 'wave' && e.at >= now)
-      .slice(1)
+      .slice(1, 2)
       .map((e) => ({
         key: e.id,
         kind: 'wave' as const,
-        label: 'wave',
+        label: 'wave after',
         text: displayTime(e.confidence, e.at, now),
         tone: toneOf(e.confidence),
       })),
@@ -302,6 +331,7 @@ export function view(timeline: Timeline, map: MapDefinition, now: Seconds): Live
   const objective = objectiveSlot(map, clamped, now)
   const tier = currentTier(clamped.level.estimate)
   const nextTier = talentTiers.find((t) => t > tier)
+  const nextTierEvent = clamped.events.find((e) => e.kind === 'tier' && e.at >= now)
 
   return {
     clock: mmss(now),
@@ -318,6 +348,14 @@ export function view(timeline: Timeline, map: MapDefinition, now: Seconds): Live
       known: clamped.level.confidence.kind === 'Exact' && level === tier,
     })),
     deathTimer: { text: mmss(clamped.deathTimer.seconds), tone: toneOf(clamped.deathTimer.confidence) },
+    nextTier:
+      nextTierEvent === undefined
+        ? null
+        : {
+            level: Number(nextTierEvent.id.split(':')[1] ?? '0'),
+            text: displayTime(nextTierEvent.confidence, nextTierEvent.at, now),
+            tone: toneOf(nextTierEvent.confidence),
+          },
     level: {
       // No tilde. At this size it reads as a minus sign, and the colour and the label
       // already carry whether it is an estimate.

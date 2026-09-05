@@ -176,6 +176,22 @@ observation, exactly as `ObjectiveEnded` re-phases the objective chain: one tap,
 rather than accumulated, and forgetting it leaves precisely the previous estimate. While the
 observed tier still holds, the level is `Exact` and so is the death timer that reads off it.
 
+**23. Team level and the talent tier row were both duplication.** Both are on the
+player's own screen, so showing them is at best redundant and at worst — when the derived
+curve disagrees with what they can see — corrosive to the numbers they *cannot* check,
+which is the part worth having. They are gone from the live view. What replaced them is
+what the game does not show: how long the death timer is right now, and when the next tier
+lands. The level is still tracked, because those two read off it, and is correctable under
+settings for when the death timer looks wrong.
+
+**24. The rail could degenerate to four identical wave countdowns.** The fixed slot
+allocation exists so a map with four camps up still shows upcoming events; the same
+degeneracy is reachable from the other side — no objective, no tiers left, every camp
+`Stale` — and nothing caught it, because the engine test asserts the *timeline* is never
+all waves and this was the *view*. The fallback order now prefers a `Stale` camp chip over
+a second wave, since that chip is the control that corrects it, and those chips are
+tappable, which they had not been.
+
 ## Data
 
 **17. Camps are removed during the objective on seven maps, not two.** Alterac Pass,

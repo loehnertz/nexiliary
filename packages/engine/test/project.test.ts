@@ -386,3 +386,26 @@ describe('the TierReached anchor', () => {
     expect(project(braxis, anchors, 505).level.confidence.kind).toBe('Exact')
   })
 })
+
+describe('the rail under starvation', () => {
+  it('never fills with the same event four times over', () => {
+    // The fixed slot allocation exists so that a map with four camps up still shows
+    // upcoming events. The same degeneracy is reachable from the other direction — no
+    // objective, no tiers left, every camp Stale — and then the rail was four identical
+    // wave countdowns.
+    for (let now = 0; now < 2400; now += 7) {
+      const rail = view(project(braxis, anchorSet(), now), braxis, now).rail
+      const waves = rail.filter((s) => s.kind === 'wave')
+      expect(waves.length, `four waves at ${now}`).toBeLessThanOrEqual(2)
+      expect(new Set(rail.map((s) => s.key)).size, `duplicate slots at ${now}`).toBe(rail.length)
+    }
+  })
+
+  it('prefers a Stale camp chip over a second wave, because the chip corrects it', () => {
+    // Deep into an unanchored match on a suppression map every camp is Stale, so nothing
+    // satisfies `isClaimable` and the slots fall through.
+    const now = 1200
+    const rail = view(project(braxis, anchorSet(), now), braxis, now).rail
+    expect(rail.some((s) => s.camp?.stale === true)).toBe(true)
+  })
+})

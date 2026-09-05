@@ -95,9 +95,17 @@ function splitRange(text: string): [string, string | null] {
 export function Rail({
   rail,
   onCampTaken,
+  onCampUnknown,
 }: {
   rail: readonly RailSlot[]
   onCampTaken: (campId: string) => void
+  /**
+   * A `Stale` chip is the control that corrects it, which is the whole reason decay does
+   * not remove it. What it should write is genuinely ambiguous, though — the player may
+   * be looking at a camp that is standing, or at one they just took — so it opens the
+   * camp list where both are spelled out rather than guessing on their behalf.
+   */
+  onCampUnknown: () => void
 }) {
   return (
     <div className="rail mt-4">
@@ -107,6 +115,7 @@ export function Rail({
             <b className={`block text-[0.95rem] font-bold numerals ${toneClass(slot.tone)}`}>{slot.text}</b>
             <span className="label-tight">{slot.label}</span>
             {slot.camp?.tappable === true && <span className="chip-hint tone-exact">tap if taken</span>}
+            {slot.camp?.stale === true && <span className="chip-hint tone-unknown">unconfirmed</span>}
           </>
         )
         if (slot.camp?.tappable === true) {
@@ -116,6 +125,19 @@ export function Rail({
               type="button"
               className="chip chip-tappable flex-1"
               onClick={() => onCampTaken(slot.camp!.id)}
+            >
+              {body}
+            </button>
+          )
+        }
+        if (slot.camp?.stale === true) {
+          return (
+            <button
+              key={slot.key}
+              type="button"
+              className="chip chip-stale flex-1"
+              onClick={onCampUnknown}
+              aria-label={`${slot.label} is unconfirmed — open the camp list`}
             >
               {body}
             </button>
@@ -150,63 +172,28 @@ export function PromptBar({ prompts }: { prompts: readonly Prompt[] }) {
   )
 }
 
-export function TierRow({
-  tiers,
-  anchored,
-  onTierReached,
-}: {
-  tiers: LiveView['tiers']
-  anchored: boolean
-  onTierReached: (level: number) => void
-}) {
-  // Bare numerals are the game's own talent-screen idiom, and out of that context they
-  // read as seven unexplained numbers, so the row says what it is.
-  //
-  // It is also the input. Team level is the one number here the player can read off
-  // their own screen, so the app asks rather than guessing: tap the tier you just hit
-  // and the whole curve re-phases. Like the rail entries doubling as camp buttons, the
-  // control lives on the thing it corrects.
-  const next = tiers.find((t) => t.state === 'next')
-  return (
-    <div className="mt-3 border-t border-[rgb(155_140_232_/_0.22)] pt-2.5">
-      <div className="label-tight mb-1 flex items-baseline justify-between gap-2">
-        <span>talent tiers</span>
-        <span className={anchored ? 'tone-exact' : 'tone-estimated'}>
-          {anchored ? 'confirmed' : 'tap the one you just hit'}
-        </span>
-      </div>
-      <div className="flex justify-between">
-        {tiers.map((cell) => (
-          <button
-            key={cell.level}
-            type="button"
-            onClick={() => onTierReached(cell.level)}
-            aria-label={`We reached talent tier ${cell.level}`}
-            className={`tier-cell tier-tap ${cell.state === 'reached' ? 'tier-reached' : ''} ${cell.state === 'next' ? 'tier-next' : ''} ${cell.known ? 'tier-known' : ''}`}
-          >
-            {cell.level}
-          </button>
-        ))}
-      </div>
-      <div className="label-tight mt-0.5 text-right">
-        {next === undefined ? 'all tiers reached' : `next ${next.level}`}
-      </div>
-    </div>
-  )
-}
-
+/**
+ * Only things the game does not already show you.
+ *
+ * Team level and the talent tier row were both on this strip and both are on the player's
+ * own screen, which is a straight duplication — and a duplication that can visibly
+ * disagree, costing trust in the numbers they cannot check. What is left is the length of
+ * the death timer, which is not shown until you are already dead, and when the next tier
+ * lands, which is not shown at all.
+ */
 export function Footer({ view }: { view: LiveView }) {
-  // "1 synced" was in the mockup and says nothing while there is no session to sync
-  // with. It comes back with the relay. The other two now say what they are: "death"
-  // beside "level" reads as two unexplained numbers rather than as the cost of dying.
   return (
-    <footer className="mt-2.5 flex justify-between gap-4">
+    <footer className="mt-3 flex justify-between gap-4 border-t border-[rgb(155_140_232_/_0.22)] pt-2.5">
       <Stat value={view.deathTimer.text} label="if you die now" tone={view.deathTimer.tone} />
-      <Stat
-        value={view.level.text}
-        label={view.level.estimated ? 'team level (est.)' : 'team level'}
-        tone={view.level.tone}
-      />
+      {view.nextTier === null ? (
+        <Stat value="—" label="all tiers reached" />
+      ) : (
+        <Stat
+          value={view.nextTier.text}
+          label={`to talent tier ${view.nextTier.level}`}
+          tone={view.nextTier.tone}
+        />
+      )}
     </footer>
   )
 }

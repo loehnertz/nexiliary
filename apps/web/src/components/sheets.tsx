@@ -88,6 +88,9 @@ export function OverflowSheet({
   view,
   settings,
   matchLog,
+  tiers,
+  levelExact,
+  onTierReached,
   onSettings,
   onCampTaken,
   onCampUp,
@@ -97,6 +100,9 @@ export function OverflowSheet({
   view: LiveView
   settings: StoredSettings
   matchLog: string
+  tiers: LiveView['tiers']
+  levelExact: boolean
+  onTierReached: (level: number) => void
   onSettings: (next: StoredSettings) => void
   onCampTaken: (campId: string) => void
   onCampUp: (campId: string) => void
@@ -124,7 +130,15 @@ export function OverflowSheet({
       {tab === 'camps' && <CampList camps={view.overflowCamps} onCampTaken={onCampTaken} onCampUp={onCampUp} />}
       {tab === 'guide' && <Legend />}
       {tab === 'log' && <MatchLog text={matchLog} />}
-      {tab === 'settings' && <SettingsPanel settings={settings} onSettings={onSettings} />}
+      {tab === 'settings' && (
+        <SettingsPanel
+          settings={settings}
+          onSettings={onSettings}
+          tiers={tiers}
+          levelExact={levelExact}
+          onTierReached={onTierReached}
+        />
+      )}
 
       <button
         type="button"
@@ -192,14 +206,11 @@ function Legend() {
         tappable: tap it when that camp gets taken, and its respawn becomes exact.
       </Entry>
 
-      <Entry term="1 4 7 10 13 16 20">
-        Talent tiers — the levels where everyone picks a talent. White is reached, amber is next.
-        A tier advantage matters far more than a level advantage, so never take an even fight into
-        a tier deficit.
-        <br />
-        <b className="text-[var(--color-ink)]">Tap the tier you just hit.</b> Team level is the one
-        number here you can also read off your own screen, so the app asks rather than guessing.
-        One tap re-phases the whole curve and turns the death timer green.
+      <Entry term="To talent tier 16">
+        When the next tier lands — not which one you are on, which is on your own screen. A tier
+        advantage matters far more than a level advantage, so never take an even fight into a
+        deficit. This is estimated from the experience tables and is the least certain number in
+        the app.
       </Entry>
 
       <Entry term="If you die now">
@@ -209,9 +220,9 @@ function Legend() {
       </Entry>
 
       <Entry term="Team level">
-        Derived from the experience tables, not measured. Soak quality alone moves level 10 between
-        6:38 and 8:13, which the band covers — but a blowout is off the curve entirely and the app
-        has no way to know it is in one. Tap a talent tier and it stops guessing.
+        Not shown, because it is on your screen already. It is tracked, because the death timer and
+        the tier countdown both read off it — so if the death timer looks wrong, correct the level
+        under Settings and both come right.
       </Entry>
 
       <Entry term="Objective ended">
@@ -277,13 +288,47 @@ function CampList({
 export function SettingsPanel({
   settings,
   onSettings,
+  tiers,
+  levelExact,
+  onTierReached,
 }: {
   settings: StoredSettings
   onSettings: (next: StoredSettings) => void
+  tiers?: LiveView['tiers']
+  levelExact?: boolean
+  onTierReached?: (level: number) => void
 }) {
   const voices = isSpeechAvailable() ? listVoices() : []
   return (
     <div className="flex flex-col gap-5">
+      {tiers !== undefined && onTierReached !== undefined && (
+        <div>
+          <div className="label mb-1 flex items-baseline justify-between gap-2">
+            <span>Team level</span>
+            <span className={levelExact === true ? 'tone-exact' : 'tone-estimated'}>
+              {levelExact === true ? 'confirmed' : 'estimated'}
+            </span>
+          </div>
+          <p className="mb-2 text-xs leading-snug text-[var(--color-ink-faint)]">
+            Only two things read this: how long you would be dead, and when the next tier lands.
+            Neither is on your screen in game. The level itself is, so the app does not show it —
+            but a wrong one makes both of those wrong, so tell it the tier you are on if the death
+            timer looks off.
+          </p>
+          <div className="flex gap-1">
+            {tiers.map((cell) => (
+              <button
+                key={cell.level}
+                type="button"
+                onClick={() => onTierReached(cell.level)}
+                className={`btn-slant min-h-11 flex-1 py-2 text-xs ${cell.known ? 'btn-primary' : 'btn-quiet'}`}
+              >
+                {cell.level}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div>
         <div className="label mb-2">Spoken prompts</div>
         <div className="flex gap-2">
