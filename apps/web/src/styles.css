@@ -334,6 +334,22 @@ body {
   font-weight: 600;
   color: var(--color-unknown);
 }
+/* The row is the control for correcting the level, so its cells are tap targets. */
+.tier-tap {
+  flex: 1;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  background: none;
+  font-family: inherit;
+}
+
+.tier-known {
+  text-shadow: 0 0 12px rgb(74 222 128 / 0.6);
+  color: var(--color-exact);
+}
+
 .tier-reached {
   color: var(--color-ink);
   font-weight: 700;

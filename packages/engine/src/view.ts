@@ -85,6 +85,8 @@ export interface RailSlot {
 export interface TierCell {
   readonly level: number
   readonly state: 'reached' | 'next' | 'future'
+  /** True when an anchor established this tier, rather than the curve estimating it. */
+  readonly known: boolean
 }
 
 export interface LiveView {
@@ -102,7 +104,7 @@ export interface LiveView {
   readonly overflowCamps: readonly RailSlot[]
   readonly tiers: readonly TierCell[]
   readonly deathTimer: { readonly text: string; readonly tone: Tone }
-  readonly level: { readonly text: string; readonly tone: Tone }
+  readonly level: { readonly text: string; readonly estimated: boolean; readonly tone: Tone }
   /** The clamped timeline, for controls and anything that needs the raw facts. */
   readonly timeline: Timeline
 }
@@ -313,10 +315,14 @@ export function view(timeline: Timeline, map: MapDefinition, now: Seconds): Live
     tiers: talentTiers.map((level) => ({
       level,
       state: level <= tier ? 'reached' : level === nextTier ? 'next' : 'future',
+      known: clamped.level.confidence.kind === 'Exact' && level === tier,
     })),
     deathTimer: { text: mmss(clamped.deathTimer.seconds), tone: toneOf(clamped.deathTimer.confidence) },
     level: {
-      text: `${clamped.level.confidence.kind === 'Exact' ? '' : '~'}${clamped.level.estimate}`,
+      // No tilde. At this size it reads as a minus sign, and the colour and the label
+      // already carry whether it is an estimate.
+      text: String(clamped.level.estimate),
+      estimated: clamped.level.confidence.kind !== 'Exact',
       tone: toneOf(clamped.level.confidence),
     },
     timeline: clamped,

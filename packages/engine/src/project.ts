@@ -26,12 +26,12 @@ export function project(map: MapDefinition, anchors: AnchorSet, now: Seconds): T
 
   const events: TimedEvent[] = [
     ...waves(now),
-    ...tiers(now),
+    ...tiers(now, anchors),
     ...objectives(map, walk, now),
     ...campResult.events,
   ].sort((a, b) => a.at - b.at || a.id.localeCompare(b.id))
 
-  const level = estimateLevel(now)
+  const level = estimateLevel(now, anchors)
   const deathTimer = {
     id: 'deathTimer',
     seconds: deathTimerSeconds(level.estimate),

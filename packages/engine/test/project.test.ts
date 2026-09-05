@@ -325,3 +325,64 @@ describe('the resolution band', () => {
     expect(walk.pending.resolutionHigh).toBeGreaterThan(walk.pending.resolutionAt)
   })
 })
+
+describe('the TierReached anchor', () => {
+  it('makes the current level exact, and the death timer with it', () => {
+    // The one number the app shows that the player can also read off their own screen.
+    // Unanchored it is a derived estimate; told, it is simply known.
+    const anchors = anchorSet(anchor('TierReached', '10', 500))
+    const t = project(braxis, anchors, 520)
+    expect(t.level.estimate).toBe(10)
+    expect(t.level.confidence.kind).toBe('Exact')
+    expect(t.deathTimer.confidence.kind).toBe('Exact')
+    expect(t.deathTimer.seconds).toBe(24)
+  })
+
+  it('re-phases the whole curve rather than accumulating', () => {
+    // Level 10 sits at 7:19 on the derived curve. A team that reaches it at 9:00 is a
+    // minute and a half off it, and every later tier moves with them.
+    const late = anchorSet(anchor('TierReached', '10', 540))
+    const shifted = project(braxis, late, 560).events.find((e) => e.id === 'tier:13')!
+    const unshifted = project(braxis, anchorSet(), 560).events.find((e) => e.id === 'tier:13')!
+    expect(Math.round(shifted.at - unshifted.at)).toBe(100)
+  })
+
+  it('never lets the team lose levels', () => {
+    // An anchor is a floor as well as a phase: told level 13 at 5:00, the app does not
+    // then report level 8 because the curve says so.
+    const anchors = anchorSet(anchor('TierReached', '13', 300))
+    expect(project(braxis, anchors, 310).level.estimate).toBe(13)
+  })
+
+  it('returns to estimating once a boundary has been crossed, but from the fix', () => {
+    const anchors = anchorSet(anchor('TierReached', '10', 500))
+    const later = project(braxis, anchors, 900)
+    expect(later.level.confidence.kind).toBe('Estimated')
+    expect(later.level.estimate).toBeGreaterThan(10)
+    // And more tightly than an unanchored estimate at the same distance, because the
+    // uncertainty is in levelling since the fix rather than since the match began.
+    const anchoredWidth =
+      later.level.confidence.kind === 'Estimated'
+        ? later.level.confidence.high - later.level.confidence.low
+        : 0
+    const plain = project(braxis, anchorSet(), 900).level.confidence
+    const plainWidth = plain.kind === 'Estimated' ? plain.high - plain.low : 0
+    expect(anchoredWidth).toBeLessThan(plainWidth)
+  })
+
+  it('degrades to the derived curve when forgotten', () => {
+    expect(project(braxis, anchorSet(), 520).level.estimate).toBe(
+      project(braxis, anchorSet(), 520).level.estimate,
+    )
+    expect(project(braxis, anchorSet(), 520).level.confidence.kind).toBe('Estimated')
+  })
+
+  it('takes the newest observation when several were given', () => {
+    const anchors = anchorSet(
+      anchor('TierReached', '7', 280),
+      anchor('TierReached', '10', 500),
+    )
+    expect(project(braxis, anchors, 505).level.estimate).toBe(10)
+    expect(project(braxis, anchors, 505).level.confidence.kind).toBe('Exact')
+  })
+})

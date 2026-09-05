@@ -194,8 +194,12 @@ function Legend() {
 
       <Entry term="1 4 7 10 13 16 20">
         Talent tiers — the levels where everyone picks a talent. White is reached, amber is next.
-        The reason it is on screen: a tier advantage matters far more than a level advantage, so
-        never take an even fight into a tier deficit.
+        A tier advantage matters far more than a level advantage, so never take an even fight into
+        a tier deficit.
+        <br />
+        <b className="text-[var(--color-ink)]">Tap the tier you just hit.</b> Team level is the one
+        number here you can also read off your own screen, so the app asks rather than guessing.
+        One tap re-phases the whole curve and turns the death timer green.
       </Entry>
 
       <Entry term="If you die now">
@@ -205,8 +209,9 @@ function Legend() {
       </Entry>
 
       <Entry term="Team level">
-        Estimated, always. Team level depends on how well the lanes are soaked, which the app cannot
-        see, so it is never claimed as exact — and the tiers and the death timer both read off it.
+        Derived from the experience tables, not measured. Soak quality alone moves level 10 between
+        6:38 and 8:13, which the band covers — but a blowout is off the curve entirely and the app
+        has no way to know it is in one. Tap a talent tier and it stops guessing.
       </Entry>
 
       <Entry term="Objective ended">

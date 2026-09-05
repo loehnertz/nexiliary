@@ -150,25 +150,46 @@ export function PromptBar({ prompts }: { prompts: readonly Prompt[] }) {
   )
 }
 
-export function TierRow({ tiers }: { tiers: LiveView['tiers'] }) {
+export function TierRow({
+  tiers,
+  anchored,
+  onTierReached,
+}: {
+  tiers: LiveView['tiers']
+  anchored: boolean
+  onTierReached: (level: number) => void
+}) {
   // Bare numerals are the game's own talent-screen idiom, and out of that context they
   // read as seven unexplained numbers, so the row says what it is.
+  //
+  // It is also the input. Team level is the one number here the player can read off
+  // their own screen, so the app asks rather than guessing: tap the tier you just hit
+  // and the whole curve re-phases. Like the rail entries doubling as camp buttons, the
+  // control lives on the thing it corrects.
   const next = tiers.find((t) => t.state === 'next')
   return (
     <div className="mt-3 border-t border-[rgb(155_140_232_/_0.22)] pt-2.5">
-      <div className="label-tight mb-1.5 flex items-baseline justify-between">
+      <div className="label-tight mb-1 flex items-baseline justify-between gap-2">
         <span>talent tiers</span>
-        <span className="tone-estimated">{next === undefined ? 'all reached' : `next ${next.level}`}</span>
+        <span className={anchored ? 'tone-exact' : 'tone-estimated'}>
+          {anchored ? 'confirmed' : 'tap the one you just hit'}
+        </span>
       </div>
       <div className="flex justify-between">
         {tiers.map((cell) => (
-          <span
+          <button
             key={cell.level}
-            className={`tier-cell ${cell.state === 'reached' ? 'tier-reached' : ''} ${cell.state === 'next' ? 'tier-next' : ''}`}
+            type="button"
+            onClick={() => onTierReached(cell.level)}
+            aria-label={`We reached talent tier ${cell.level}`}
+            className={`tier-cell tier-tap ${cell.state === 'reached' ? 'tier-reached' : ''} ${cell.state === 'next' ? 'tier-next' : ''} ${cell.known ? 'tier-known' : ''}`}
           >
             {cell.level}
-          </span>
+          </button>
         ))}
+      </div>
+      <div className="label-tight mt-0.5 text-right">
+        {next === undefined ? 'all tiers reached' : `next ${next.level}`}
       </div>
     </div>
   )
@@ -181,7 +202,11 @@ export function Footer({ view }: { view: LiveView }) {
   return (
     <footer className="mt-2.5 flex justify-between gap-4">
       <Stat value={view.deathTimer.text} label="if you die now" tone={view.deathTimer.tone} />
-      <Stat value={view.level.text} label="team level" tone={view.level.tone} />
+      <Stat
+        value={view.level.text}
+        label={view.level.estimated ? 'team level (est.)' : 'team level'}
+        tone={view.level.tone}
+      />
     </footer>
   )
 }

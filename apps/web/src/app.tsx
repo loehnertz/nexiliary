@@ -114,6 +114,11 @@ export function App() {
     [writeAnchorAt],
   )
 
+  const onTierReached = useCallback(
+    (level: number) => writeAnchorAt('TierReached', String(level)),
+    [writeAnchorAt],
+  )
+
   const onCampTaken = useCallback(
     (campId: string) => {
       writeAnchorAt('CampTaken', campSubject(campId, nextCampOccurrence(state.anchors, 'CampTaken', campId)))
@@ -256,7 +261,11 @@ export function App() {
               )}
             </div>
           </div>
-          <TierRow tiers={liveView.tiers} />
+          <TierRow
+            tiers={liveView.tiers}
+            anchored={liveView.level.estimated === false}
+            onTierReached={onTierReached}
+          />
           <Footer view={liveView} />
         </main>
       </Frame>

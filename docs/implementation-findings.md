@@ -151,6 +151,31 @@ fact, forgetting it degrades to exactly the previous behaviour, and the engine r
 walking the chain from the newer of the two anchors so a spawn observation pins its cycle
 outright instead of predicting it from an offset.
 
+**22. The level readout rendered as `~13`, and the tilde reads as a minus** at that size.
+It was also redundant: colour and label already carry whether a number is estimated. The
+value is bare and the label says `team level (est.)` when it is one.
+
+## The level curve, challenged
+
+Asked directly whether the level estimate is reliable enough to keep, the answer turned out
+to be better than expected and still not good enough.
+
+The curve's one free parameter is soak efficiency, and sweeping it across its whole
+plausible range moves level 10 only between 6:38 and 8:13 — a half-width of 48 seconds
+against the 53 seconds authored, so the band is honestly priced for a normal game. What it
+cannot price is a blowout: a team far ahead or far behind is off the curve entirely and the
+app has no way to know.
+
+That alone would be survivable. What is not is that **team level is the one number the app
+shows which the player can also read off their own screen**. A visible mismatch there costs
+trust in every number they cannot check, which is the objective timings — the part that is
+actually worth having.
+
+So the tier row became the input. `TierReached` re-phases the whole curve from an
+observation, exactly as `ObjectiveEnded` re-phases the objective chain: one tap, overwritten
+rather than accumulated, and forgetting it leaves precisely the previous estimate. While the
+observed tier still holds, the level is `Exact` and so is the death timer that reads off it.
+
 ## Data
 
 **17. Camps are removed during the objective on seven maps, not two.** Alterac Pass,

@@ -43,6 +43,8 @@ export function validUntilFor(
   for (const event of timeline.events) {
     if (event.kind === 'tier') candidates.push(event.at)
   }
+  // The tier events already carry the anchored shift, so the earliest of them is the
+  // next boundary whether or not the curve has been re-phased.
   const nextLevel = levelCurve.find((e) => e.typicalSeconds > now)
   if (nextLevel !== undefined) candidates.push(nextLevel.typicalSeconds)
 
