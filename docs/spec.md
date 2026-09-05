@@ -205,7 +205,7 @@ trusting the numbers on sight:
 - `archive` - measured from the 2015-2019 replay archive. Development use only. Never
   presented as `Exact`; degrades to `Estimated` with a wide band.
 - `published` - taken from a wiki or guide. Same treatment as `archive`.
-- `unknown` - no data. The map falls back to the always-exact events.
+- `unknown` - no data. The map falls back to waves, tiers and the death timer.
 
 This is what makes "no map ships without verified numbers" enforceable rather than a note
 someone has to remember. Development can proceed freely against `archive` data, and the app
@@ -348,17 +348,17 @@ storage, uploads or accounts are needed.
 
 ## Packages and architecture
 
-- `engine` - pure TypeScript, zero dependencies. `project()`, the confidence model, prompt
-  evaluation, map definition types. The zero-dependency constraint is deliberate: it lets
+- `engine` - pure TypeScript, zero dependencies. `project()`, the confidence and belief models,
+  cue evaluation, map definition types. The zero-dependency constraint is deliberate: it lets
   the deferred desktop companion reuse it verbatim.
-- `maps` - the 15 map definitions as data, plus schema and validation tests.
-- `web` - the app. Live view and settings. Owns speech, wake lock and layout. Contains no
-  timing logic.
+- `maps` - the 15 map definitions and cue text as data, plus schema and validation tests.
+- `web` - the app. Live view, setup and settings. Owns speech, wake lock, layout and the
+  control registry. Contains no timing logic.
 - `relay` - Cloudflare Worker with a Durable Object per session, via `partyserver`.
-- `replay` - offline Node tool wrapping `heroprotocol`. Not shipped to the browser in v1.
-  Produces a neutral match timeline, from which the timing derivation and band calibration
-  scripts read. The deferred review reads the same timeline, which is why it is neutral
-  rather than shaped to either consumer.
+
+Not in v1: `replay`, a deferred offline Node tool wrapping `heroprotocol`. It would produce a
+neutral match timeline feeding both timing measurement and the deferred review. `architecture.md`
+describes it so that adding it later replaces values rather than reshaping interfaces.
 
 ## Stack
 
