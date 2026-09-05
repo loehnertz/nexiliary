@@ -41,6 +41,7 @@ import { Footer, Header, ObjectivePanel, PromptBar, Rail, Rule, TierRow } from '
 import { ClockAdjustSheet, OverflowSheet } from './components/sheets.js'
 import { Setup } from './components/setup.js'
 import { offersFor } from './controls/registry.js'
+import { buildMatchLog } from './services/match-log.js'
 
 type Sheet = 'none' | 'clock' | 'overflow'
 
@@ -107,6 +108,11 @@ export function App() {
     const subject = key.slice('ObjectiveEnded:'.length)
     writeAnchorAt('ObjectiveEnded', subject, key)
   }, [map, now, state.anchors, writeAnchorAt])
+
+  const onObjectiveSpawned = useCallback(
+    (cycle: string) => writeAnchorAt('ObjectiveSpawned', cycle),
+    [writeAnchorAt],
+  )
 
   const onCampTaken = useCallback(
     (campId: string) => {
@@ -178,7 +184,9 @@ export function App() {
   }
 
   const liveView = view(timeline, map, now)
-  const primary = offersFor('primary', buildContext(map, timeline, now))[0]
+  const primaryOffers = offersFor('primary', buildContext(map, timeline, now))
+  const primary = primaryOffers.find((o) => o.key === 'objective-ended')
+  const spawnOffer = primaryOffers.find((o) => o.key === 'objective-spawned')
   const undoOffered =
     state.lastWrite !== null && Date.now() - state.lastWrite.atWallClock < undoWindowMillis
   const lastWriteAt =
@@ -221,6 +229,15 @@ export function App() {
                   {primary.label}
                 </button>
               )}
+              {spawnOffer !== undefined && (
+                <button
+                  type="button"
+                  className="btn-slant btn-quiet mt-4 min-h-14 w-full py-4 text-sm"
+                  onClick={() => onObjectiveSpawned(spawnOffer.subject ?? '1')}
+                >
+                  {spawnOffer.label}
+                </button>
+              )}
               {undoOffered && (
                 <div className="mt-3 flex items-center justify-between gap-2">
                   <span className="label-tight">
@@ -256,6 +273,7 @@ export function App() {
           view={liveView}
           settings={settings}
           onSettings={setSettings}
+          matchLog={buildMatchLog(map, [...state.anchors.values()], now)}
           onCampTaken={onCampTaken}
           onCampUp={onCampUp}
           onEndMatch={endMatch}

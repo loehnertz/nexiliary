@@ -73,7 +73,9 @@ describe('camp availability', () => {
 
 describe('camps suppressed during an objective phase', () => {
   const spawnAt = 90
-  const resolutionHigh = spawnAt + 70 // fight median, spread 0 on the first cycle
+  // The spawn is Exact, but the fight is not: the resolution band is the spawn's spread
+  // combined with the fight's, which on the first cycle is the fight spread alone.
+  const resolutionHigh = spawnAt + 70 + 25
 
   it('runs from the spawn, not from the resolution band', () => {
     // Camps vanish when the objective becomes active. A window opening at the band's

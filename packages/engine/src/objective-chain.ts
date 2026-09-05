@@ -1,7 +1,7 @@
 import type { AnchorSet, Confidence, Seconds } from './types.js'
 import type { MapDefinition, ObjectiveModel, RespawnRule } from './map-types.js'
 import { estimated, exact, unknown } from './confidence.js'
-import { objectiveEndedAnchors } from './anchors.js'
+import { objectiveEndedAnchors, objectiveSpawnedAnchors } from './anchors.js'
 import { spread, stepSpread } from './spread.js'
 import { maxUsefulBand } from './tuning.js'
 
@@ -104,6 +104,18 @@ function confidenceFor(low: Seconds, high: Seconds): Confidence {
   return estimated(low, high)
 }
 
+/**
+ * When the phase resolves is the spawn's uncertainty *plus this cycle's fight*, which
+ * are independent. Using the spawn's spread alone made the first objective of a match
+ * resolve at an exact instant — it is `Exact` at `firstSpawnSeconds`, so the band was
+ * zero-width — and that end is what closes the camp suppression window and the live
+ * readout. An `ObjectiveSpawned` anchor makes the same mistake visible immediately: the
+ * spawn becomes exactly known and the fight does not.
+ */
+function resolutionSpread(objective: TimedObjective, spawnSpread: Seconds): Seconds {
+  return Math.sqrt(spawnSpread ** 2 + objective.fight.spreadSeconds ** 2)
+}
+
 function makeStep(
   objective: TimedObjective,
   cycle: number,
@@ -113,21 +125,20 @@ function makeStep(
   confidence: Confidence,
   offset: OffsetRange | null,
 ): ChainStep {
-  const low = at - spreadSeconds
-  const high = at + spreadSeconds
   const resolutionAt = at + objective.fight.medianSeconds
+  const resSpread = resolutionSpread(objective, spreadSeconds)
   return {
     cycle,
     at,
-    low,
-    high,
+    low: at - spreadSeconds,
+    high: at + spreadSeconds,
     n,
     spread: spreadSeconds,
     confidence,
     offset,
     resolutionAt,
-    resolutionLow: resolutionAt - spreadSeconds,
-    resolutionHigh: resolutionAt + spreadSeconds,
+    resolutionLow: resolutionAt - resSpread,
+    resolutionHigh: resolutionAt + resSpread,
   }
 }
 
@@ -161,7 +172,29 @@ function firstStep(
   anchors: AnchorSet,
 ): { step: ChainStep; anchored: boolean; anchorTimeSeconds: Seconds | null } {
   const ended = objectiveEndedAnchors(anchors)
+  const spawned = objectiveSpawnedAnchors(anchors)
   const newest = ended.length > 0 ? ended[ended.length - 1] : undefined
+  const newestSpawn = spawned.length > 0 ? spawned[spawned.length - 1] : undefined
+
+  // A spawn observation is the stronger fact when it is the more recent one: it pins a
+  // spawn outright rather than predicting one from an offset, so the cycle it names is
+  // `Exact` and only its resolution is still open.
+  if (
+    newestSpawn !== undefined &&
+    (newest === undefined || newestSpawn.gameTimeSeconds > newest.gameTimeSeconds)
+  ) {
+    const cycle = Number(newestSpawn.subject)
+    const step = makeStep(
+      objective,
+      Number.isFinite(cycle) && cycle >= 1 ? cycle : ended.length + 1,
+      newestSpawn.gameTimeSeconds,
+      0,
+      0,
+      exact,
+      null,
+    )
+    return { step, anchored: true, anchorTimeSeconds: newestSpawn.gameTimeSeconds }
+  }
 
   if (newest === undefined) {
     const step = makeStep(objective, 1, objective.firstSpawnSeconds, 0, 0, exact, null)
@@ -180,18 +213,20 @@ function firstStep(
   // green number is a claim that can be forty seconds wrong, made at the moment the
   // player has most reason to trust it.
   const confidence = confidenceFor(low, high)
+  const spawnSpread = (high - low) / 2
+  const resSpread = resolutionSpread(objective, spawnSpread)
   const step: ChainStep = {
     cycle,
     at,
     low,
     high,
     n: 0,
-    spread: (high - low) / 2,
+    spread: spawnSpread,
     confidence,
     offset: null,
     resolutionAt: at + objective.fight.medianSeconds,
-    resolutionLow: low + objective.fight.medianSeconds,
-    resolutionHigh: high + objective.fight.medianSeconds,
+    resolutionLow: at + objective.fight.medianSeconds - resSpread,
+    resolutionHigh: at + objective.fight.medianSeconds + resSpread,
   }
   return { step, anchored: true, anchorTimeSeconds: t }
 }

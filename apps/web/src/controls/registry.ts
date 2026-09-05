@@ -80,6 +80,42 @@ const objectiveEnded: AnchorControl = {
   },
 }
 
+/**
+ * Optional, and the only control that records a spawn rather than a resolution. It is
+ * what separates the fight duration from the respawn offset — two taps a cycle instead
+ * of one gives a map the measurements it needs before it can be marked `verified`.
+ *
+ * Offered only while the objective is plausibly appearing: from the near end of the
+ * predicted band until the phase is reported live or ended. Offering it earlier would
+ * invite recording a spawn that has not happened, which is the same fault as the
+ * "objective ended" button being pressable one second into a match.
+ */
+const objectiveSpawned: AnchorControl = {
+  id: 'objective-spawned',
+  placement: 'primary',
+  offer(ctx) {
+    if (ctx.map.objective.kind !== 'timed') return []
+    // Once a phase is live or unreported the spawn has been observed or missed, and the
+    // useful tap is the other one.
+    if (ctx.timeline.objectivePhase.kind !== 'idle') return []
+
+    const spawn = ctx.nextObjective
+    if (spawn === null || spawn.confidence.kind === 'Unknown') return []
+    const earliest = spawn.confidence.kind === 'Estimated' ? spawn.confidence.low : spawn.at
+    if (ctx.now < earliest) return []
+
+    return [
+      {
+        key: 'objective-spawned',
+        label: `${ctx.map.objective.label} up`,
+        subject: String(spawn.cycle ?? 1),
+        emphasis: 'normal',
+        action: { kind: 'write', anchorType: 'ObjectiveSpawned' },
+      },
+    ]
+  },
+}
+
 const campChips: AnchorControl = {
   id: 'camp',
   placement: 'rail',
@@ -119,7 +155,14 @@ const endMatch: AnchorControl = {
   offer: () => [{ key: 'end-match', label: 'End match', action: { kind: 'endMatch' } }],
 }
 
-export const controls: readonly AnchorControl[] = [objectiveEnded, campChips, clockAdjust, overflow, endMatch]
+export const controls: readonly AnchorControl[] = [
+  objectiveEnded,
+  objectiveSpawned,
+  campChips,
+  clockAdjust,
+  overflow,
+  endMatch,
+]
 
 export function offersFor(placement: Placement, ctx: AdviceContext): ControlOffer[] {
   return controls

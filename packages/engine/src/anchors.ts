@@ -30,6 +30,14 @@ export function nextCampOccurrence(anchors: AnchorSet, type: string, campId: str
   return count + 1
 }
 
+export function objectiveSpawnedAnchors(anchors: AnchorSet): Anchor[] {
+  const out: Anchor[] = []
+  for (const [key, anchor] of anchors) {
+    if (key.startsWith('ObjectiveSpawned:')) out.push(anchor)
+  }
+  return out.sort((a, b) => a.gameTimeSeconds - b.gameTimeSeconds)
+}
+
 export function objectiveEndedAnchors(anchors: AnchorSet): Anchor[] {
   const out: Anchor[] = []
   for (const [key, anchor] of anchors) {

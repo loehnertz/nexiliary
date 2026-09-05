@@ -48,7 +48,18 @@ export function compareBearing(a: Bearing, b: Bearing): number {
   return bearingOrder[a] - bearingOrder[b]
 }
 
-export type AnchorType = 'MatchStart' | 'ObjectiveEnded' | 'CampTaken' | 'CampUp'
+export type AnchorType =
+  | 'MatchStart'
+  | 'ObjectiveEnded'
+  /**
+   * The objective actually appeared, at this moment. Optional, and the only anchor that
+   * pins a spawn rather than a resolution, which is what lets the fight duration and the
+   * respawn offset be told apart — the two numbers a map needs measured before it can be
+   * marked `verified`.
+   */
+  | 'ObjectiveSpawned'
+  | 'CampTaken'
+  | 'CampUp'
 
 /**
  * An anchor pins a real moment to a game fact. Anchors overwrite by key and never

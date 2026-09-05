@@ -87,6 +87,7 @@ export function ClockAdjustSheet({
 export function OverflowSheet({
   view,
   settings,
+  matchLog,
   onSettings,
   onCampTaken,
   onCampUp,
@@ -95,18 +96,20 @@ export function OverflowSheet({
 }: {
   view: LiveView
   settings: StoredSettings
+  matchLog: string
   onSettings: (next: StoredSettings) => void
   onCampTaken: (campId: string) => void
   onCampUp: (campId: string) => void
   onEndMatch: () => void
   onClose: () => void
 }) {
-  const [tab, setTab] = useState<'camps' | 'guide' | 'settings'>('camps')
-  const title = tab === 'camps' ? 'All camps' : tab === 'guide' ? 'What am I looking at' : 'Settings'
+  const [tab, setTab] = useState<'camps' | 'guide' | 'log' | 'settings'>('camps')
+  const titles = { camps: 'All camps', guide: 'What am I looking at', log: 'Match log', settings: 'Settings' }
+  const title = titles[tab]
   return (
     <Sheet title={title} onClose={onClose}>
       <div className="mb-4 flex gap-2">
-        {(['camps', 'guide', 'settings'] as const).map((t) => (
+        {(['camps', 'guide', 'log', 'settings'] as const).map((t) => (
           <button
             key={t}
             type="button"
@@ -120,6 +123,7 @@ export function OverflowSheet({
 
       {tab === 'camps' && <CampList camps={view.overflowCamps} onCampTaken={onCampTaken} onCampUp={onCampUp} />}
       {tab === 'guide' && <Legend />}
+      {tab === 'log' && <MatchLog text={matchLog} />}
       {tab === 'settings' && <SettingsPanel settings={settings} onSettings={onSettings} />}
 
       <button
@@ -130,6 +134,40 @@ export function OverflowSheet({
         End match
       </button>
     </Sheet>
+  )
+}
+
+/**
+ * What actually happened, against what the map file predicted. The reason to read it is
+ * that a map cannot be promoted to `verified` — which is what unlocks every exact number
+ * in the app — until its fight and offset columns have been seen a few times.
+ */
+function MatchLog({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <div>
+      <p className="mb-3 text-sm leading-snug text-[var(--color-ink-dim)]">
+        Tap <b className="text-[var(--color-ink)]">objective up</b> when it appears and{' '}
+        <b className="text-[var(--color-ink)]">objective ended</b> when it resolves, and this fills
+        in. One column is the fight, the other is the respawn offset — the two numbers every map
+        file currently guesses.
+      </p>
+      <pre className="overflow-x-auto rounded-[3px] bg-[rgb(10_7_20_/_0.7)] p-3 text-[0.68rem] leading-relaxed whitespace-pre text-[var(--color-ink-dim)]">
+        {text}
+      </pre>
+      <button
+        type="button"
+        className="btn-slant btn-quiet mt-3 min-h-11 w-full py-2.5 text-xs"
+        onClick={() => {
+          void navigator.clipboard
+            ?.writeText(text)
+            .then(() => setCopied(true))
+            .catch(() => setCopied(false))
+        }}
+      >
+        {copied ? 'Copied' : 'Copy match log'}
+      </button>
+    </div>
   )
 }
 

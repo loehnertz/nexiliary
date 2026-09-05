@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { buildContext, deathTimerSeconds, levelCurve, project, validUntilFallbackSeconds, view } from '../src/index.js'
+import {
+  buildContext,
+  deathTimerSeconds,
+  levelCurve,
+  project,
+  validUntilFallbackSeconds,
+  view,
+  walkChain,
+} from '../src/index.js'
 import { anchor, anchorSet, braxis, tomb } from './fixtures.js'
 
 describe('validUntil', () => {
@@ -131,7 +139,8 @@ describe('the objective phase belief', () => {
     if (during.kind === 'active') {
       expect(during.cycle).toBe(1)
       expect(during.since).toBe(90)
-      expect(during.until).toBe(160)
+      // Spawn 90 Exact, fight 70 ± 25: the phase can still be running at 185.
+      expect(during.until).toBe(185)
     }
     // Past the resolution band with no anchor it is not live, but it is still the tap
     // the app is waiting for.
@@ -227,5 +236,92 @@ describe('the footer numbers', () => {
         expect(project(braxis, anchorSet(), entry.typicalSeconds - 1).level.estimate).toBe(entry.level - 1)
       }
     }
+  })
+})
+
+describe('the ObjectiveSpawned anchor', () => {
+  // The chain advances past a spawn the instant it happens, exactly as it does for the
+  // unanchored first cycle, so the live phase is carried by `elapsed`. These assert what
+  // is observable rather than which index `pending` holds.
+
+  it('pins the spawn exactly and leaves only the fight open', () => {
+    // This is the anchor that lets fight duration and respawn offset be told apart,
+    // which is what a map needs measured before it can be marked `verified`.
+    const anchors = anchorSet(anchor('ObjectiveSpawned', '1', 97))
+    const atSpawn = walkChain(braxis, anchors, 97)!
+    expect(atSpawn.pending.cycle).toBe(1)
+    expect(atSpawn.pending.at).toBe(97)
+    expect(atSpawn.pending.confidence.kind).toBe('Exact')
+    // The fight is still a fight: 70 ± 25.
+    expect(atSpawn.pending.resolutionHigh - atSpawn.pending.resolutionLow).toBe(50)
+
+    const phase = project(braxis, anchors, 120).objectivePhase
+    expect(phase.kind).toBe('active')
+    if (phase.kind === 'active') {
+      expect(phase.since).toBe(97)
+      expect(phase.until).toBe(97 + 70 + 25)
+    }
+  })
+
+  it('yields to a later ObjectiveEnded, because that is the newer fact', () => {
+    const anchors = anchorSet(
+      anchor('ObjectiveSpawned', '1', 97),
+      anchor('ObjectiveEnded', '1', 210),
+    )
+    const walk = walkChain(braxis, anchors, 215)!
+    expect(walk.pending.cycle).toBe(2)
+    expect(walk.pending.at).toBe(210 + 130)
+  })
+
+  it('wins over an older ObjectiveEnded, because it is the newer fact', () => {
+    const anchors = anchorSet(
+      anchor('ObjectiveEnded', '1', 210),
+      anchor('ObjectiveSpawned', '2', 344),
+    )
+    const walk = walkChain(braxis, anchors, 344)!
+    expect(walk.pending.cycle).toBe(2)
+    expect(walk.pending.at).toBe(344)
+    expect(walk.pending.confidence.kind).toBe('Exact')
+  })
+
+  it('narrows the next cycle to one fight plus one offset', () => {
+    // From a known spawn the next spawn is uncertain by exactly one step, which is the
+    // tightest the chain gets without a further tap.
+    const walk = walkChain(braxis, anchorSet(anchor('ObjectiveSpawned', '1', 97)), 300)!
+    expect(walk.pending.cycle).toBe(2)
+    expect(walk.pending.n).toBe(1)
+    expect(walk.pending.at).toBe(97 + 70 + 130)
+    expect(walk.pending.spread).toBe(25)
+  })
+
+  it('degrades to silence when forgotten', () => {
+    // Without it the chain is exactly what it was: the first spawn from map data.
+    const without = walkChain(braxis, anchorSet(), 30)!
+    expect(without.pending.at).toBe(90)
+    expect(project(braxis, anchorSet(), 120).objectivePhase.kind).toBe('active')
+  })
+
+  it('shifts the whole chain when the real spawn was late', () => {
+    // The point of recording it: the map says 1:30 and the objective actually appeared
+    // at 1:37, so everything downstream moves by seven seconds rather than staying
+    // quietly wrong.
+    const onTime = walkChain(braxis, anchorSet(anchor('ObjectiveSpawned', '1', 90)), 300)!
+    const late = walkChain(braxis, anchorSet(anchor('ObjectiveSpawned', '1', 97)), 300)!
+    expect(late.pending.at - onTime.pending.at).toBe(7)
+  })
+})
+
+describe('the resolution band', () => {
+  it('is never zero-width, even when the spawn is exactly known', () => {
+    // It closes the camp suppression window and bounds the live readout, so a
+    // zero-width band claims a phase ends at an exact instant.
+    for (const now of [0, 95, 200, 600, 1200]) {
+      const t = project(braxis, anchorSet(anchor('ObjectiveSpawned', '1', 90)), now)
+      const phase = t.objectivePhase
+      if (phase.kind === 'active') expect(phase.until).toBeGreaterThan(phase.since)
+    }
+    const walk = walkChain(braxis, anchorSet(), 30)!
+    expect(walk.pending.spread).toBe(0)
+    expect(walk.pending.resolutionHigh).toBeGreaterThan(walk.pending.resolutionAt)
   })
 })
