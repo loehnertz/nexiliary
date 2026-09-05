@@ -717,6 +717,21 @@ export const levelCurve: { level: number; typicalSeconds: Seconds; spreadSeconds
 export const deathTimerByLevel: { level: number; seconds: Seconds }[]
 ```
 
+Engine tuning values get their own module rather than being scattered as literals, for the same
+reason cue thresholds were moved into data:
+
+```ts
+// packages/engine/src/tuning.ts
+export const maxUsefulBand = 120          // guess
+export const correlation_r = 0.3          // guess; the single value most worth measuring
+export const minStepSpread = 8            // guess
+export const clampBandSeconds = 20        // guess
+export const refireThresholdSeconds = 15  // guess
+```
+
+Each is commented as guess or measurement. `r` in particular is described elsewhere as the one thing
+most worth replacing with a real number, so it needs to be findable rather than buried in a formula.
+
 Waves are a pure function of game time from `firstWaveSeconds` on a 30 second cadence, and are
 always `Exact`.
 
@@ -1606,7 +1621,7 @@ revisiting before proceeding.
 
 1. `engine` types, `project`, the objective phase chain with every `RespawnRule` variant, chain
    advancement and the two-sided present clamp, the band model, the provenance clamp, and the
-   `isAvailable` / `isClaimable` predicates. Plus `game-constants.ts`: the wave cadence, the level
+   `isAvailable` / `isClaimable` predicates. Plus `game-constants.ts` and `tuning.ts`: the wave cadence, the level
    curve and the death-timer curve, which the floor depends on and which no other step provides.
    Tests throughout. No UI.
 2. `maps` schema plus two or three battlegrounds, hand-authored from the validated table with
