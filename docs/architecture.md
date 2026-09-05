@@ -523,6 +523,89 @@ people watching four camps collectively catch nearly all of them. Camp tracking 
 improves with the relay rather than depending on it, and the decay model means the solo case
 degrades to silence rather than to a wrong claim.
 
+### Adding inputs later
+
+Cues are cheap to add by design. Inputs must be too, or the growth pressure simply moves from
+one subsystem to another: a new button would mean editing the live view, and a new anchor type
+would mean widening a union that generators branch on.
+
+#### The gate
+
+Mechanism without a gate turns "more buttons" back into the event logging that was rejected at
+the outset. A proposed input must pass all four:
+
+1. **It states a fact, not an increment.** An anchor must be overwritable. "The objective
+   ended at 6:12" is a fact. "Another enemy died" is a count, and counts accumulate and drift.
+2. **Something downstream reads it.** A generator or a cue must be sharper because of it. An
+   input nothing consumes is ceremony.
+3. **Forgetting it degrades to silence, never to a false claim.** The camp decay model is the
+   pattern: absent input widens or quiets, it never asserts.
+4. **It is tappable during a natural lull.** If it needs pressing mid-fight, it will not be
+   pressed.
+
+Worked examples:
+
+| Candidate | Verdict |
+| --- | --- |
+| `TierReached` ("we just hit 10") | Passes. Would collapse the tier estimate to `Exact`, which no anchor currently supplies |
+| `ObjectiveEnded` with a winner | Passes. Lets cues advise which lane to push into the death timers |
+| `BossTaken` | Already covered; boss is a camp type, so `CampTaken` with that subject suffices |
+| `FortLost` | Fails rule 2 today. Nothing reads it. Revisit when a cue needs it |
+| `EnemyDied` | Fails rule 1. A count, not a fact. This is the shape the project rejected |
+
+#### The mechanism
+
+Anchors are read by key, never by a central switch:
+
+```ts
+anchors.get('ObjectiveEnded')
+anchors.get('CampTaken', campId)
+```
+
+So widening `AnchorType` touches the union and nothing else. A generator that does not know a
+new type simply never asks for it, and an anchor nobody reads is inert rather than breaking.
+
+Controls get the same treatment as cues, a registry of small objects rather than markup inside
+the live view:
+
+```ts
+interface AnchorControl {
+  id: string
+  anchorType: AnchorType
+  placement: 'primary' | 'rail' | 'header' | 'overflow'
+  appliesTo?: string[]
+  offer(ctx: AdviceContext): ControlOffer | null   // null when not applicable right now
+}
+
+interface ControlOffer {
+  label: string
+  subject?: string          // camp id, for CampTaken
+  emphasis?: 'normal' | 'urgent'
+}
+```
+
+`offer()` returning `null` is the "not available now" state, mirroring a cue returning `null`.
+The live view renders whatever the registry currently offers for each placement, so adding a
+button is a new file plus a registry line, with no component edited. The camp chips are not
+special-cased in the view either: they are rail-placement controls derived from camp state.
+
+The split of responsibility is deliberate. The registry decides **what is offered**; the view
+decides **how a placement looks**. Adding a control in an existing placement needs no view
+change. A genuinely new placement is a view change, which is honest, because that is a layout
+decision and layout is not something a registry should be pretending to own.
+
+#### Relay and version skew
+
+The relay needs no change for any new anchor type, because it stores and forwards opaque
+payloads keyed by `${type}:${subject}` without interpreting them. That was decided for the
+deferred Discord bot and pays off again here.
+
+One consequence must be handled deliberately: in a shared session, teammates may be running
+different builds. A client receiving an anchor type it does not recognise stores it and
+ignores it rather than erroring, and passes it through unchanged if it ever re-broadcasts.
+An older client therefore loses precision it never had, while a newer one gains it, and
+neither breaks. Generators must not assume the anchor set contains only types they know.
+
 ### The clock
 
 Naive `setInterval` accumulates drift and is throttled hard in background tabs, which is
@@ -678,6 +761,8 @@ a parameter. The cases that matter most:
 - Camp availability decaying to `Unknown` with no anchor, and a `CampTaken` anchor restoring
   an `Exact` respawn.
 - Undo restoring the previous anchor value, including that downstream cycles re-derive.
+- An unrecognised anchor type being stored and ignored rather than throwing, so a shared
+  session survives teammates on different builds.
 
 `maps` gets schema and cross-reference validation in CI, including that every camp carries
 the metadata the cues rely on (`clearSeconds`, `travelSeconds`, `pressureValue`).
@@ -720,6 +805,10 @@ publishers and subscribers appear without touching the engine.
 later.
 
 **No state management library.** Anchors are the only state and there are a handful of them.
+
+**Controls are a registry, like cues.** The subsystem that grows needs the same shape on both
+sides, or growth pressure just moves from cues to the live view. The registry owns
+availability, the view owns layout.
 
 **Cues are objects in an array, not a plugin system.** The subsystem that grows forever needs
 a shape that makes growth cheap, but dynamic registration and a condition DSL would buy
