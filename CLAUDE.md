@@ -38,6 +38,9 @@ app that is worse than useless, because the player acts on its output mid-fight.
 1. **Never assert what cannot be derived.** Every displayed fact carries a confidence level
    of `Exact`, `Estimated` or `Unknown`. Confidence governs both colour and wording,
    including spoken wording. `Unknown` events are silent.
+   Two kinds of uncertainty exist and must not be conflated: `Confidence` answers *when* an
+   event happens, `Belief` answers *whether* something is true right now (a camp standing).
+   Forcing the second into the first produces meaningless time bounds.
 2. **Anchors overwrite, they never accumulate.** There is no event log, so the model cannot
    drift. Any feature that asks the user to log a stream of events is the wrong shape and
    was rejected for this reason.
@@ -59,7 +62,10 @@ refactor:
   verbatim.
 - The relay fans out to subscribers without knowing what they are, so a Discord bot is
   additive.
-- Prompts are data with a priority field, so review-driven promotion is a value change.
+- Cue conditions are code; cue text, priorities and thresholds are data, so wording and
+  review-driven promotion are value changes rather than engine rebuilds.
+- Anchors carry an occurrence index in their subject, so cycle identity exists without the
+  anchor set becoming a log.
 - Map definitions are data validated by schema, never code.
 - Replay parsing produces a neutral match timeline rather than review-shaped output, so one
   parse feeds timing verification and estimation-band calibration now, and grading later.
@@ -113,6 +119,6 @@ Development happens on macOS.
 ## Conventions
 
 - Branch per unit of work; do not commit directly to `master`.
-- The timing data in `docs/research.md` is unverified and sources conflict. Do not ship a
-  map's specific timings until they are confirmed against replays. Unverified maps degrade
-  to the always-exact events instead of being absent.
+- The timing data in `docs/research.md` is unverified and sources conflict. A map never
+  renders `Exact` until its timings are confirmed. Unverified maps still render estimates;
+  only a map with no data falls back to waves, tiers and the death timer.

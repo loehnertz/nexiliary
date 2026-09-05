@@ -49,10 +49,13 @@ runs one clock.
 Nothing before the match (no draft support) and nothing after it (no review). The app's job
 starts at spawn and ends when the match does.
 
-All 15 battlegrounds are the target, but a map ships only once its timings are verified
-(see "Timing data sourcing and verification"). Five maps currently have no published
-timings at all. Unverified maps degrade to the always-exact events rather than being
-absent, so the app is never useless on a map, only less specific.
+All 15 battlegrounds are the target. Five maps currently have no published timings at all.
+
+Degradation is graded rather than all-or-nothing, and it follows the map's provenance. A map
+with verified timings renders `Exact`. A map seeded from guides or from the old replay archive
+still renders its objectives and camps, but never as `Exact`. Only a map with no data at all
+falls back to the floor of waves, tiers and the death timer. So the app is never useless on a
+battleground, only less precise.
 
 ### Deferred, with the architecture kept open for it
 
@@ -144,12 +147,20 @@ estimated, grey for unknown.
 
 ### Always-exact events
 
-Four things need no input at all and form the floor the app never drops below:
+Two things need no input and no map data, so they form the floor the app never drops below on
+any battleground, recognised or not:
 
 - Minion waves, on a 30 second cadence from match start.
 - The current death timer length, from the game-time curve.
+
+Both derive from game-wide rules rather than per-map constants, so they are exempt from the
+provenance clamp: a wrong map file cannot make them wrong.
+
+Two further things need no input but do depend on map data, so they are only as good as the
+map's provenance:
+
 - Initial mercenary camp spawns.
-- The first objective of the match.
+- The first objective of each track.
 
 Talent tiers are always `Estimated`, because reaching level 10 depends on how well the team
 soaks. Presenting a tier countdown as exact would violate principle 1.
@@ -166,14 +177,17 @@ interface MapDefinition {
   id: string
   name: string
   provenance: Provenance            // governs the confidence its timings may claim
-  objective: {
-    name: string                    // "Beacons", "Altars", "Tributes"
-    firstSpawnSeconds: number
-    respawnRule: RespawnRule        // offset from resolution of previous cycle
-  }
+  objectives: ObjectiveTrack[]      // most maps have one; some have several
   camps: CampDefinition[]
 }
 ```
+
+A map has objective *tracks* rather than a single objective. One chain per map was a
+generalisation from four battlegrounds and it does not survive contact with the rest: Sky Temple
+runs three temples concurrently, Towers of Doom has multiple altars, Cursed Hollow's respawn is
+conditional on whether the curse triggered, Haunted Mines is phased, and Blackheart's Bay
+separates collection from turn-in. `architecture.md` defines `ObjectiveTrack` and the respawn
+rule variants.
 
 Maps carry the data cues read, not cue definitions. Cues live in `engine` and are
 map-agnostic; a battleground shapes their behaviour through its camp metadata rather than by
@@ -194,12 +208,15 @@ someone has to remember. Development can proceed freely against `archive` data, 
 physically cannot claim precision it has not earned. Promoting a map to `verified` is a data
 change.
 
-Because every battleground chains its objective cycle off the resolution of the previous
-one rather than a fixed clock, `respawnRule` is always expressed relative to an
-`ObjectiveEnded` anchor, with a fallback estimation band for when no anchor exists.
+Each track chains its cycle off the resolution of the previous one rather than off a fixed
+clock, so its respawn rule is expressed relative to an `ObjectiveEnded` anchor for that track,
+with a fallback estimation band for when no anchor exists.
 
-An unrecognised map degrades to the always-exact events plus the death timer and level
-curve. This covers ARAM maps and any future rotation change without a release.
+Only five battlegrounds have been checked against this model. The other ten are validated before
+their data is written.
+
+An unrecognised map falls back to waves, tiers and the death timer. This covers ARAM maps and
+any future rotation change without a release.
 
 ## Cues and prompts
 
@@ -240,9 +257,14 @@ of upcoming events:
   events ahead.
 - The active prompt.
 - One large "objective ended" re-anchor button. The rail entries double as camp buttons: a
-  camp chip is tappable while that camp is believed available, and tapping marks it taken.
-  Only starting the match is required input; everything else improves precision and nothing
-  else is needed for correctness.
+  camp chip is tappable while that camp is believed available, and tapping marks it taken. A
+  camp whose availability has gone stale still shows a chip, so the control that could correct
+  it never disappears. Because the rail serves both purposes over four slots, the allocation is
+  fixed rather than emergent; `architecture.md` states it.
+- An end-match control, without which the clock never stops and the next match starts dirty.
+
+Only starting the match is required input. Everything else improves precision and nothing else
+is needed for correctness.
 - Match clock and map name in a header strip.
 - A talent tier row rendering 1, 4, 7, 10, 13, 16, 20 with the current tier highlighted and
   the next one marked, in the style of the game's own talent screen.
@@ -479,14 +501,15 @@ restores 9% health and 7% mana over 5 seconds, lives 6 seconds, becomes neutral 
 talent tiers at levels 1, 4, 7, 10, 13, 16, 20; death timers scale from roughly 10 seconds
 early to roughly 60 seconds after level 20, exact curve to be derived from replays.
 
-No map ships without verified numbers. A map with unverified data degrades to the
-always-exact events.
+A map never renders `Exact` without verified numbers. Unverified maps still render their
+objectives and camps as estimates; only a map with no data at all falls back to waves, tiers and
+the death timer.
 
 ## Testing
 
 `engine` is a pure function, which makes table-driven tests unusually cheap and valuable.
 Cases cover confidence propagation along a chain, anchor overwrite semantics, band widening
-with each unanchored step, and degradation to always-exact events.
+with each unanchored step, and the fallback to waves, tiers and the death timer.
 
 `maps` gets schema validation plus a check that every prompt references an event the map
 actually produces.

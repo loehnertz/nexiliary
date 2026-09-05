@@ -24,7 +24,7 @@ See `spec.md` for the design these are drawn from.
 | 6 | Talent tier and level estimate | v1 | Always `Estimated`; depends on soak quality |
 | 7 | Confidence-tiered display | v1 | Exact / Estimated / Unknown, colour-coded throughout |
 | 8 | Re-anchor tap | v1 | Overwrites rather than accumulates, so it cannot drift |
-| 9 | Graceful degradation on unknown maps | v1 | Falls back to always-exact events instead of failing |
+| 9 | Graceful degradation on unknown maps | v1 | Falls back to waves, tiers and the death timer instead of failing |
 
 ## Coaching
 
@@ -123,8 +123,8 @@ The deferred items are not free. To keep them cheap, the following must hold fro
    no engine change (25, 26, 29).
 3. The relay fans out to subscribers without knowing what they are, so the Discord bot is
    additive (24).
-4. Prompts are data with a priority field, so review-driven promotion is a value change
-   rather than a control-flow change (16).
+4. Cue text, priorities and thresholds are data, so review-driven promotion and wording
+   changes are value edits rather than control-flow changes (16).
 5. Map definitions are data validated by schema, so drills and playbooks can be authored
    against the same source (15, 17).
 6. Replay parsing produces a neutral match timeline rather than review-shaped output, so the
