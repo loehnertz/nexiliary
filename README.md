@@ -24,10 +24,17 @@ allowed to claim precision until a map has been timed by hand in a few custom ga
 ```sh
 corepack enable
 pnpm install
-pnpm dev            # http://localhost:5173
-pnpm test           # 118 tests
+pnpm dev                              # http://localhost:5173
+pnpm --filter @nexiliary/web dev:lan  # also on the LAN, for a phone
+pnpm test
 pnpm typecheck
 ```
+
+To use it in a real match before it is deployed, run `dev:lan` and open the printed
+network address on the phone. One caveat: Screen Wake Lock needs a secure context, so a
+plain `http://` address falls back to a looping muted video to keep the screen on.
+Settings reports which one is actually holding the screen, because a phone that sleeps
+mid-match looks like the app crashing.
 
 Pick a battleground, tap **start match** as you spawn in, then tap **objective ended**
 during the regroup after each objective fight. That tap is the whole interaction. Without

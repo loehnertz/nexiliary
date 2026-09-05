@@ -1,8 +1,28 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { LiveView, RailSlot } from '@nexiliary/engine'
 import type { StoredSettings } from '../services/storage.js'
 import { Frame, Rule } from './chrome.js'
 import { isSpeechAvailable, listVoices } from '../services/speech.js'
+import { onWakeLockStatus, wakeLockStatus } from '../services/wake-lock.js'
+import type { WakeLockStatus } from '../services/wake-lock.js'
+
+/**
+ * Whether the screen is actually being kept awake, rather than whether it was asked to
+ * be. A phone that sleeps mid-match looks like the app crashing, and the two reasons it
+ * happens — no secure context, or refused playback — are both invisible otherwise.
+ */
+function useWakeLockStatus(): WakeLockStatus {
+  const [status, setStatus] = useState(wakeLockStatus)
+  useEffect(() => onWakeLockStatus(setStatus), [])
+  return status
+}
+
+const wakeLockCopy: Record<WakeLockStatus, string> = {
+  off: 'Not held. It is requested when a match starts.',
+  locked: 'Held. The screen will stay on for the match.',
+  video: 'Held by the fallback. Screen Wake Lock needs HTTPS, so this is what a plain http:// address gets.',
+  unavailable: 'Not held, and the fallback was refused. The screen will sleep, and speech stops with it.',
+}
 
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
@@ -223,6 +243,8 @@ export function SettingsPanel({
         </label>
       )}
 
+      <WakeLockRow />
+
       <label className="flex min-h-11 items-center justify-between gap-3">
         <span className="label">Show rail</span>
         <input
@@ -236,6 +258,20 @@ export function SettingsPanel({
         Hiding the rail degrades to the dominant countdown alone, if it proves busy under
         stress.
       </p>
+    </div>
+  )
+}
+
+function WakeLockRow() {
+  const status = useWakeLockStatus()
+  const tone = status === 'unavailable' ? 'tone-estimated' : status === 'off' ? 'tone-unknown' : 'tone-exact'
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="label">Screen awake</span>
+        <span className={`text-xs uppercase tracking-[0.14em] ${tone}`}>{status}</span>
+      </div>
+      <p className="mt-1 text-xs leading-snug text-[var(--color-ink-faint)]">{wakeLockCopy[status]}</p>
     </div>
   )
 }
