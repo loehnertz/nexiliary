@@ -172,9 +172,13 @@ interface MapDefinition {
     respawnRule: RespawnRule        // offset from resolution of previous cycle
   }
   camps: CampDefinition[]
-  prompts: PromptDefinition[]
 }
 ```
+
+Maps carry the data cues read, not cue definitions. Cues live in `engine` and are
+map-agnostic; a battleground shapes their behaviour through its camp metadata rather than by
+supplying its own rules. `architecture.md` covers this under "How map variation is
+expressed".
 
 `provenance` records where a map's timings came from, and the engine reads it rather than
 trusting the numbers on sight:
@@ -197,18 +201,27 @@ one rather than a fixed clock, `respawnRule` is always expressed relative to an
 An unrecognised map degrades to the always-exact events plus the death timer and level
 curve. This covers ARAM maps and any future rotation change without a release.
 
-## Prompts
+## Cues and prompts
 
-Roughly 8 to 12 per map, authored as data. Each prompt fires relative to a projected event
-and is phrased as a condition the player evaluates, never as an assertion about the world:
+A cue is a rule: a condition plus a template. A prompt is the sentence a cue produces when it
+matches. Cues are the part of the system expected to grow indefinitely as more coaching is
+identified, so `architecture.md` describes the structure that keeps adding one cheap.
+
+Cues are map-agnostic wherever possible, with per-map variation supplied by map data rather
+than by branching inside the cue. Each prompt is phrased as a condition the player evaluates,
+never as an assertion about the world:
 
 - "Beacons in 30, reset if you are not full."
 - "Siege camp up in 15, starting now lands it during the fight."
 - "Level 10 range in about 40 seconds, avoid an even fight if they hit it first."
 
 Phrasing as a condition is what keeps prompts safe without game state. Prompts inherit the
-confidence of the event that triggers them and change wording accordingly. Prompts on
-`Unknown` events do not fire.
+confidence of the event that triggered them and change wording accordingly. Cues never fire
+on `Unknown` events.
+
+When several cues match at once, one arbitration step chooses. Speech takes only the highest
+scoring prompt, because two sentences spoken over each other in a teamfight is worse than
+silence.
 
 Verbosity tiers control which prompts speak. Objectives and level 10 are on by default;
 wave spawns are off by default, because a voice that talks every 30 seconds gets muted

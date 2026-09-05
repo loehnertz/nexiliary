@@ -199,37 +199,176 @@ function view(timeline: Timeline, now: Seconds): LiveView
 `view` returns the dominant countdown, the rail entries, the death timer length and the tier
 row. It does arithmetic and formatting and nothing else, and it is safe to call every frame.
 
-### Prompts
+### Cues and prompts
+
+A **cue** is a rule: a condition plus a template. A **prompt** is what a cue produces when it
+matches, the sentence shown and spoken. Keeping them separate matters because cues are the
+thing that grows over the life of the project, and because the deferred review grades cues
+while the player experiences prompts.
+
+This subsystem is the one that will keep expanding. Everything else here stabilises once
+built; cues get added indefinitely as more coaching is identified. So it is designed for that
+specifically, without becoming a plugin framework.
+
+The three ways this kind of system rots, and the countermeasure for each:
+
+1. Conditions written as branches in a shared function, so every addition edits existing
+   logic. Countermeasure: one cue per file, self-contained, collected in a registry.
+2. Map-specific forking, so the code grows in two dimensions. Countermeasure: cues are
+   map-agnostic and ask questions that map data answers.
+3. Arbitration leaking into rules, so each cue must know about the others. Countermeasure:
+   selection happens in exactly one place and no cue is aware another exists.
+
+#### Context
+
+Every cue reads from one uniform object, built once per evaluation. Cues never project,
+never call each other, and never touch the anchor set directly.
 
 ```ts
-interface PromptDefinition {
-  id: string
-  trigger: { eventKind: EventKind; selector?: string; leadSeconds: number }
-  display: string
-  spoken: string           // may contain the {time} placeholder
-  tier: 'essential' | 'standard' | 'verbose'
-  priority: number
-  minConfidence: 'exact' | 'estimated'
-}
+interface AdviceContext {
+  now: Seconds
+  map: MapDefinition
+  timeline: Timeline
 
-function evaluatePrompts(
-  timeline: Timeline,
-  now: Seconds,
-  settings: PromptSettings,
-  fired: ReadonlySet<string>,
-): { active: ActivePrompt[]; fired: string[] }
+  // precomputed conveniences, so cues do not each rederive them
+  nextObjective: TimedEvent | null
+  objectiveCycle: number
+  camps: CampState[]              // every camp with up/down and when
+  tier: { current: number; next: TimedEvent | null }
+  deathTimerSeconds: Seconds
+  settings: PromptSettings
+}
 ```
 
-Firing is edge-triggered, which means state, and the engine holds no state. The already-fired
-set is passed in and the new set comes back out, leaving the caller to own it. Keys are
-`${promptId}:${eventId}`, so re-anchoring changes an event's time without changing its
-identity, and a prompt that already fired stays fired.
+#### Cue
 
-Prompts never fire on `Unknown` events. Whether they fire on `Estimated` is per prompt via
-`minConfidence`, because "reset if you are not full" is still useful when the timing is
-approximate, while "start the camp now" is not.
+```ts
+interface Cue {
+  id: string
+  tier: 'essential' | 'standard' | 'verbose'
+  basePriority: number
+  cooldownSeconds?: number
+  appliesTo?: string[]            // map ids; omit for all maps
+  evaluate(ctx: AdviceContext): CueMatch | null
+}
 
-Spoken text is built by substituting a phrase produced from the confidence:
+interface CueMatch {
+  key: string                     // dedupe identity, e.g. 'stall-camp:siege-top:cycle-3'
+  score?: number                  // overrides basePriority when urgency varies
+  display: string
+  spoken: string
+  minConfidence: 'exact' | 'estimated'
+}
+```
+
+A cue returns `null` far more often than not, and that is the whole interface. It cannot
+suppress another cue, cannot schedule itself, and cannot reach outside the context.
+
+`key` carries the dedupe identity and must include whatever makes this occurrence distinct,
+normally the objective cycle or camp id. Re-anchoring changes times but not keys, so a fired
+cue stays fired and does not repeat when the timeline is re-derived.
+
+`appliesTo` exists for genuinely map-unique coaching, such as turning in coins on Blackheart's
+Bay. It is a data field checked by the evaluator, never a condition inside a shared cue. If a
+general cue starts naming maps internally, that is the signal its variation belongs in map
+data instead.
+
+#### Predicates
+
+Most cues should be a handful of lines composed from shared helpers rather than bespoke
+logic. The helper library is where the repeated reasoning lives:
+
+```ts
+within(ctx, 'objective', 60, 90)        // next objective is 60-90s away
+campUp(ctx, 'siege-top')                // that camp is available now
+campArrivalIfStartedNow(ctx, campId)    // now + clear + travel
+anyCampUp(ctx, { type: 'siege' })
+tierWithin(ctx, 40)
+confidenceAtLeast(event, 'estimated')
+```
+
+A cue needing something no helper provides is a signal to add a helper, not to write the
+logic inline. That keeps the reasoning in one shared, tested place rather than duplicated
+across cue files with small divergences.
+
+#### How map variation is expressed
+
+This is what keeps "which camp, depending on the map" out of the code. Map data carries
+enough for a general cue to decide:
+
+```ts
+interface CampDefinition {
+  id: string
+  type: 'siege' | 'bruiser' | 'boss' | 'special'
+  lane: 'top' | 'mid' | 'bottom'
+  firstSpawnSeconds: Seconds
+  respawnSeconds: Seconds
+  clearSeconds: Seconds       // rough time for two heroes to take it
+  travelSeconds: Seconds      // mercenary travel to the lane after capture
+  pressureValue: number       // how much this push is worth on this map
+}
+```
+
+The camp-stall cue is then one map-agnostic rule for all 15 battlegrounds. To have
+mercenaries arrive as the objective starts, capture must begin at
+`objectiveSpawn - travelSeconds - clearSeconds`, and the camp worth naming is the available
+one with the highest `pressureValue`. Braxis and Sky Temple differ because their data
+differs, not because the cue branches.
+
+When a new map is added, no cue changes.
+
+#### Arbitration
+
+One function, and the only place that knows more than one cue exists:
+
+```ts
+function evaluateCues(
+  cues: Cue[],
+  ctx: AdviceContext,
+  fired: ReadonlySet<string>,
+): { active: Prompt[]; fired: string[] }
+```
+
+It runs every cue, discards nulls, drops those above the configured verbosity tier, drops
+matches whose confidence is below the cue's `minConfidence`, drops already-fired keys and
+those inside a cooldown, sorts by `score ?? basePriority`, and takes the top one for speech
+and the top one or two for display.
+
+Cost is negligible: roughly twenty cues evaluated at most once a second, each a few
+comparisons. There is no reason to optimise this and no reason for cues to be lazy.
+
+Speech deliberately takes only the highest-scoring prompt. Two sentences spoken over each
+other during a teamfight is worse than saying nothing, and the arbitration point is where
+that is enforced once rather than negotiated between cues.
+
+#### Layout
+
+```
+packages/engine/src/cues/
+  index.ts              the registry: an array, one import per cue
+  context.ts            buildContext()
+  predicates.ts         shared helpers
+  arbitrate.ts          evaluateCues()
+  objective-prep.ts
+  stall-camp.ts
+  camp-pressure.ts
+  tier-spike.ts
+  wave-soak.ts
+  death-timer-warning.ts
+```
+
+Adding a cue is a new file plus one import line in `index.ts`. No existing file grows by more
+than that line, and no existing behaviour is touched. Removing one is deleting a file and a
+line.
+
+This is deliberately not a plugin system. There is no dynamic registration, no manifest, no
+DSL for conditions. A cue is an object in an array, and `evaluate` is ordinary TypeScript,
+which means it is directly debuggable and directly testable. The discipline comes from the
+narrow interface and the shared context, not from machinery.
+
+#### Rendering
+
+Spoken text is built by substituting a phrase derived from confidence rather than authored:
 
 ```ts
 describeTime(confidence, at, now)
@@ -237,9 +376,22 @@ describeTime(confidence, at, now)
 // Estimated  -> "due soon"
 ```
 
-One function is the whole of principle 1 in the audio channel. There is no path by which an
-estimated event is spoken as though it were exact, because the phrasing is derived rather
-than authored.
+One function is the whole of principle 1 in the audio channel. No cue can accidentally speak
+an estimated event as though it were exact, because no cue writes the time phrase itself.
+
+#### Starting set
+
+Enough coaching to be useful, small enough to tune against real matches before expanding:
+
+| Cue | Fires when |
+| --- | --- |
+| `objective-prep` | Objective approaching; reset if not full |
+| `stall-camp` | Starting a camp now lands mercenaries at the objective |
+| `camp-pressure` | A camp is up during a lull and pushing is safe |
+| `tier-spike` | Level 10, 16 or 20 is close |
+| `wave-soak` | A wave is about to spawn in an unattended lane |
+| `death-timer-warning` | The death timer has crossed a threshold where dying is costly |
+
 
 ### Derived scalars
 
@@ -272,8 +424,10 @@ packages/maps/
 
 Validation runs in CI and asserts more than shape:
 
-- Every prompt's `trigger.eventKind` is a kind the map actually produces.
-- Every prompt's `selector` matches a camp or objective that exists.
+- Every camp carries the metadata cues depend on: `clearSeconds`, `travelSeconds` and
+  `pressureValue`. A camp missing these silently disables the camp-stall cue on that map,
+  which is the kind of failure that is invisible in play, so it fails the build instead.
+- Every cue naming this map in `appliesTo` refers to camps and objectives that exist.
 - `provenance` is present, and any map claiming `verified` carries a corpus reference.
 - Timing values sit inside sane bounds, so a misplaced decimal fails the build.
 
@@ -447,10 +601,17 @@ a parameter. The cases that matter most:
 - Downgrade to `Unknown` past `maxUsefulBand`.
 - Anchor overwrite semantics, including an out-of-order anchor arriving from a peer.
 - The provenance clamp at every provenance value.
-- Prompt edge triggering, specifically that re-anchoring does not re-fire a fired prompt.
+- Cue edge triggering, specifically that re-anchoring does not re-fire a fired cue, since
+  keys are stable across re-derivation.
 - Degradation to the always-exact floor on an unknown map.
 
-`maps` gets schema and cross-reference validation in CI.
+`maps` gets schema and cross-reference validation in CI, including that every camp carries
+the metadata the cues rely on (`clearSeconds`, `travelSeconds`, `pressureValue`).
+
+Cues are tested individually. Each is a pure function from `AdviceContext` to an optional
+match, so a test constructs a context and asserts one result, with no clock and no
+projection involved. Arbitration is tested separately: tier filtering, cooldowns, and that
+only the highest-scoring prompt reaches speech when several cues match at once.
 
 `web` gets Playwright coverage against an injected clock, so time is controllable rather than
 waited on. The high-value paths are the match running for fifteen minutes with no anchor ever
@@ -486,6 +647,11 @@ later.
 
 **No state management library.** Anchors are the only state and there are a handful of them.
 
+**Cues are objects in an array, not a plugin system.** The subsystem that grows forever needs
+a shape that makes growth cheap, but dynamic registration and a condition DSL would buy
+flexibility nobody asked for at the cost of debuggability. The narrow interface and the shared
+context do the work instead.
+
 ## What is deliberately not designed here
 
 The deferred features in `features.md` are not designed in this document, on purpose. What
@@ -495,7 +661,7 @@ this architecture owes them is that they remain additive:
   unchanged.
 - The Discord bot opens a socket to the relay and subscribes.
 - The review imports `MatchTimeline` and the same `project`, and adds grading.
-- Review-driven prompt promotion changes `PromptDefinition.priority` values, not control flow.
+- Review-driven prompt promotion adjusts `Cue.basePriority`, not control flow.
 
 If a change to any of those requires touching `engine`, the boundary has been drawn wrong and
 is worth revisiting before proceeding.
