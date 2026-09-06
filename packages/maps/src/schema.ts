@@ -66,6 +66,13 @@ export function validateMap(map: MapDefinition): ValidationIssue[] {
   } else {
     const o = map.objective
     if (o.label.trim() === '') issues.push({ where, problem: 'objective label is empty' })
+    // A generic "<objective> ended" invites the tap at the wrong stage: most objectives
+    // resolve twice and the respawn keys off the second, so the button has to name the
+    // event rather than the objective.
+    if (o.endedLabel.trim() === '') issues.push({ where, problem: 'endedLabel is empty' })
+    if (o.endedLabel.trim().toLowerCase() === `${o.label.trim().toLowerCase()} ended`) {
+      issues.push({ where, problem: 'endedLabel must name the event the respawn runs from' })
+    }
     if (!nonNegative(o.firstSpawnSeconds)) issues.push({ where, problem: 'firstSpawnSeconds must be >= 0' })
     if (!positive(o.fight.medianSeconds)) issues.push({ where, problem: 'fight.medianSeconds must be > 0' })
     if (!nonNegative(o.fight.spreadSeconds)) issues.push({ where, problem: 'fight.spreadSeconds must be >= 0' })

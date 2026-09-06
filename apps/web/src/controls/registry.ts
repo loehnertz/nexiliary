@@ -67,7 +67,10 @@ const objectiveEnded: AnchorControl = {
     return [
       {
         key: 'objective-ended',
-        label: `${ctx.map.objective.label} ended`,
+        // Names the event the respawn actually runs from, which on most maps is the
+        // second of two stages. A generic "<objective> ended" invites the tap at the
+        // first and anchors the whole chain a minute or more early.
+        label: ctx.map.objective.endedLabel,
         subject: String(ctx.nextObjective?.cycle ?? 1),
         // Urgent while it is actually running. Reading the *next* spawn's band instead
         // gets this backwards: by the time a phase is live the chain has advanced past

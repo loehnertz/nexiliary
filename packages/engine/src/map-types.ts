@@ -37,6 +37,16 @@ export type ObjectiveModel =
       readonly label: string
       readonly firstSpawnSeconds: Seconds
       readonly fight: FightEstimate
+      /**
+       * What the re-anchor button says, naming the exact event the respawn runs from.
+       *
+       * Most objectives resolve in two stages — a contest in the middle, then a vehicle
+       * or monster that pushes a lane until it dies — and the timer keys off the second.
+       * A generic "<objective> ended" invites the tap at the first, which anchors the
+       * whole chain a minute or more early. The trigger differs per map, so the wording
+       * is map data.
+       */
+      readonly endedLabel: string
       readonly respawn: RespawnRule
       /** Display hint only: "2-3 altars", "1, then 2, then 3 chests". Never a timing input. */
       readonly instances?: string

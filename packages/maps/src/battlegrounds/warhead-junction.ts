@@ -25,6 +25,7 @@ export const warheadJunction: MapDefinition = {
     // Two to four warheads scattered across a large map, collected rather than fought
     // over in one place, so this varies more than most.
     fight: { medianSeconds: 85, spreadSeconds: 35 },
+    endedLabel: 'Warheads gone',
     respawn: { kind: 'afterResolution', outcomes: { allCollected: { minSeconds: 175, maxSeconds: 175 } } },
     instances: '2-4 warheads',
   },

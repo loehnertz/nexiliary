@@ -30,6 +30,7 @@ export const cursedHollow: MapDefinition = {
     firstSpawnSeconds: 180,
     // One tribute, contested and then collected. Short and fairly consistent.
     fight: { medianSeconds: 40, spreadSeconds: 20 },
+    endedLabel: 'Tribute taken',
     respawn: {
       kind: 'afterResolution',
       outcomes: {

@@ -23,6 +23,7 @@ export const gardenOfTerror: MapDefinition = {
     label: 'Garden',
     firstSpawnSeconds: 150,
     fight: { medianSeconds: 100, spreadSeconds: 35 },
+    endedLabel: 'Terror died',
     respawn: {
       kind: 'afterResolution',
       outcomes: {

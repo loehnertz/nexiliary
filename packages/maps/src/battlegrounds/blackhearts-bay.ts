@@ -29,6 +29,7 @@ export const blackheartsBay: MapDefinition = {
     label: 'Chests',
     firstSpawnSeconds: 90,
     fight: { medianSeconds: 55, spreadSeconds: 25 },
+    endedLabel: 'Chests gone',
     respawn: { kind: 'fixedInterval', minSeconds: 165, maxSeconds: 195 },
     instances: '1, then 2, then 3 chests',
   },
