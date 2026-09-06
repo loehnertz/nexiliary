@@ -37,8 +37,9 @@ export type VerbosityTier = 'essential' | 'standard' | 'verbose'
  */
 export interface CueText {
   readonly id: string
+  /** May contain `{camp}`, substituted from the match's subject at render time. */
   readonly display: string
-  /** Contains `{time}`, substituted from the fact's confidence at render time. */
+  /** May contain `{time}`, from the fact's confidence, and `{camp}`, from the subject. */
   readonly spoken: string
   readonly tier: VerbosityTier
   readonly basePriority: PriorityBand

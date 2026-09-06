@@ -10,8 +10,8 @@ import {
   stallCamp,
   waveReminder,
 } from '../src/index.js'
-import type { AdviceContext, Anchor, CueState, PromptSettings, Timeline } from '../src/index.js'
-import { anchor, anchorSet, braxis, dragon, tomb } from './fixtures.js'
+import type { AdviceContext, Anchor, CueState, CueText, MapDefinition, PromptSettings, Timeline } from '../src/index.js'
+import { anchor, anchorSet, boss, braxis, dragon, tomb } from './fixtures.js'
 import { cueText } from './cue-text.fixture.js'
 
 const verbose: PromptSettings = { maxTier: 'verbose', speechEnabled: true }
@@ -296,5 +296,41 @@ describe('stall-camp across a whole match', () => {
     const fired = fireLog(oneCamp)
     expect(fired.length).toBeGreaterThanOrEqual(2)
     expect(new Set(fired.map((f) => f.camp)).size).toBe(1)
+  })
+})
+
+describe('prompt text substitution', () => {
+  // A map with one camp and no objective, so which camp wins is not in question and no
+  // objective phase can suppress it. `boss` first spawns at 300.
+  const oneCamp: MapDefinition = {
+    id: 'one-camp',
+    name: 'One Camp',
+    provenance: 'verified',
+    provenanceNote: 'fixture',
+    objective: { kind: 'none' },
+    camps: [boss],
+  }
+
+  const only = cues.filter((c) => c.id === 'camp-available')
+
+  function speakWith(display: string, spoken: string) {
+    const ctx = buildContext(oneCamp, project(oneCamp, anchorSet(), 300), 300)
+    const text: Record<string, CueText> = {
+      'camp-available': { ...cueText['camp-available']!, display, spoken },
+    }
+    return evaluateCues(only, text, verbose, ctx, newCueState('m1')).speak
+  }
+
+  it('names the camp in both the spoken line and the display line', () => {
+    const spoke = speakWith('{camp} is up.', '{camp} is up.')
+    expect(spoke?.spoken).toBe('boss is up.')
+    // The screen naming nothing while the voice names the camp is worse than either alone.
+    expect(spoke?.display).toBe('boss is up.')
+  })
+
+  it('leaves a template with no placeholder untouched', () => {
+    const spoke = speakWith('Camp is up.', 'Camp is up.')
+    expect(spoke?.spoken).toBe('Camp is up.')
+    expect(spoke?.display).toBe('Camp is up.')
   })
 })

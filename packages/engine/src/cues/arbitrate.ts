@@ -100,12 +100,27 @@ function pruneFired(
   return out
 }
 
-function renderSpoken(text: CueText, match: CueMatch, ctx: AdviceContext): string {
-  if (!text.spoken.includes('{time}')) return text.spoken
-  const id = match.timeFrom ?? match.basedOn[0]
-  const event = id === undefined ? undefined : ctx.timeline.events.find((e) => e.id === id)
-  const phrase = event === undefined ? '' : describeTime(event.confidence, event.at, ctx.now)
-  return text.spoken.replace('{time}', phrase).replace(/\s{2,}/g, ' ').trim()
+/**
+ * `{time}` reads the confidence of the fact the prompt rests on; `{camp}` names the
+ * subject.
+ *
+ * Applied to `display` as well as `spoken`, which the spoken-only version could not do.
+ * A screen reading "Camp is up." beside a voice naming which camp is worse than either
+ * alone: it invites the player to look, which is the cost the prompt exists to avoid.
+ */
+function renderText(template: string, match: CueMatch, ctx: AdviceContext): string {
+  let out = template
+  if (out.includes('{time}')) {
+    const id = match.timeFrom ?? match.basedOn[0]
+    const event = id === undefined ? undefined : ctx.timeline.events.find((e) => e.id === id)
+    const phrase = event === undefined ? '' : describeTime(event.confidence, event.at, ctx.now)
+    out = out.replace('{time}', phrase)
+  }
+  if (out.includes('{camp}')) {
+    const camp = ctx.camps.find((c) => c.id === match.subject)
+    out = out.replace('{camp}', camp?.label ?? '')
+  }
+  return out.replace(/\s{2,}/g, ' ').trim()
 }
 
 export interface Arbitration {
@@ -164,8 +179,8 @@ export function evaluateCues(
   const active = candidates.slice(0, 2).map(({ cue, match, text: cueText }) => ({
     cueId: cue.id,
     key: match.key,
-    display: cueText.display,
-    spoken: renderSpoken(cueText, match, ctx),
+    display: renderText(cueText.display, match, ctx),
+    spoken: renderText(cueText.spoken, match, ctx),
     band: cueText.basePriority,
   }))
 
