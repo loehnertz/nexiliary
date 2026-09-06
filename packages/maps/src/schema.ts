@@ -88,10 +88,6 @@ export function validateMap(map: MapDefinition): ValidationIssue[] {
     // A generic "<objective> ended" invites the tap at the wrong stage: most objectives
     // resolve twice and the respawn keys off the second, so the button has to name the
     // event rather than the objective.
-    if (o.endedLabel.trim() === '') issues.push({ where, problem: 'endedLabel is empty' })
-    if (o.endedLabel.trim().toLowerCase() === `${o.label.trim().toLowerCase()} ended`) {
-      issues.push({ where, problem: 'endedLabel must name the event the respawn runs from' })
-    }
     if (!nonNegative(o.firstSpawnSeconds)) issues.push({ where, problem: 'firstSpawnSeconds must be >= 0' })
     if (!positive(o.fight.medianSeconds)) issues.push({ where, problem: 'fight.medianSeconds must be > 0' })
     if (!nonNegative(o.fight.spreadSeconds)) issues.push({ where, problem: 'fight.spreadSeconds must be >= 0' })
@@ -103,6 +99,12 @@ export function validateMap(map: MapDefinition): ValidationIssue[] {
       for (const [name, outcome] of Object.entries(rule.outcomes)) {
         // Two resolutions need two buttons, and a button needs words.
         if (outcome.label.trim() === '') issues.push({ where: `${where}/${name}`, problem: 'outcome label is empty' })
+        // The button has to name the event the respawn runs from. Most objectives resolve
+        // in two stages and the timer keys off the second, so "<objective> ended" invites
+        // the tap at the first and anchors the chain a minute or more early.
+        if (outcome.label.trim().toLowerCase() === `${o.label.trim().toLowerCase()} ended`) {
+          issues.push({ where: `${where}/${name}`, problem: 'an outcome must name the event, not the objective' })
+        }
         if (!positive(outcome.minSeconds)) issues.push({ where: `${where}/${name}`, problem: 'minSeconds must be > 0' })
         if (!positive(outcome.maxSeconds)) issues.push({ where: `${where}/${name}`, problem: 'maxSeconds must be > 0' })
         if (outcome.maxSeconds < outcome.minSeconds) {

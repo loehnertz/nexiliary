@@ -121,12 +121,29 @@ describe('the schema', () => {
           label: 'x',
           firstSpawnSeconds: 180,
           fight: { medianSeconds: 60, spreadSeconds: 20 },
-          endedLabel: 'x done',
           respawn: { kind: 'afterResolution', scalePerMinuteSeconds: 2, outcomes: { a: { label: 'x', minSeconds: 110, maxSeconds: 150 } } },
         },
       }),
     )
     expect(issues.some((i) => i.problem.includes('minOffsetSeconds'))).toBe(true)
+  })
+
+  it('rejects an outcome that names the objective instead of the event that ends it', () => {
+    // Most objectives resolve twice — a contest, then a vehicle or monster pushing a lane
+    // until it dies — and the respawn keys off the second. "Garden ended" invites the tap
+    // at the first and anchors the whole chain a minute or more early.
+    const issues = validateMap(
+      bad({
+        objective: {
+          kind: 'timed',
+          label: 'Garden',
+          firstSpawnSeconds: 180,
+          fight: { medianSeconds: 60, spreadSeconds: 20 },
+          respawn: { kind: 'afterResolution', outcomes: { a: { label: 'Garden ended', minSeconds: 50, maxSeconds: 90 } } },
+        },
+      }),
+    )
+    expect(issues.some((i) => i.problem.includes('name the event'))).toBe(true)
   })
 
   it('rejects an outcome set with nothing reachable at cycle 1', () => {
@@ -137,7 +154,6 @@ describe('the schema', () => {
           label: 'x',
           firstSpawnSeconds: 180,
           fight: { medianSeconds: 60, spreadSeconds: 20 },
-          endedLabel: 'x done',
           respawn: { kind: 'afterResolution', outcomes: { a: { label: 'x', minSeconds: 50, maxSeconds: 90, possibleFromCycle: 3 } } },
         },
       }),

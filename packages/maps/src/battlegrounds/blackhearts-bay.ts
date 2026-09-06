@@ -32,7 +32,6 @@ export const blackheartsBay: MapDefinition = {
     label: 'Chests',
     firstSpawnSeconds: 90,
     fight: { medianSeconds: 55, spreadSeconds: 25 },
-    endedLabel: 'Last chest taken',
     respawn: {
       kind: 'afterResolution',
       outcomes: { lastChestTaken: { label: 'Last chest taken', minSeconds: 180, maxSeconds: 180 } },

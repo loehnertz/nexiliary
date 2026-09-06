@@ -41,7 +41,6 @@ export const cursedHollow: MapDefinition = {
     // the third tribute. The two button labels say which moment each means, which is why
     // naming the outcome is a tap the player can actually make correctly.
     fight: { medianSeconds: 40, spreadSeconds: 20 },
-    endedLabel: 'Tribute taken',
     respawn: {
       kind: 'afterResolution',
       outcomes: {

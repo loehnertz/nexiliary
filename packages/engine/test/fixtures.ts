@@ -62,7 +62,6 @@ export const braxis: MapDefinition = {
     kind: 'timed',
     label: 'Beacons',
     firstSpawnSeconds: 90,
-    endedLabel: 'Zerg cleared',
     fight: { medianSeconds: 70, spreadSeconds: 25 },
     respawn: { kind: 'afterResolution', outcomes: { default: { label: 'Zerg cleared', minSeconds: 130, maxSeconds: 130 } } },
     instances: '2 beacons',
@@ -89,7 +88,6 @@ export const alterac: MapDefinition = {
     kind: 'timed',
     label: 'Cavalry',
     firstSpawnSeconds: 180,
-    endedLabel: 'Cavalry gone',
     fight: { medianSeconds: 60, spreadSeconds: 25 },
     respawn: {
       kind: 'afterResolution',
@@ -111,7 +109,6 @@ export const cursed: MapDefinition = {
     kind: 'timed',
     label: 'Tribute',
     firstSpawnSeconds: 180,
-    endedLabel: 'Tribute taken',
     fight: { medianSeconds: 45, spreadSeconds: 20 },
     respawn: {
       kind: 'afterResolution',
@@ -134,7 +131,6 @@ export const deterministic: MapDefinition = {
     kind: 'timed',
     label: 'Temples',
     firstSpawnSeconds: 180,
-    endedLabel: 'Temples stopped',
     fight: { medianSeconds: 40, spreadSeconds: 0 },
     respawn: { kind: 'afterResolution', outcomes: { default: { label: 'Temples stopped', minSeconds: 120, maxSeconds: 120 } } },
   },
@@ -151,7 +147,6 @@ export const blackheart: MapDefinition = {
     kind: 'timed',
     label: 'Chests',
     firstSpawnSeconds: 90,
-    endedLabel: 'Chests gone',
     fight: { medianSeconds: 50, spreadSeconds: 20 },
     respawn: {
       kind: 'afterResolution',

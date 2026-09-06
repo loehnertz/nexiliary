@@ -26,7 +26,6 @@ export const towersOfDoom: MapDefinition = {
     firstSpawnSeconds: 180,
     // Capturing altars is quick and rarely drags.
     fight: { medianSeconds: 50, spreadSeconds: 20 },
-    endedLabel: 'Altars captured',
     respawn: { kind: 'afterResolution', outcomes: { altarsCaptured: { label: 'Altars captured', minSeconds: 110, maxSeconds: 110 } } },
     instances: '2-3 altars',
   },

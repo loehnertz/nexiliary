@@ -29,7 +29,6 @@ export const hauntedMines: MapDefinition = {
     firstSpawnSeconds: 180,
     // The mine phase, then the golems marching until the last one dies.
     fight: { medianSeconds: 145, spreadSeconds: 40 },
-    endedLabel: 'Golems died',
     respawn: { kind: 'afterResolution', outcomes: { golemsDied: { label: 'Golems died', minSeconds: 120, maxSeconds: 120 } } },
     instances: '1 mine',
   },

@@ -8,7 +8,7 @@ import { camp } from '../camp-presets.js'
  * `fight` spans beacon activation to the Zerg waves being cleared, which is the event
  * the respawn actually chains off: the wiki says "Beacon events after the first will spawn
  * 2 minutes and 10 seconds after a previous Zerg wave has been defeated". Capturing the
- * beacons is only the first half, so `endedLabel` says "Zerg cleared" — tapping at the
+ * beacons is only the first half, so the outcome says "Zerg cleared" — tapping at the
  * capture would anchor the whole chain a minute or more early.
  *
  * Camps are removed from the field while the objective is live, which is why this map
@@ -29,7 +29,6 @@ export const braxisHoldout: MapDefinition = {
     label: 'Beacons',
     firstSpawnSeconds: 90,
     fight: { medianSeconds: 110, spreadSeconds: 30 },
-    endedLabel: 'Zerg cleared',
     respawn: { kind: 'afterResolution', outcomes: { zergCleared: { label: 'Zerg cleared', minSeconds: 130, maxSeconds: 130 } } },
     instances: '2 beacons',
   },

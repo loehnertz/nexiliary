@@ -30,7 +30,6 @@ export const alteracPass: MapDefinition = {
     firstSpawnSeconds: 180,
     // Three cavalry, escorted or killed. Long and variable.
     fight: { medianSeconds: 95, spreadSeconds: 30 },
-    endedLabel: 'Cavalry gone',
     respawn: {
       kind: 'afterResolution',
       minOffsetSeconds: 50,

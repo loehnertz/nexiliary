@@ -77,20 +77,19 @@ const objectiveEnded: AnchorControl = {
     // indexes the spawning cycle, and the cycle being reported here is the one before it.
     const outcomes = reachableOutcomes(ctx.map.objective.respawn, phase.cycle + 1)
 
-    // One resolution needs no disambiguation, so the button names the event and nothing
-    // more. Two need naming: on Cursed Hollow the offset is 0:50-1:30 after a tribute but
+    // One resolution needs no disambiguation, so the button names it and nothing more.
+    // Two need naming: on Cursed Hollow the offset is 0:50-1:30 after a tribute but
     // 2:00-2:40 after a curse, and without being told the app has to span the union —
     // which alone is a 110 second band, and is why that map degrades fastest of the pool.
+    //
+    // Both branches read the label off the outcome. A map-level label here instead put
+    // "Terror died" on Garden of Terror's first three cycles, where seeds are still being
+    // gathered and no Terror has ever existed — a button the player can only ignore, and
+    // ignoring it is what left the map with no anchor at all.
+    const only = outcomes[0]
+    if (only === undefined) return []
     if (outcomes.length < 2) {
-      return [
-        {
-          key: 'objective-ended',
-          label: ctx.map.objective.endedLabel,
-          subject,
-          emphasis,
-          action,
-        },
-      ]
+      return [{ key: 'objective-ended', label: only.label, subject, emphasis, action }]
     }
 
     return outcomes.map((outcome) => ({

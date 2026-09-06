@@ -20,7 +20,6 @@ export const infernalShrines: MapDefinition = {
     firstSpawnSeconds: 180,
     // The shrine contested and cleared, then the Punisher's lifetime.
     fight: { medianSeconds: 110, spreadSeconds: 30 },
-    endedLabel: 'Punisher died',
     respawn: { kind: 'afterResolution', outcomes: { punisherDied: { label: 'Punisher died', minSeconds: 180, maxSeconds: 180 } } },
     instances: '1 shrine',
   },

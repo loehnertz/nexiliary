@@ -23,7 +23,6 @@ export const volskayaFoundry: MapDefinition = {
     firstSpawnSeconds: 180,
     // The point captured, then the Protector piloted until it dies.
     fight: { medianSeconds: 110, spreadSeconds: 35 },
-    endedLabel: 'Protector died',
     respawn: { kind: 'afterResolution', outcomes: { protectorDied: { label: 'Protector died', minSeconds: 180, maxSeconds: 180 } } },
     instances: '1 capture point',
   },
