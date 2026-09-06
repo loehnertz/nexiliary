@@ -27,7 +27,7 @@ export const dragonShire: MapDefinition = {
     // own after 1:07 if nobody kills it, which bounds the tail.
     fight: { medianSeconds: 110, spreadSeconds: 35 },
     endedLabel: 'Dragon Knight died',
-    respawn: { kind: 'afterResolution', outcomes: { knightDied: { minSeconds: 120, maxSeconds: 120 } } },
+    respawn: { kind: 'afterResolution', outcomes: { knightDied: { label: 'Dragon Knight died', minSeconds: 120, maxSeconds: 120 } } },
     instances: '2 shrines',
   },
   camps: [

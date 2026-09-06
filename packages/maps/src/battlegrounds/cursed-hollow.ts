@@ -9,11 +9,14 @@ import { camp } from '../camp-presets.js'
  * ends. Naming the outcome would need a control, and none exists: when the player has not
  * said which happened, the band spans the union of the *reachable* outcomes.
  *
- * A curse requires one team to hold three tributes, so it cannot possibly have occurred
- * before the third spawn. `possibleFromCycle: 3` is what keeps the early cycles on the
- * tight band; taking the union from cycle one would give a 110 second band before any
- * fight spread, which alone nearly exhausts `maxUsefulBand` and would make the map go
- * `Unknown` by its third cycle. Past that point the union is genuinely wide and this map
+ * A curse requires one team to hold three tributes, so the earliest cycle that *can*
+ * resolve as a curse is the third — which predicts the **fourth** spawn.
+ * `architecture.md` says `possibleFromCycle: 3`, which is the off-by-one it warns about
+ * two paragraphs earlier: the field indexes the spawning cycle, not the resolving one.
+ *
+ * The gate is what keeps the early cycles on the tight band. Taking the union from cycle
+ * one gives a 110 second band before any fight spread, which alone nearly exhausts
+ * `maxUsefulBand` and would make the map go `Unknown` by its third cycle. Past that point the union is genuinely wide and this map
  * has little objective coaching in the second half of a match regardless of tapping.
  * The outcome-naming control is the fix, and it is deferred.
  *
@@ -34,8 +37,8 @@ export const cursedHollow: MapDefinition = {
     respawn: {
       kind: 'afterResolution',
       outcomes: {
-        collected: { minSeconds: 50, maxSeconds: 90 },
-        curse: { minSeconds: 120, maxSeconds: 160, possibleFromCycle: 3 },
+        collected: { label: 'Tribute taken', minSeconds: 50, maxSeconds: 90 },
+        curse: { label: 'Curse ended', minSeconds: 120, maxSeconds: 160, possibleFromCycle: 4 },
       },
     },
     instances: '1 tribute',

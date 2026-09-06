@@ -76,6 +76,15 @@ export interface Anchor {
   readonly wallClock: Millis
   /** 'local' | 'peer' | 'ocr' | 'hotkey' | 'replay'. The engine never branches on it. */
   readonly source: string
+  /**
+   * Which resolution occurred, on an objective that has more than one.
+   *
+   * Payload rather than key, because "cycle 3 ended, by curse" is one fact: putting the
+   * outcome in the subject would make a correction open a second entry instead of
+   * overwriting the first. The relay moves anchors opaquely, so this crosses the wire
+   * untouched, and `schema` is what says a reader may not understand it.
+   */
+  readonly outcome?: string
   /** Anchor payload version. */
   readonly schema: number
 }

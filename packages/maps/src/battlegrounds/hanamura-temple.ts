@@ -28,7 +28,7 @@ export const hanamuraTemple: MapDefinition = {
     firstSpawnSeconds: 180,
     fight: { medianSeconds: 105, spreadSeconds: 30 },
     endedLabel: 'Payload fired',
-    respawn: { kind: 'afterResolution', outcomes: { lastShot: { minSeconds: 180, maxSeconds: 180 } } },
+    respawn: { kind: 'afterResolution', outcomes: { lastShot: { label: 'Payload fired', minSeconds: 180, maxSeconds: 180 } } },
     instances: '1 payload',
   },
   camps: [

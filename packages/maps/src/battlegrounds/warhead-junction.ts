@@ -26,7 +26,7 @@ export const warheadJunction: MapDefinition = {
     // over in one place, so this varies more than most.
     fight: { medianSeconds: 85, spreadSeconds: 35 },
     endedLabel: 'Warheads gone',
-    respawn: { kind: 'afterResolution', outcomes: { allCollected: { minSeconds: 175, maxSeconds: 175 } } },
+    respawn: { kind: 'afterResolution', outcomes: { allCollected: { label: 'Warheads gone', minSeconds: 175, maxSeconds: 175 } } },
     instances: '2-4 warheads',
   },
   camps: [

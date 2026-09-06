@@ -2,9 +2,13 @@ import type { MapDefinition } from '@nexiliary/engine'
 import { camp } from '../camp-presets.js'
 
 /**
- * The second two-outcome map. A seed collected respawns the objective in 0:50 to 1:20;
- * the Garden Terrors dying takes 1:30 to 2:00. Three seeds are needed before a Terror can
- * exist, so the slow branch is unreachable before the third spawn.
+ * The second two-outcome map, and the wiki is exact about both branches: "50-80 seconds
+ * after the last captured seed, or 90-120s after all Garden Terrors die".
+ *
+ * "Seeds will continue to spawn until either team gathers three in total", and the Terrors
+ * spawn on the third — so the earliest cycle that can resolve as Terrors dying is the
+ * third, which predicts the **fourth** spawn. `architecture.md` says
+ * `possibleFromCycle: 3`; the field indexes the spawning cycle, so that is one early.
  *
  * Camps vanish once the Terrors are activated, which is after the seed phase rather than
  * at its start, so the suppression window opens earlier than the camps actually leave.
@@ -27,8 +31,8 @@ export const gardenOfTerror: MapDefinition = {
     respawn: {
       kind: 'afterResolution',
       outcomes: {
-        seedCollected: { minSeconds: 50, maxSeconds: 80 },
-        terrorsDied: { minSeconds: 90, maxSeconds: 120, possibleFromCycle: 3 },
+        seedCollected: { label: 'Seeds gone', minSeconds: 50, maxSeconds: 80 },
+        terrorsDied: { label: 'Terror died', minSeconds: 90, maxSeconds: 120, possibleFromCycle: 4 },
       },
     },
     instances: '1 seed',

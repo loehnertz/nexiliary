@@ -82,6 +82,8 @@ export function validateMap(map: MapDefinition): ValidationIssue[] {
       const names = Object.keys(rule.outcomes)
       if (names.length === 0) issues.push({ where, problem: 'afterResolution needs at least one outcome' })
       for (const [name, outcome] of Object.entries(rule.outcomes)) {
+        // Two resolutions need two buttons, and a button needs words.
+        if (outcome.label.trim() === '') issues.push({ where: `${where}/${name}`, problem: 'outcome label is empty' })
         if (!positive(outcome.minSeconds)) issues.push({ where: `${where}/${name}`, problem: 'minSeconds must be > 0' })
         if (!positive(outcome.maxSeconds)) issues.push({ where: `${where}/${name}`, problem: 'maxSeconds must be > 0' })
         if (outcome.maxSeconds < outcome.minSeconds) {
@@ -93,6 +95,8 @@ export function validateMap(map: MapDefinition): ValidationIssue[] {
       }
       // At least one branch has to be reachable from the first cycle, or the union is
       // empty exactly when the app needs it most.
+      const labels = new Set(Object.values(rule.outcomes).map((o2) => o2.label))
+      if (labels.size !== names.length) issues.push({ where, problem: 'two outcomes share a label' })
       const fromFirst = Object.values(rule.outcomes).some((o2) => (o2.possibleFromCycle ?? 1) <= 1)
       if (names.length > 0 && !fromFirst) {
         issues.push({ where, problem: 'no outcome is reachable at cycle 1' })

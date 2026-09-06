@@ -24,7 +24,7 @@ export const battlefieldOfEternity: MapDefinition = {
     // The race, then the winning Immortal marching until the loser dies.
     fight: { medianSeconds: 100, spreadSeconds: 30 },
     endedLabel: 'Immortal died in lane',
-    respawn: { kind: 'afterResolution', outcomes: { immortalDied: { minSeconds: 105, maxSeconds: 105 } } },
+    respawn: { kind: 'afterResolution', outcomes: { immortalDied: { label: 'Immortal died in lane', minSeconds: 105, maxSeconds: 105 } } },
     instances: '2 immortals',
   },
   camps: [

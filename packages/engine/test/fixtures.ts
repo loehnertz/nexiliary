@@ -63,7 +63,7 @@ export const braxis: MapDefinition = {
     firstSpawnSeconds: 90,
     endedLabel: 'Zerg cleared',
     fight: { medianSeconds: 70, spreadSeconds: 25 },
-    respawn: { kind: 'afterResolution', outcomes: { default: { minSeconds: 130, maxSeconds: 130 } } },
+    respawn: { kind: 'afterResolution', outcomes: { default: { label: 'Zerg cleared', minSeconds: 130, maxSeconds: 130 } } },
     instances: '2 beacons',
   },
   camps: [siegeTop, bruiser, boss],
@@ -94,7 +94,7 @@ export const alterac: MapDefinition = {
       kind: 'afterResolution',
       minOffsetSeconds: 60,
       scalePerMinuteSeconds: 2,
-      outcomes: { default: { minSeconds: 110, maxSeconds: 150 } },
+      outcomes: { default: { label: 'Cavalry gone', minSeconds: 110, maxSeconds: 150 } },
     },
   },
   camps: [siegeTop, bruiser],
@@ -115,8 +115,8 @@ export const cursed: MapDefinition = {
     respawn: {
       kind: 'afterResolution',
       outcomes: {
-        tribute: { minSeconds: 50, maxSeconds: 90 },
-        curse: { minSeconds: 120, maxSeconds: 160, possibleFromCycle: 3 },
+        tribute: { label: 'Tribute taken', minSeconds: 50, maxSeconds: 90 },
+        curse: { label: 'Curse ended', minSeconds: 120, maxSeconds: 160, possibleFromCycle: 4 },
       },
     },
   },
@@ -135,7 +135,7 @@ export const deterministic: MapDefinition = {
     firstSpawnSeconds: 180,
     endedLabel: 'Temples stopped',
     fight: { medianSeconds: 40, spreadSeconds: 0 },
-    respawn: { kind: 'afterResolution', outcomes: { default: { minSeconds: 120, maxSeconds: 120 } } },
+    respawn: { kind: 'afterResolution', outcomes: { default: { label: 'Temples stopped', minSeconds: 120, maxSeconds: 120 } } },
   },
   camps: [siegeTop],
 }

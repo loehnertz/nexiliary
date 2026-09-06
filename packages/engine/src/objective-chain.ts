@@ -55,9 +55,20 @@ export function offsetFor(
   rule: RespawnRule,
   cycle: number,
   resolutionTimeSeconds: Seconds,
+  /**
+   * Which resolution the player reported. An observation beats the union outright, and
+   * beats `possibleFromCycle` too: that gate exists to infer what *could* have happened,
+   * and there is nothing left to infer once someone has said.
+   */
+  observedOutcome?: string,
 ): OffsetRange {
   if (rule.kind === 'fixedInterval') {
     return { min: rule.minSeconds, max: rule.maxSeconds }
+  }
+
+  const observed = observedOutcome === undefined ? undefined : rule.outcomes[observedOutcome]
+  if (observed !== undefined) {
+    return applyScaling(rule, { min: observed.minSeconds, max: observed.maxSeconds }, resolutionTimeSeconds)
   }
 
   let min = Number.POSITIVE_INFINITY
@@ -76,19 +87,34 @@ export function offsetFor(
     }
   }
 
-  const scale = rule.scalePerMinuteSeconds
-  if (scale !== undefined && scale !== 0) {
-    const floor = rule.minOffsetSeconds ?? 0
-    // Both ends move by the same amount, so the half-width is unchanged by scaling.
-    // Without the floor a 2s-per-minute reduction reaches zero at 55 minutes and goes
-    // negative after, and matches do run long.
-    const headroom = Math.max(0, min - floor)
-    const reduction = Math.min(Math.max(0, (scale * resolutionTimeSeconds) / 60), headroom)
-    min -= reduction
-    max -= reduction
-  }
+  return applyScaling(rule, { min, max }, resolutionTimeSeconds)
+}
 
-  return { min, max }
+function applyScaling(
+  rule: Extract<RespawnRule, { kind: 'afterResolution' }>,
+  offset: OffsetRange,
+  resolutionTimeSeconds: Seconds,
+): OffsetRange {
+  const scale = rule.scalePerMinuteSeconds
+  if (scale === undefined || scale === 0) return offset
+  const floor = rule.minOffsetSeconds ?? 0
+  // Both ends move by the same amount, so the half-width is unchanged by scaling.
+  // Without the floor a 2s-per-minute reduction reaches zero at 55 minutes and goes
+  // negative after, and matches do run long.
+  const headroom = Math.max(0, offset.min - floor)
+  const reduction = Math.min(Math.max(0, (scale * resolutionTimeSeconds) / 60), headroom)
+  return { min: offset.min - reduction, max: offset.max - reduction }
+}
+
+/** The resolutions that could have produced a spawn at `cycle`. */
+export function reachableOutcomes(
+  rule: RespawnRule,
+  cycle: number,
+): { name: string; label: string }[] {
+  if (rule.kind === 'fixedInterval') return []
+  return Object.entries(rule.outcomes)
+    .filter(([, o]) => (o.possibleFromCycle ?? 1) <= cycle)
+    .map(([name, o]) => ({ name, label: o.label }))
 }
 
 function stepSpreadFor(objective: TimedObjective, offset: OffsetRange): Seconds {
@@ -205,7 +231,8 @@ function firstStep(
   // the count one short without moving any timing.
   const t = newest.gameTimeSeconds
   const cycle = ended.length + 1
-  const offset = offsetFor(objective.respawn, cycle, t)
+  // The player may have said which resolution it was, which collapses the union.
+  const offset = offsetFor(objective.respawn, cycle, t, newest.outcome)
   const at = t + (offset.min + offset.max) / 2
   const low = t + offset.min
   const high = t + offset.max

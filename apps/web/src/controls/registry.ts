@@ -1,5 +1,5 @@
 import type { AdviceContext } from '@nexiliary/engine'
-import { isAvailable, isClaimable } from '@nexiliary/engine'
+import { isAvailable, isClaimable, reachableOutcomes } from '@nexiliary/engine'
 
 /**
  * Controls live in `web`, not in `engine`. `AnchorControl` carries labels and layout
@@ -25,6 +25,8 @@ export type ControlAction =
 export interface ControlOffer {
   readonly key: string
   readonly label: string
+  /** Which resolution this offer records, on an objective that has more than one. */
+  readonly outcome?: string
   /** Camp id, cycle index, whatever the anchor needs. */
   readonly subject?: string
   readonly emphasis?: 'normal' | 'urgent'
@@ -64,22 +66,41 @@ const objectiveEnded: AnchorControl = {
     // record the same one twice.
     if (phase.kind === 'idle') return []
 
-    return [
-      {
-        key: 'objective-ended',
-        // Names the event the respawn actually runs from, which on most maps is the
-        // second of two stages. A generic "<objective> ended" invites the tap at the
-        // first and anchors the whole chain a minute or more early.
-        label: ctx.map.objective.endedLabel,
-        subject: String(ctx.nextObjective?.cycle ?? 1),
-        // Urgent while it is actually running. Reading the *next* spawn's band instead
-        // gets this backwards: by the time a phase is live the chain has advanced past
-        // it, so the next spawn is minutes away and the button would sit quiet through
-        // the whole objective.
-        emphasis: phase.kind === 'active' ? 'urgent' : 'normal',
-        action: { kind: 'write', anchorType: 'ObjectiveEnded' },
-      },
-    ]
+    // Urgent while it is actually running. Reading the *next* spawn's band instead gets
+    // this backwards: by the time a phase is live the chain has advanced past it, so the
+    // next spawn is minutes away and the button would sit quiet through the objective.
+    const emphasis = phase.kind === 'active' ? ('urgent' as const) : ('normal' as const)
+    const subject = String(ctx.nextObjective?.cycle ?? 1)
+    const action = { kind: 'write', anchorType: 'ObjectiveEnded' } as const
+
+    // Which resolutions could have produced the *next* spawn. `possibleFromCycle`
+    // indexes the spawning cycle, and the cycle being reported here is the one before it.
+    const outcomes = reachableOutcomes(ctx.map.objective.respawn, phase.cycle + 1)
+
+    // One resolution needs no disambiguation, so the button names the event and nothing
+    // more. Two need naming: on Cursed Hollow the offset is 0:50-1:30 after a tribute but
+    // 2:00-2:40 after a curse, and without being told the app has to span the union —
+    // which alone is a 110 second band, and is why that map degrades fastest of the pool.
+    if (outcomes.length < 2) {
+      return [
+        {
+          key: 'objective-ended',
+          label: ctx.map.objective.endedLabel,
+          subject,
+          emphasis,
+          action,
+        },
+      ]
+    }
+
+    return outcomes.map((outcome) => ({
+      key: `objective-ended:${outcome.name}`,
+      label: outcome.label,
+      subject,
+      outcome: outcome.name,
+      emphasis,
+      action,
+    }))
   },
 }
 

@@ -32,7 +32,7 @@ export const alteracPass: MapDefinition = {
       kind: 'afterResolution',
       minOffsetSeconds: 60,
       scalePerMinuteSeconds: 2,
-      outcomes: { completed: { minSeconds: 110, maxSeconds: 150 } },
+      outcomes: { completed: { label: 'Cavalry gone', minSeconds: 110, maxSeconds: 150 } },
     },
     instances: '3 cavalry',
   },

@@ -113,7 +113,7 @@ describe('the schema', () => {
           firstSpawnSeconds: 180,
           fight: { medianSeconds: 60, spreadSeconds: 20 },
           endedLabel: 'x done',
-          respawn: { kind: 'afterResolution', scalePerMinuteSeconds: 2, outcomes: { a: { minSeconds: 110, maxSeconds: 150 } } },
+          respawn: { kind: 'afterResolution', scalePerMinuteSeconds: 2, outcomes: { a: { label: 'x', minSeconds: 110, maxSeconds: 150 } } },
         },
       }),
     )
@@ -129,7 +129,7 @@ describe('the schema', () => {
           firstSpawnSeconds: 180,
           fight: { medianSeconds: 60, spreadSeconds: 20 },
           endedLabel: 'x done',
-          respawn: { kind: 'afterResolution', outcomes: { a: { minSeconds: 50, maxSeconds: 90, possibleFromCycle: 3 } } },
+          respawn: { kind: 'afterResolution', outcomes: { a: { label: 'x', minSeconds: 50, maxSeconds: 90, possibleFromCycle: 3 } } },
         },
       }),
     )

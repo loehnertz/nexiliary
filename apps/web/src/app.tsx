@@ -105,10 +105,11 @@ export function App() {
   }, [live, persist])
 
   const writeAnchorAt = useCallback(
-    (type: string, subject: string, key?: string) => {
+    (type: string, subject: string, key?: string, outcome?: string) => {
       const anchor: Anchor = {
         type,
         subject,
+        ...(outcome !== undefined ? { outcome } : {}),
         gameTimeSeconds: now,
         // Session epoch, not device epoch: last-write-wins compares this across
         // devices, so a device-epoch value would resolve conflicts by whose phone is
@@ -122,14 +123,14 @@ export function App() {
     [now, state.peerSkewMillis],
   )
 
-  const onObjectiveEnded = useCallback(() => {
+  const onObjectiveEnded = useCallback((outcome?: string) => {
     // A near-simultaneous second tap overwrites rather than opening a cycle, judged
     // against the map's own minimum respawn offset.
     const coalesce =
       map.objective.kind === 'timed' ? offsetFor(map.objective.respawn, 1, now).min : 60
     const key = objectiveEndedKeyFor(state.anchors, now, coalesce)
     const subject = key.slice('ObjectiveEnded:'.length)
-    writeAnchorAt('ObjectiveEnded', subject, key)
+    writeAnchorAt('ObjectiveEnded', subject, key, outcome)
   }, [map, now, state.anchors, writeAnchorAt])
 
   const onObjectiveSpawned = useCallback(
@@ -222,7 +223,7 @@ export function App() {
 
   const liveView = view(timeline, map, now)
   const primaryOffers = offersFor('primary', buildContext(map, timeline, now))
-  const primary = primaryOffers.find((o) => o.key === 'objective-ended')
+  const endedOffers = primaryOffers.filter((o) => o.key.startsWith('objective-ended'))
   const spawnOffer = primaryOffers.find((o) => o.key === 'objective-spawned')
   const undoOffered =
     state.lastWrite !== null && Date.now() - state.lastWrite.atWallClock < undoWindowMillis
@@ -259,14 +260,19 @@ export function App() {
               />
             </div>
             <div className="area-action">
-              {primary !== undefined && (
-                <button
-                  type="button"
-                  className={`btn-slant mt-4 min-h-14 w-full py-4 text-sm ${primary.emphasis === 'urgent' ? 'btn-urgent' : 'btn-primary'}`}
-                  onClick={onObjectiveEnded}
-                >
-                  {primary.label}
-                </button>
+              {endedOffers.length > 0 && (
+                <div className={`mt-4 grid gap-2 ${endedOffers.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                  {endedOffers.map((offer) => (
+                    <button
+                      key={offer.key}
+                      type="button"
+                      className={`btn-slant min-h-14 w-full py-4 text-sm ${offer.emphasis === 'urgent' ? 'btn-urgent' : 'btn-primary'}`}
+                      onClick={() => onObjectiveEnded(offer.outcome)}
+                    >
+                      {offer.label}
+                    </button>
+                  ))}
+                </div>
               )}
               {spawnOffer !== undefined && (
                 <button

@@ -28,7 +28,7 @@ export const braxisHoldout: MapDefinition = {
     firstSpawnSeconds: 90,
     fight: { medianSeconds: 110, spreadSeconds: 30 },
     endedLabel: 'Zerg cleared',
-    respawn: { kind: 'afterResolution', outcomes: { zergCleared: { minSeconds: 130, maxSeconds: 130 } } },
+    respawn: { kind: 'afterResolution', outcomes: { zergCleared: { label: 'Zerg cleared', minSeconds: 130, maxSeconds: 130 } } },
     instances: '2 beacons',
   },
   camps: [

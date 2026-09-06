@@ -11,6 +11,8 @@ export interface FightEstimate {
 }
 
 export interface RespawnOutcome {
+  /** What the button says when the player is asked which resolution happened. */
+  readonly label: string
   readonly minSeconds: Seconds
   readonly maxSeconds: Seconds
   /**

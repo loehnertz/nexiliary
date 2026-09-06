@@ -4,6 +4,7 @@ import {
   minStepSpread,
   offsetFor,
   project,
+  reachableOutcomes,
   spread,
   stepSpread,
   walkChain,
@@ -136,10 +137,11 @@ describe('respawn rule variants', () => {
   it('keeps an unreachable branch out of the union, at both boundaries', () => {
     if (cursed.objective.kind !== 'timed') throw new Error('fixture')
     const rule = cursed.objective.respawn
-    // cycle 2: only the tribute branch is reachable.
-    expect(offsetFor(rule, 2, 0)).toEqual({ min: 50, max: 90 })
-    // cycle 3: the curse branch becomes reachable and widens the union.
-    expect(offsetFor(rule, 3, 0)).toEqual({ min: 50, max: 160 })
+    // A curse needs three tributes, so the earliest cycle that can resolve as one is the
+    // third — which predicts the fourth spawn. Both boundaries, since an off-by-one here
+    // is exactly what the design warns about and exactly what it shipped.
+    expect(offsetFor(rule, 3, 0)).toEqual({ min: 50, max: 90 })
+    expect(offsetFor(rule, 4, 0)).toEqual({ min: 50, max: 160 })
   })
 
   it('shortens a scaled offset late in a match without changing its width', () => {
@@ -169,5 +171,50 @@ describe('respawn rule variants', () => {
     const timeline = project(tomb, anchorSet(), 300)
     expect(timeline.events.some((e) => e.kind === 'objective')).toBe(false)
     expect(timeline.events.some((e) => e.kind === 'wave')).toBe(true)
+  })
+})
+
+describe('a reported outcome collapses the union', () => {
+  const rule = () => {
+    if (cursed.objective.kind !== 'timed') throw new Error('fixture')
+    return cursed.objective.respawn
+  }
+
+  it('uses only the named branch instead of spanning both', () => {
+    // Cursed Hollow is the worst-degrading map in the pool precisely because it has to
+    // span 0:50 to 2:40 when nobody says which happened.
+    expect(offsetFor(rule(), 4, 0)).toEqual({ min: 50, max: 160 })
+    expect(offsetFor(rule(), 4, 0, 'tribute')).toEqual({ min: 50, max: 90 })
+    expect(offsetFor(rule(), 4, 0, 'curse')).toEqual({ min: 120, max: 160 })
+  })
+
+  it('beats possibleFromCycle, because there is nothing left to infer', () => {
+    // The gate exists to work out what *could* have happened. Someone has said.
+    expect(offsetFor(rule(), 2, 0)).toEqual({ min: 50, max: 90 })
+    expect(offsetFor(rule(), 2, 0, 'curse')).toEqual({ min: 120, max: 160 })
+  })
+
+  it('ignores an outcome the map does not have, rather than inventing one', () => {
+    expect(offsetFor(rule(), 4, 0, 'nonsense')).toEqual({ min: 50, max: 160 })
+  })
+
+  it('collapses the chain when the anchor carries it', () => {
+    // Three cycles in, so both branches are reachable and the union is genuinely wide.
+    const ended = [anchor('ObjectiveEnded', '1', 100), anchor('ObjectiveEnded', '2', 200)]
+    const union = anchorSet(...ended, anchor('ObjectiveEnded', '3', 300))
+    const named = anchorSet(...ended, { ...anchor('ObjectiveEnded', '3', 300), outcome: 'tribute' })
+    const bandOf = (a: typeof union) => {
+      const c = walkChain(cursed, a, 310)!.pending.confidence
+      return c.kind === 'Estimated' ? c.high - c.low : 0
+    }
+    expect(bandOf(named)).toBeLessThan(bandOf(union))
+    expect(walkChain(cursed, named, 310)!.pending.at).toBe(300 + 70)
+  })
+
+  it('offers both resolutions only once the second is reachable', () => {
+    // A curse needs three tributes, so the earliest cycle that can resolve as one is the
+    // third — which predicts the fourth spawn.
+    expect(reachableOutcomes(rule(), 3).map((o) => o.name)).toEqual(['tribute'])
+    expect(reachableOutcomes(rule(), 4).map((o) => o.name).sort()).toEqual(['curse', 'tribute'])
   })
 })

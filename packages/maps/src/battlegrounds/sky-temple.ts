@@ -31,7 +31,7 @@ export const skyTemple: MapDefinition = {
     firstSpawnSeconds: 180,
     fight: { medianSeconds: 40, spreadSeconds: 0 },
     endedLabel: 'Temples stopped',
-    respawn: { kind: 'afterResolution', outcomes: { lastShot: { minSeconds: 120, maxSeconds: 120 } } },
+    respawn: { kind: 'afterResolution', outcomes: { lastShot: { label: 'Temples stopped', minSeconds: 120, maxSeconds: 120 } } },
     instances: '1-2 temples',
   },
   camps: [
