@@ -21,7 +21,9 @@ import { camp } from '../camp-presets.js'
 export const hanamuraTemple: MapDefinition = {
   id: 'hanamura-temple',
   name: 'Hanamura Temple',
-  provenance: 'published',
+  provenance: 'verified',
+  provenanceNote:
+    'Objective 3:00 and 3:00 after the payload fires agree between the wiki and the Icy Veins table; camps from the wiki page. docs/objective-timings.md',
   objective: {
     kind: 'timed',
     label: 'Payload',

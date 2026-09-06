@@ -2,11 +2,13 @@ import type { MapDefinition } from '@nexiliary/engine'
 import { camp } from '../camp-presets.js'
 
 /**
- * The row that needs confirming. Sources disagree on whether the 2:55 is a true clock
- * cadence or an offset from all warheads being collected; it is recorded as
- * `afterResolution` because that is what the more detailed source says. If it turns out
- * to be a genuine cadence it becomes the second `fixedInterval` map rather than needing a
- * new variant, which is the whole reason the model has exactly three.
+ * The row `architecture.md` flagged as needing confirming, and it still does. The trigger
+ * is settled — the wiki agrees it is an offset from all warheads being collected, not a
+ * clock cadence — but the two sources disagree on the number: Icy Veins says 2:55, the
+ * wiki says 3:05. The wiki's figure is used because it is the more recently maintained,
+ * and the map stays `published` so the ten second disagreement is priced by the clamp
+ * rather than papered over. This is the one map the provenance field is doing real work
+ * on.
  *
  * Warheads spawn in different places each cycle, so `travelSeconds` and `pressureValue`
  * are indexed by cycle.
@@ -17,6 +19,8 @@ import { camp } from '../camp-presets.js'
 export const warheadJunction: MapDefinition = {
   id: 'warhead-junction',
   name: 'Warhead Junction',
+  // Stays `published`: Icy Veins says 2:55 and the wiki says 3:05. Two sources, and they
+  // disagree, which is exactly the case the clamp exists for.
   provenance: 'published',
   objective: {
     kind: 'timed',
@@ -26,7 +30,7 @@ export const warheadJunction: MapDefinition = {
     // over in one place, so this varies more than most.
     fight: { medianSeconds: 85, spreadSeconds: 35 },
     endedLabel: 'Warheads gone',
-    respawn: { kind: 'afterResolution', outcomes: { allCollected: { label: 'Warheads gone', minSeconds: 175, maxSeconds: 175 } } },
+    respawn: { kind: 'afterResolution', outcomes: { allCollected: { label: 'Warheads gone', minSeconds: 185, maxSeconds: 185 } } },
     instances: '2-4 warheads',
   },
   camps: [

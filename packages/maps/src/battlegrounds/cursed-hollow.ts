@@ -26,7 +26,9 @@ import { camp } from '../camp-presets.js'
 export const cursedHollow: MapDefinition = {
   id: 'cursed-hollow',
   name: 'Cursed Hollow',
-  provenance: 'published',
+  provenance: 'verified',
+  provenanceNote:
+    'Objective 3:00, 0:50-1:30 and 2:00-2:40 after a curse agree between the wiki and the Icy Veins table; camps from the wiki page. docs/objective-timings.md',
   objective: {
     kind: 'timed',
     label: 'Tribute',

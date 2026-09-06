@@ -15,7 +15,9 @@ import { camp } from '../camp-presets.js'
 export const battlefieldOfEternity: MapDefinition = {
   id: 'battlefield-of-eternity',
   name: 'Battlefield of Eternity',
-  provenance: 'published',
+  provenance: 'verified',
+  provenanceNote:
+    'Objective 3:00 and 1:45 after the last Immortal dies in lane agree between the wiki and the Icy Veins table; camps from the wiki page. docs/objective-timings.md',
   campsSuppressedDuringObjective: true,
   objective: {
     kind: 'timed',

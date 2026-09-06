@@ -78,7 +78,7 @@ export function validateMap(map: MapDefinition): ValidationIssue[] {
     if (!nonNegative(o.fight.spreadSeconds)) issues.push({ where, problem: 'fight.spreadSeconds must be >= 0' })
 
     const rule = o.respawn
-    if (rule.kind === 'afterResolution') {
+    {
       const names = Object.keys(rule.outcomes)
       if (names.length === 0) issues.push({ where, problem: 'afterResolution needs at least one outcome' })
       for (const [name, outcome] of Object.entries(rule.outcomes)) {
@@ -106,9 +106,6 @@ export function validateMap(map: MapDefinition): ValidationIssue[] {
         // and matches do run long.
         issues.push({ where, problem: 'scalePerMinuteSeconds requires minOffsetSeconds as a floor' })
       }
-    } else {
-      if (!positive(rule.minSeconds)) issues.push({ where, problem: 'minSeconds must be > 0' })
-      if (rule.maxSeconds < rule.minSeconds) issues.push({ where, problem: 'maxSeconds is below minSeconds' })
     }
   }
 

@@ -140,7 +140,7 @@ export const deterministic: MapDefinition = {
   camps: [siegeTop],
 }
 
-/** The one fixed-interval map. Blackheart's Bay. */
+/** Blackheart's Bay: a scalar offset off the last chest being taken. */
 export const blackheart: MapDefinition = {
   id: 'blackheart',
   name: "Blackheart's Bay",
@@ -152,7 +152,10 @@ export const blackheart: MapDefinition = {
     firstSpawnSeconds: 90,
     endedLabel: 'Chests gone',
     fight: { medianSeconds: 50, spreadSeconds: 20 },
-    respawn: { kind: 'fixedInterval', minSeconds: 165, maxSeconds: 195 },
+    respawn: {
+      kind: 'afterResolution',
+      outcomes: { lastChestTaken: { label: 'Last chest taken', minSeconds: 180, maxSeconds: 180 } },
+    },
   },
   camps: [siegeTop],
 }

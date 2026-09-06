@@ -23,11 +23,13 @@ describe('every battleground', () => {
     expect(battlegrounds).toHaveLength(15)
   })
 
-  it('exercises every RespawnRule variant, so no variant is dead code', () => {
+  it('chains every objective off a resolution, with no unused variant carried', () => {
+    // `architecture.md` has a `fixedInterval` variant for Blackheart's Bay. The wiki says
+    // twice that its chests spawn three minutes after the final chest of the previous
+    // event is captured, which is the same shape as every other map — so the variant had
+    // no users and was removed rather than kept speculatively.
     const timed = battlegrounds.filter((m) => m.objective.kind === 'timed')
-    const kinds = timed.map((m) => (m.objective.kind === 'timed' ? m.objective.respawn.kind : ''))
-    expect(kinds.filter((k) => k === 'fixedInterval')).toHaveLength(1)
-    expect(kinds.filter((k) => k === 'afterResolution')).toHaveLength(13)
+    expect(timed).toHaveLength(14)
     expect(battlegrounds.filter((m) => m.objective.kind === 'none')).toHaveLength(1)
 
     // Three maps have a ranged offset and therefore never collapse to Exact after an
@@ -35,7 +37,6 @@ describe('every battleground', () => {
     const ranged = timed.filter(
       (m) =>
         m.objective.kind === 'timed' &&
-        m.objective.respawn.kind === 'afterResolution' &&
         Object.values(m.objective.respawn.outcomes).some((o) => o.maxSeconds !== o.minSeconds),
     )
     expect(ranged.map((m) => m.id).sort()).toEqual(['alterac-pass', 'cursed-hollow', 'garden-of-terror'])
@@ -43,19 +44,26 @@ describe('every battleground', () => {
     const gated = timed.filter(
       (m) =>
         m.objective.kind === 'timed' &&
-        m.objective.respawn.kind === 'afterResolution' &&
         Object.values(m.objective.respawn.outcomes).some((o) => o.possibleFromCycle !== undefined),
     )
     expect(gated.map((m) => m.id).sort()).toEqual(['cursed-hollow', 'garden-of-terror'])
 
     // And exactly one map scales its offset with game time.
     const scaled = timed.filter(
-      (m) =>
-        m.objective.kind === 'timed' &&
-        m.objective.respawn.kind === 'afterResolution' &&
-        m.objective.respawn.scalePerMinuteSeconds !== undefined,
+      (m) => m.objective.kind === 'timed' && m.objective.respawn.scalePerMinuteSeconds !== undefined,
     )
     expect(scaled.map((m) => m.id)).toEqual(['alterac-pass'])
+  })
+
+  it('renders exact only where two sources agree', () => {
+    // Corroboration is the bar, not who did the measuring. The two hold-outs are the two
+    // where the sources genuinely do not agree or do not exist.
+    const published = battlegrounds.filter((m) => m.provenance !== 'verified').map((m) => m.id)
+    expect(published.sort()).toEqual(['haunted-mines', 'warhead-junction'])
+    for (const map of battlegrounds) {
+      if (map.provenance !== 'verified') continue
+      expect((map.provenanceNote ?? '').length, map.id).toBeGreaterThan(30)
+    }
   })
 
   it('has a unique id', () => {

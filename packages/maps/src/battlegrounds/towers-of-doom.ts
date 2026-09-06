@@ -17,7 +17,9 @@ import { camp } from '../camp-presets.js'
 export const towersOfDoom: MapDefinition = {
   id: 'towers-of-doom',
   name: 'Towers of Doom',
-  provenance: 'published',
+  provenance: 'verified',
+  provenanceNote:
+    'Objective 3:00 and 1:50 after all altars are captured agree between the wiki and the Icy Veins table; camps from the wiki page. docs/objective-timings.md',
   objective: {
     kind: 'timed',
     label: 'Altars',

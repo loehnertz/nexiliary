@@ -62,10 +62,6 @@ export function offsetFor(
    */
   observedOutcome?: string,
 ): OffsetRange {
-  if (rule.kind === 'fixedInterval') {
-    return { min: rule.minSeconds, max: rule.maxSeconds }
-  }
-
   const observed = observedOutcome === undefined ? undefined : rule.outcomes[observedOutcome]
   if (observed !== undefined) {
     return applyScaling(rule, { min: observed.minSeconds, max: observed.maxSeconds }, resolutionTimeSeconds)
@@ -91,7 +87,7 @@ export function offsetFor(
 }
 
 function applyScaling(
-  rule: Extract<RespawnRule, { kind: 'afterResolution' }>,
+  rule: RespawnRule,
   offset: OffsetRange,
   resolutionTimeSeconds: Seconds,
 ): OffsetRange {
@@ -111,18 +107,13 @@ export function reachableOutcomes(
   rule: RespawnRule,
   cycle: number,
 ): { name: string; label: string }[] {
-  if (rule.kind === 'fixedInterval') return []
   return Object.entries(rule.outcomes)
     .filter(([, o]) => (o.possibleFromCycle ?? 1) <= cycle)
     .map(([name, o]) => ({ name, label: o.label }))
 }
 
 function stepSpreadFor(objective: TimedObjective, offset: OffsetRange): Seconds {
-  const halfWidth = (offset.max - offset.min) / 2
-  // A fixed-interval map's spawns do not chain off a fight, so the fight spread is
-  // not part of its step-to-step uncertainty.
-  const fightSpread = objective.respawn.kind === 'fixedInterval' ? 0 : objective.fight.spreadSeconds
-  return stepSpread(fightSpread, halfWidth)
+  return stepSpread(objective.fight.spreadSeconds, (offset.max - offset.min) / 2)
 }
 
 function confidenceFor(low: Seconds, high: Seconds): Confidence {
@@ -260,9 +251,7 @@ function firstStep(
 
 function advance(objective: TimedObjective, from: ChainStep): ChainStep {
   const cycle = from.cycle + 1
-  // A fixed-interval map's next spawn is on its own clock, not after a fight.
-  const usesFight = objective.respawn.kind !== 'fixedInterval'
-  const resolutionTime = usesFight ? from.at + objective.fight.medianSeconds : from.at
+  const resolutionTime = from.at + objective.fight.medianSeconds
   const offset = offsetFor(objective.respawn, cycle, resolutionTime)
   const at = resolutionTime + (offset.min + offset.max) / 2
   const n = from.n + 1

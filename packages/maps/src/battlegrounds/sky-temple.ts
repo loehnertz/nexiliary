@@ -24,7 +24,9 @@ import { camp } from '../camp-presets.js'
 export const skyTemple: MapDefinition = {
   id: 'sky-temple',
   name: 'Sky Temple',
-  provenance: 'published',
+  provenance: 'verified',
+  provenanceNote:
+    'Objective 3:00 and 2:00 after all temples clear agree between the wiki and the Icy Veins table; camps from the wiki page. docs/objective-timings.md',
   objective: {
     kind: 'timed',
     label: 'Temples',

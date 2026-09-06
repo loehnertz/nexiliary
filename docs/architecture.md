@@ -280,8 +280,12 @@ to. `kind: 'none'` is a supported, tested state, not an error: the app shows wav
 and the death timer, and the objective slot reads "no objective timer on this battleground"
 rather than sitting blank or falling back to the unknown-map path.
 
-Blackheart's Bay is the one `fixedInterval` map: chests respawn every 3:00 on their own clock
-rather than chaining off a resolution.
+**Correction: there is no `fixedInterval` map.** Blackheart's Bay was modelled as one, on
+the reading that its chests run on their own clock. The wiki states twice that they spawn
+"3 minutes ... after the final Chest of the previous event has been captured", which is
+`afterResolution` with a scalar offset. The variant had no users left and was removed
+rather than carried — the reasoning against a speculative fourth applies just as well to a
+third that turned out to be wrong.
 
 It carries a known residual limitation. The chest timer **pauses during a bombardment**, and a
 bombardment is triggered by a player turning in doubloons, which the app cannot see. Over a
@@ -299,8 +303,8 @@ Blackheart's Bay still ships with a deliberately wide band and leans harder on t
 other maps. If that proves annoying, the fallback is to model it as `afterResolution` keyed off
 chest collection and drop the fixed interval entirely.
 
-Thirteen of the fifteen maps use `afterResolution`, one uses `fixedInterval`, and one uses
-`none`. Three variants cover the whole pool, and no speculative fourth is carried.
+Fourteen of the fifteen maps use `afterResolution` and one uses `none`. Two variants cover
+the whole pool.
 
 One row needs confirming when its data is written: sources disagree on whether Warhead
 Junction's 2:55 is a true clock cadence or an offset from all warheads being collected. It is
@@ -1207,7 +1211,8 @@ CI validates more than shape:
 - `scalePerMinuteSeconds` is accompanied by `minOffsetSeconds`, or the offset goes negative late.
 - at least one outcome in an `afterResolution` rule is reachable at cycle 1.
 - a `boss` camp's `staleSeconds` is at least 900, or its timer dies in the last third of a match.
-- `provenance` is present, and `verified` requires a corpus reference or a hand-timing note.
+- `provenance` is present, and `verified` requires a note naming the two sources that
+  agree, a corpus reference, or a hand-timing note.
 - Every `CueText` id matches a registered cue, and every key in a cue's declared `thresholds`
   exists in its `CueText`. The declaration is what makes this checkable; reading thresholds by
   string key inside arbitrary TypeScript would leave the check as a note someone has to remember.

@@ -6,10 +6,11 @@ import { camp } from '../camp-presets.js'
  * seconds per minute of elapsed game time. `scalePerMinuteSeconds` exists solely for it,
  * and without it the numbers would be visibly wrong by the twenty minute mark.
  *
- * `minOffsetSeconds` is not optional here. Two seconds a minute against a 110 second
- * floor reaches zero at 55 minutes and goes negative after, and matches do run long. The
- * floor moves both ends together so the offset's half-width — which feeds the band —
- * survives the scaling.
+ * `minOffsetSeconds` is not optional here, and its value is not a guess: the wiki caps
+ * the elapsed-minutes term at 30, so the reduction stops at 60 seconds and the offset
+ * bottoms out at 50 to 90. Without a floor the two-seconds-a-minute term reaches zero at
+ * 55 minutes and goes negative after, and matches do run long. The floor moves both ends
+ * together so the offset's half-width — which feeds the band — survives the scaling.
  *
  * Camps are removed while the cavalry are up, returning once all three are killed.
  *
@@ -19,7 +20,9 @@ import { camp } from '../camp-presets.js'
 export const alteracPass: MapDefinition = {
   id: 'alterac-pass',
   name: 'Alterac Pass',
-  provenance: 'published',
+  provenance: 'verified',
+  provenanceNote:
+    'Objective 3:00 and 110-150 minus 2s per elapsed minute (capped at 30 min) agree between the wiki and the Icy Veins table; camps from the wiki page. docs/objective-timings.md',
   campsSuppressedDuringObjective: true,
   objective: {
     kind: 'timed',
@@ -30,7 +33,7 @@ export const alteracPass: MapDefinition = {
     endedLabel: 'Cavalry gone',
     respawn: {
       kind: 'afterResolution',
-      minOffsetSeconds: 60,
+      minOffsetSeconds: 50,
       scalePerMinuteSeconds: 2,
       outcomes: { completed: { label: 'Cavalry gone', minSeconds: 110, maxSeconds: 150 } },
     },

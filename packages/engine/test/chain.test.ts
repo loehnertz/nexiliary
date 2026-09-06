@@ -156,14 +156,16 @@ describe('respawn rule variants', () => {
     expect(late.max - late.min).toBe(40)
   })
 
-  it('re-phases a fixed-interval map from an ObjectiveEnded anchor', () => {
+  it('re-anchors Blackheart\'s Bay from the last chest, not from a clock', () => {
+    // `architecture.md` models this as a fixed interval. The wiki says twice that chests
+    // spawn three minutes after the final chest of the previous event is captured, which
+    // is the same shape as every other map — and left `fixedInterval` with no users.
     const none = walkChain(blackheart, anchorSet(), 30)!
     expect(none.pending.at).toBe(90)
-    expect(none.following.at).toBe(90 + 180)
 
     const rephased = walkChain(blackheart, anchorSet(anchor('ObjectiveEnded', '1', 400)), 410)!
     expect(rephased.pending.at).toBe(400 + 180)
-    expect(band(rephased.pending.confidence)).toBe(30)
+    expect(rephased.pending.confidence.kind).toBe('Exact')
   })
 
   it('supports a map with no timed objective', () => {

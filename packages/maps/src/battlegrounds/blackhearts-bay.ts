@@ -2,20 +2,21 @@ import type { MapDefinition } from '@nexiliary/engine'
 import { camp } from '../camp-presets.js'
 
 /**
- * The one `fixedInterval` map: chests respawn on their own clock rather than chaining off
- * a resolution.
+ * Not a fixed interval after all. `architecture.md` calls this "the one `fixedInterval`
+ * map", but the wiki says it twice and unambiguously: chests spawn "3 minutes (paused
+ * during the cannon firing event) after the final Chest of the previous event has been
+ * captured". That is `afterResolution` with a scalar offset, exactly like the others —
+ * which leaves `fixedInterval` with no users at all in the pool.
  *
- * It carries a known residual limitation. The chest timer **pauses during a
- * bombardment**, and a bombardment is triggered by a player turning in doubloons, which
- * the app cannot see. Over a match with several bombardments the interval drifts by
- * minutes, and inventing an anchor for "a bombardment started" would fail the input gate:
- * nobody is tapping a phone while a bombardment is being contested.
+ * The residual limitation survives the correction: the timer **pauses during a
+ * bombardment**, which a player triggers by turning in doubloons and which the app cannot
+ * see. Over a match with several bombardments it drifts by minutes, and inventing an
+ * anchor for "a bombardment started" would fail the input gate — nobody is tapping a
+ * phone while a bombardment is being contested.
  *
- * The recovery is defined rather than gestured at: an `ObjectiveEnded` anchor re-phases
- * the whole band from the tap. So the limitation is recoverable by the tap the player is
- * already making, and the band ships deliberately wide — 2:45 to 3:15 rather than a flat
- * 3:00 — because a single number here would be false precision about a clock the app
- * knows it cannot follow.
+ * The recovery is the tap the player is already making: an `ObjectiveEnded` anchor
+ * re-anchors the chain from that moment, so a bombardment costs one cycle rather than the
+ * rest of the match.
  *
  * Sources: objective figures from the validated table in `docs/architecture.md`; camps
  * from the wiki, recorded in `docs/camp-data.md`.
@@ -23,14 +24,19 @@ import { camp } from '../camp-presets.js'
 export const blackheartsBay: MapDefinition = {
   id: 'blackhearts-bay',
   name: "Blackheart's Bay",
-  provenance: 'published',
+  provenance: 'verified',
+  provenanceNote:
+    'Objective 1:30 and 3:00 after the final chest is captured, stated twice on the wiki page and matching the Icy Veins figure; camps from the wiki page. docs/objective-timings.md',
   objective: {
     kind: 'timed',
     label: 'Chests',
     firstSpawnSeconds: 90,
     fight: { medianSeconds: 55, spreadSeconds: 25 },
-    endedLabel: 'Chests gone',
-    respawn: { kind: 'fixedInterval', minSeconds: 165, maxSeconds: 195 },
+    endedLabel: 'Last chest taken',
+    respawn: {
+      kind: 'afterResolution',
+      outcomes: { lastChestTaken: { label: 'Last chest taken', minSeconds: 180, maxSeconds: 180 } },
+    },
     instances: '1, then 2, then 3 chests',
   },
   camps: [

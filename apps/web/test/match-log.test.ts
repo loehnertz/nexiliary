@@ -30,7 +30,7 @@ describe('the match log', () => {
   it('shows what the map file currently guesses, to compare against', () => {
     const log = buildMatchLog(braxisHoldout, [], 300)
     expect(log).toContain('fight 110s ±30s')
-    expect(log).toContain('provenance published')
+    expect(log).toContain('provenance verified')
   })
 
   it('says so plainly when nothing was recorded', () => {

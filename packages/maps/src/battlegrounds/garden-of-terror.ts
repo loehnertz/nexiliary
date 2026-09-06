@@ -20,7 +20,9 @@ import { camp } from '../camp-presets.js'
 export const gardenOfTerror: MapDefinition = {
   id: 'garden-of-terror',
   name: 'Garden of Terror',
-  provenance: 'published',
+  provenance: 'verified',
+  provenanceNote:
+    'Objective 2:30, 50-80 after a seed and 90-120 after the Terrors die agree between the wiki and the Icy Veins table; camps from the wiki page. docs/objective-timings.md',
   campsSuppressedDuringObjective: true,
   objective: {
     kind: 'timed',

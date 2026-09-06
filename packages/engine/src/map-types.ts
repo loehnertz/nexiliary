@@ -22,15 +22,21 @@ export interface RespawnOutcome {
   readonly possibleFromCycle?: number
 }
 
-export type RespawnRule =
-  | {
-      readonly kind: 'afterResolution'
-      /** Floor for `scalePerMinuteSeconds`, applied to the low end of the offset. */
-      readonly minOffsetSeconds?: Seconds
-      readonly outcomes: Readonly<Record<string, RespawnOutcome>>
-      readonly scalePerMinuteSeconds?: number
-    }
-  | { readonly kind: 'fixedInterval'; readonly minSeconds: Seconds; readonly maxSeconds: Seconds }
+/**
+ * Every battleground in the pool chains its next spawn off the resolution of the previous
+ * cycle. `architecture.md` carries a second `fixedInterval` variant for Blackheart's Bay,
+ * on the reading that its chests run on their own clock; the wiki says twice that they
+ * spawn three minutes after the final chest of the previous event is captured, which is
+ * this shape. With no map left using it, the variant was removed rather than carried —
+ * "no speculative fourth" applies just as well to a third that turned out to be wrong.
+ */
+export interface RespawnRule {
+  readonly kind: 'afterResolution'
+  /** Floor for `scalePerMinuteSeconds`, applied to the low end of the offset. */
+  readonly minOffsetSeconds?: Seconds
+  readonly outcomes: Readonly<Record<string, RespawnOutcome>>
+  readonly scalePerMinuteSeconds?: number
+}
 
 export type ObjectiveModel =
   | { readonly kind: 'none' }

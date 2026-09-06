@@ -19,6 +19,9 @@ import { camp } from '../camp-presets.js'
 export const hauntedMines: MapDefinition = {
   id: 'haunted-mines',
   name: 'Haunted Mines',
+  // Stays `published`: the objective figures corroborate, but the wiki page carries no
+  // camp timings at all, so the camps below are the game-wide fallback rather than this
+  // battleground's own numbers. One source, and not even a specific one.
   provenance: 'published',
   objective: {
     kind: 'timed',

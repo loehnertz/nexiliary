@@ -11,7 +11,9 @@ import { camp } from '../camp-presets.js'
 export const infernalShrines: MapDefinition = {
   id: 'infernal-shrines',
   name: 'Infernal Shrines',
-  provenance: 'published',
+  provenance: 'verified',
+  provenanceNote:
+    'Objective 3:00 and 3:00 after the last Punisher dies agree between the wiki and the Icy Veins table; camps from the wiki page. docs/objective-timings.md',
   objective: {
     kind: 'timed',
     label: 'Shrine',

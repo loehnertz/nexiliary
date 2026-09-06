@@ -21,7 +21,9 @@ import { camp } from '../camp-presets.js'
 export const tombOfTheSpiderQueen: MapDefinition = {
   id: 'tomb-of-the-spider-queen',
   name: 'Tomb of the Spider Queen',
-  provenance: 'published',
+  provenance: 'verified',
+  provenanceNote:
+    'No timed objective to corroborate; camps from the wiki page. docs/camp-data.md',
   objective: { kind: 'none' },
   camps: [
     camp({ id: 'siege-s', label: 'siege', type: 'siege', bearing: 's', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [35] }),

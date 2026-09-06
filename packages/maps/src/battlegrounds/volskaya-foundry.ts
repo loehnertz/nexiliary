@@ -13,7 +13,9 @@ import { camp } from '../camp-presets.js'
 export const volskayaFoundry: MapDefinition = {
   id: 'volskaya-foundry',
   name: 'Volskaya Foundry',
-  provenance: 'published',
+  provenance: 'verified',
+  provenanceNote:
+    'Objective 3:00 and 3:00 after the Triglav Protector dies agree between the wiki and the Icy Veins table; camps from the wiki page. docs/objective-timings.md',
   campsSuppressedDuringObjective: true,
   objective: {
     kind: 'timed',

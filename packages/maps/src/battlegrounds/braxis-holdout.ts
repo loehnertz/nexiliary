@@ -20,7 +20,9 @@ import { camp } from '../camp-presets.js'
 export const braxisHoldout: MapDefinition = {
   id: 'braxis-holdout',
   name: 'Braxis Holdout',
-  provenance: 'published',
+  provenance: 'verified',
+  provenanceNote:
+    'Objective 1:30 and 2:10 after the Zerg wave is defeated agree between the wiki and the Icy Veins table; camps from the wiki page. docs/objective-timings.md',
   campsSuppressedDuringObjective: true,
   objective: {
     kind: 'timed',

@@ -170,14 +170,22 @@ expressed".
 `provenance` records where a map's timings came from, and the engine reads it rather than
 trusting the numbers on sight:
 
-- `verified` - measured from current replays. May be presented as `Exact`.
+- `verified` - corroborated: the same figure stated independently by two current sources,
+  or measured from current replays. May be presented as `Exact`.
 - `archive` - measured from the 2015-2019 replay archive. Development use only. Never
   presented as `Exact`; degrades to `Estimated` with a wide band.
 - `published` - taken from a wiki or guide. Same treatment as `archive`.
 - `unknown` - no data. The map falls back to waves, tiers and the death timer.
 
-This is what makes "no map ships without verified numbers" enforceable rather than a note
-someone has to remember. Development can proceed freely against `archive` data, and the app
+The bar is corroboration, not who did the measuring. A maintained wiki and a maintained
+guide agreeing on a figure is evidence; treating that as unconfirmed and widening it by
+twenty seconds does not add honesty, it adds noise — and it makes the confidence system
+carry no information, because nothing is ever green. Where the two sources disagree, as
+they do on Warhead Junction, the map stays `published` and the clamp prices the
+disagreement. That is the field doing real work.
+
+This is what makes "no map ships without corroborated numbers" enforceable rather than a
+note someone has to remember. Development can proceed freely against `archive` data, and the app
 physically cannot claim precision it has not earned. Promoting a map to `verified` is a data
 change.
 
