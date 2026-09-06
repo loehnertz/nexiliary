@@ -11,6 +11,11 @@ export default defineConfig({
     // state once a match has started, so losing the network mid-match must not matter.
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        // The default glob omits webp, which would leave the battleground renders to be
+        // fetched on demand — exactly the thing that fails when signal drops mid-match.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
+      },
       manifest: {
         name: 'nexiliary',
         short_name: 'nexiliary',
