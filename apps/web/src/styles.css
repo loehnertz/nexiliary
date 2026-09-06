@@ -479,6 +479,21 @@ body {
   box-shadow: inset 0 0 0 1px rgb(150 136 224 / 0.22);
 }
 
+/* The map is bound by width, never by height: every battleground render is wider than
+   tall, so its height is just the width times a fixed aspect. On a portrait phone that
+   makes the panel's own side padding the only thing standing between the map and being
+   bigger, and 32px of it is worth about 7% in both directions.
+   It stops at the panel's inner edge rather than the page's — going further would put the
+   map outside the bevelled frame, which is load-bearing for the visual identity. Above the
+   breakpoint the rail is a grid column, where a negative margin would overlap the
+   countdown instead of reclaiming padding. */
+@media (max-width: 699px) {
+  .map-frame {
+    margin-inline: -16px;
+    width: calc(100% + 32px);
+  }
+}
+
 .map-ground {
   display: block;
   width: 100%;
