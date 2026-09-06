@@ -14,6 +14,18 @@ Extracted from the Heroes of the Storm wiki battleground pages on 2026-09-06, UR
   - "Subsequent Prison Camps will spawn at random within a range of time after all Cavalry from the previous event have been eliminated, alternating sides each time. This range of time is determined as follows: Random amount of time from 110 – (# of game minutes elapsed * 2) seconds to 150 – (# of game minutes elapsed * 2) seconds. Game minutes elapsed is capped at 30 minutes for the spawn time."
   - "For example: If all Cavalry from the most recent event are defeated at the 10-minute mark, the next set of Prison Camps will spawn at random between 90 and 130 seconds later."
 
+## Battlefield of Eternity
+
+- First objective: 3:00
+- Subsequent: 1:45 after the last Immortal dies
+- Timer runs from: the *surviving* Immortal being killed in lane, not the middle race
+- Quotes:
+  - "First Objective 3:00 minutes"
+  - "Subsequent Objectives 1:45 minutes after the last Immortal dies"
+  - "Once the Immortal is killed in lane, the next phase starts in 1:45 and the defending team gains the difference in XP with the enemy team from capturing the Immortal."
+  - "Once one of the two Immortals is reduced to 0 HP, the surviving Immortal flies to the center of the map to charge up over 15 seconds"
+  - "Once the Immortal is fully charged, it will fly to the lane that has sustained the least damage to enemy structures"
+
 ## Blackheart's Bay
 
 - First objective: 1:30
@@ -24,6 +36,17 @@ Extracted from the Heroes of the Storm wiki battleground pages on 2026-09-06, UR
   - "Subsequent Objectives 3:00 minutes after both chests break (paused during cannon firing event)"
   - "The first Doubloon Chest spawns 90 seconds into the match, following a 30-second warning. Doubloon Chests will spawn 3 minutes (paused during the cannon firing event after a team turns in enough Doubloons) after the final Chest of the previous event has been captured."
   - "Doubloon Chests will spawn 3 minutes after the final Chest of the previous event has been captured (the timer is paused during the cannon firing event)."
+
+## Braxis Holdout
+
+- First objective: 1:30
+- Subsequent: 2:10 after both Zerg swarms die
+- Timer runs from: the previous Zerg wave being defeated, not the beacons being captured
+- Quotes:
+  - "First Objective 1:30 minutes"
+  - "Subsequent Objectives 2:10 minutes after both Zerg swarms die"
+  - "The first Beacons will activate 90 seconds into the match, following a 30-second warning. Beacon events after the first will spawn 2 minutes and 10 seconds after a previous Zerg wave has been defeated."
+  - "Once either Holding Cell fills, both open and unleash waves of Zerg at each team's base."
 
 ## Cursed Hollow
 
@@ -144,6 +167,17 @@ Note: this battleground was expected to have no timed objective (gem-turn-in onl
   - "The location of the first Warheads will appear on the Minimap 30 seconds after the game begins, as well as 30 seconds after the final Warhead in an event has been collected. The first Warheads will spawn 3:00 minutes into the match, following a 30-second warning."
 
 ## Notes
+
+- Battlefield of Eternity and Braxis Holdout were read separately, before the rest, which
+  is why they were originally missing here. Their quotes above come from the same pages
+  and are what the two-stage finding rests on, so the file is the complete record the map
+  files' `provenanceNote` fields point at.
+- On four maps the figure appears in the infobox but is not restated in the page's prose,
+  which only confirms the 30-second minimap-indicator delay: Haunted Mines, Infernal
+  Shrines, Sky Temple and Warhead Junction. That is *internal* corroboration, and it is not
+  the bar being applied — a map is `verified` when the wiki and the Icy Veins table in
+  `architecture.md` agree, which they do for Infernal Shrines and Sky Temple. Haunted Mines
+  and Warhead Junction stay `published` for separate reasons recorded in their map files.
 
 - Alterac Pass: the infobox has no "Subsequent Objectives" row at all; the subsequent-spawn timing exists only as the prose formula (110–150 seconds minus twice the elapsed game minutes, capped at 30 minutes), so no single fixed value could be recorded.
 - Haunted Mines: the infobox states "2:00 minutes after both golems die," but the prose never restates or corroborates that figure — it describes only the first mine opening and the golem-spawning mechanic, not the subsequent-event timer.

@@ -34,6 +34,12 @@ export const cursedHollow: MapDefinition = {
     label: 'Tribute',
     firstSpawnSeconds: 180,
     // One tribute, contested and then collected. Short and fairly consistent.
+    //
+    // Note that the two outcomes are anchored at genuinely different moments, not just
+    // given different offsets: 0:50-1:30 runs from the tribute being collected, while
+    // 2:00-2:40 runs from the *curse ending*, and the curse itself lasts 70 seconds after
+    // the third tribute. The two button labels say which moment each means, which is why
+    // naming the outcome is a tap the player can actually make correctly.
     fight: { medianSeconds: 40, spreadSeconds: 20 },
     endedLabel: 'Tribute taken',
     respawn: {
