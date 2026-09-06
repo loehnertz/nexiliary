@@ -20,6 +20,8 @@ export { fallbackMap }
 export { cueText } from './cue-text.js'
 export * from './schema.js'
 export { camp } from './camp-presets.js'
+export { mapImages } from './map-images.js'
+export type { MapImage } from './map-images.js'
 export type { CampSpec } from './camp-presets.js'
 
 /** The fifteen battlegrounds in rotation, in the order the picker shows them. */

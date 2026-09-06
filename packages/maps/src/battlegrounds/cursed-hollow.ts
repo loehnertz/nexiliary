@@ -54,9 +54,9 @@ export const cursedHollow: MapDefinition = {
   camps: [
     camp({ id: 'siege-nw', label: 'siege nw', type: 'siege', bearing: 'nw', position: { x: 0.305, y: 0.385 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
     camp({ id: 'siege-se', label: 'siege se', type: 'siege', bearing: 'se', position: { x: 0.714, y: 0.575 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'knight-ne', label: 'knights ne', type: 'bruiser', bearing: 'ne', position: { x: 0.651, y: 0.371 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
-    camp({ id: 'knight-sw', label: 'knights sw', type: 'bruiser', bearing: 'sw', position: { x: 0.361, y: 0.611 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
-    camp({ id: 'golem-ne', label: 'boss ne', type: 'boss', bearing: 'ne', position: { x: 0.606, y: 0.2 }, firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [60] }),
-    camp({ id: 'golem-sw', label: 'boss sw', type: 'boss', bearing: 'sw', position: { x: 0.416, y: 0.776 }, firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [60] }),
+    camp({ id: 'knight-ne', label: 'knights ne', type: 'bruiser', bearing: 'ne', position: { x: 0.653, y: 0.378 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
+    camp({ id: 'knight-sw', label: 'knights sw', type: 'bruiser', bearing: 'sw', position: { x: 0.359, y: 0.605 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
+    camp({ id: 'golem-ne', label: 'boss ne', type: 'boss', bearing: 'ne', position: { x: 0.604, y: 0.193 }, firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [60] }),
+    camp({ id: 'golem-sw', label: 'boss sw', type: 'boss', bearing: 'sw', position: { x: 0.418, y: 0.782 }, firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [60] }),
   ],
 }

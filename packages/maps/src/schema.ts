@@ -1,4 +1,5 @@
 import type { Bearing, CampDefinition, CueText, MapDefinition } from '@nexiliary/engine'
+import type { MapImage } from './map-images.js'
 
 /**
  * Maps are data, not code. This validates more than shape, because the failures that
@@ -166,6 +167,41 @@ export function validateCueText(
   }
   for (const id of cueIds) {
     if (!(id in text)) issues.push({ where: id, problem: 'registered cue has no CueText entry' })
+  }
+  return issues
+}
+
+/**
+ * Two camps must stay separately tappable.
+ *
+ * A 44 pt target on a 370 pt-wide panel is 0.119 of the width, so 0.13 guarantees no
+ * overlap with a small margin. Measured in units of rendered *width*, because the renders
+ * run 1.2:1 to 2.3:1 and equal normalised distances are not equal physical ones.
+ *
+ * A boss and a bruiser sharing a corner is common in this game, so some maps need a
+ * marker nudged apart. That is the check working rather than a false positive: the
+ * position is a tap target, not a survey pin.
+ */
+export const minCampSeparation = 0.13
+
+export function validateMapImage(map: MapDefinition, image: MapImage): ValidationIssue[] {
+  const issues: ValidationIssue[] = []
+  const aspect = image.height / image.width
+  for (let i = 0; i < map.camps.length; i++) {
+    for (let j = i + 1; j < map.camps.length; j++) {
+      const a = map.camps[i]
+      const b = map.camps[j]
+      if (a === undefined || b === undefined) continue
+      const dx = a.position.x - b.position.x
+      const dy = (a.position.y - b.position.y) * aspect
+      const distance = Math.sqrt(dx * dx + dy * dy)
+      if (distance < minCampSeparation) {
+        issues.push({
+          where: map.id,
+          problem: `${a.id} and ${b.id} are too close to tap apart (${distance.toFixed(3)} < ${minCampSeparation})`,
+        })
+      }
+    }
   }
   return issues
 }

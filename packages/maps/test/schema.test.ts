@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { cues, project, view, walkChain } from '@nexiliary/engine'
 import type { MapDefinition } from '@nexiliary/engine'
-import { appliesToBudget, battlegrounds, camp, cueText, fallbackMap, mapById, validateCueText, validateMap } from '../src/index.js'
+import { appliesToBudget, battlegrounds, camp, cueText, fallbackMap, mapById, mapImages, validateCueText, validateMap, validateMapImage } from '../src/index.js'
+import type { MapImage } from '../src/index.js'
 
 describe('every battleground', () => {
   it('validates', () => {
@@ -272,5 +273,55 @@ describe('camp positions', () => {
   it('exempts a central camp', () => {
     const issues = validateMap(bad({ camps: [spec({ bearing: 'c', position: { x: 0.05, y: 0.95 } })] }))
     expect(issues.filter((i) => i.problem.includes('bearing'))).toEqual([])
+  })
+})
+
+describe('map images', () => {
+  const bad = (over: Partial<MapDefinition>): MapDefinition => ({ ...battlegrounds[0]!, ...over })
+  const image: MapImage = { src: '/maps/x.webp', width: 800, height: 600 }
+  const at = (id: string, x: number, y: number) =>
+    camp({
+      id,
+      label: id,
+      type: 'siege',
+      bearing: 'nw',
+      position: { x, y },
+      firstSpawnSeconds: 60,
+      respawnSeconds: 180,
+      travelSeconds: [45],
+    })
+
+  it('declares an image matching the file actually committed', async () => {
+    const { statSync } = await import('node:fs')
+    for (const [id, img] of Object.entries(mapImages)) {
+      const path = new URL(`../../../apps/web/public${img.src}`, import.meta.url)
+      expect({ id, exists: statSync(path).isFile() }).toEqual({ id, exists: true })
+    }
+  })
+
+  it('covers every battleground', () => {
+    for (const map of battlegrounds) {
+      expect({ map: map.id, hasImage: mapImages[map.id] !== undefined }).toEqual({
+        map: map.id,
+        hasImage: true,
+      })
+    }
+  })
+
+  it('rejects two camps closer than a thumb', () => {
+    const map = bad({ camps: [at('a', 0.3, 0.3), at('b', 0.34, 0.32)] })
+    expect(validateMapImage(map, image).some((i) => i.problem.includes('too close'))).toBe(true)
+  })
+
+  it('accepts a pair just far enough apart', () => {
+    const map = bad({ camps: [at('a', 0.2, 0.3), at('b', 0.36, 0.3)] })
+    expect(validateMapImage(map, image).filter((i) => i.problem.includes('too close'))).toEqual([])
+  })
+
+  it('keeps Cursed Hollow separately tappable, boss beside bruiser included', () => {
+    // The one map with real coordinates so far. Its boss and knight camps share the
+    // north-east and south-west corners and needed nudging apart to clear the threshold.
+    const map = battlegrounds.find((m) => m.id === 'cursed-hollow')!
+    expect(validateMapImage(map, mapImages['cursed-hollow']!)).toEqual([])
   })
 })
