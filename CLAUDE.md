@@ -10,7 +10,7 @@ below and in `docs/spec.md`, and nothing else.
 ## Current state
 
 Steps 1 to 4 of the build order are done: `packages/engine`, `packages/maps` with all fifteen
-battlegrounds, and `apps/web`. `pnpm dev` runs it. 118 tests, TypeScript strict throughout.
+battlegrounds, and `apps/web`. `pnpm dev` runs it. 175 tests, TypeScript strict throughout.
 
 Step 5, the relay, is not started. It needs a Cloudflare account that does not exist yet, and
 nothing else depends on it: the app works fully as a single-player local app, which is what
@@ -19,6 +19,12 @@ steps 1 to 4 were ordered to produce.
 Seventeen places where `docs/architecture.md` could not be built as written were found and
 corrected. `docs/implementation-findings.md` is the index; read it before trusting any part of
 the architecture document you have not checked against the code.
+
+Camps are tapped on a picture of the battleground rather than picked from a list of compass
+names, which removes the two translations that cost the most attention mid-fight. Fourteen of
+the fifteen battlegrounds carry a render and camp coordinates; Blackheart's Bay keeps the rail
+because its four Skeletal Pirate camps are two entries in the data, so a dot would point at
+neither. See `docs/map-images.md`.
 
 No map is `verified`. Nothing has been hand-timed, so nothing renders `Exact` except waves. The
 exact display path, the exact spoken wording and any cue requiring an exact objective are all
