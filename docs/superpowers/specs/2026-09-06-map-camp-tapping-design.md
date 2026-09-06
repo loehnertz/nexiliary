@@ -102,6 +102,12 @@ export const mapImages: Readonly<Record<string, MapImage>>
 
 Keyed by map id, with a missing entry meaning the map falls back to the existing rail.
 
+A missing entry is a **supported outcome, not a gap**. Five battlegrounds — Battlefield of
+Eternity, Blackheart's Bay, Cursed Hollow, Dragon Shire and Sky Temple — are published in the
+wiki's map category only as annotated renders, and an annotated render cannot ship (see
+Assets). Where no unmarked render can be sourced, that battleground keeps the rail. The same
+branch covers an image that fails to load at runtime.
+
 ## Assets
 
 Fifteen renders from the wiki's `Category:Battleground maps`, which covers every battleground in
@@ -247,11 +253,20 @@ Vitest, in `packages/engine/test` and `packages/maps/test`:
 - Tapping a camp then tapping it again returns the anchor set to its original size — principle 2
   holds through the flip.
 
-Playwright, in `apps/web/test`, against the mocked clock:
+The web package has **no DOM testing tooling** — no React Testing Library, no Playwright,
+despite `CLAUDE.md` naming Playwright for this purpose. Its tests are pure logic tests in
+Vitest. Rather than introduce a browser harness for this change, the logic worth testing is
+kept out of the component:
 
-- A tap at the pixel corresponding to a known coordinate selects that camp and no other.
-- The dot re-renders to the flipped state.
-- A map with no `mapImages` entry renders `CampPanel`, so the degraded path stays live.
+- Positions, bearings and separation are validated in `packages/maps`, not at render time.
+- `mapImages` is checked against the files actually committed, so a missing or renamed asset
+  fails the suite rather than showing a blank frame mid-match.
+- The self-healing tap is characterised at the reducer level in `apps/web/test/match.test.ts`:
+  recording a camp taken and then up leaves one anchor per claim, so principle 2 holds through
+  the flip.
+
+`MapPanel` itself is chrome over data those tests validate. It is verified by looking at it —
+`pnpm dev`, a match on a mapped battleground, at phone width.
 
 ## Out of scope
 
