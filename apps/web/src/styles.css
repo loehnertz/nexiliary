@@ -468,3 +468,75 @@ body {
     align-items: center;
   }
 }
+
+/* -------------------------------------------------------------- map view ---- */
+
+.map-frame {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: var(--color-ground, #171331);
+  box-shadow: inset 0 0 0 1px rgb(150 136 224 / 0.22);
+}
+
+.map-ground {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 44px is the smallest reliable thumb target, and `minCampSeparation` in the maps
+   package is derived from exactly this number. Changing one without the other puts two
+   dots on top of each other. */
+.map-dot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 2px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  color: var(--color-ink);
+  background: rgb(23 19 49 / 0.82);
+  box-shadow:
+    0 0 0 2px rgb(10 7 20 / 0.75),
+    inset 0 0 0 2px currentColor;
+}
+
+/* Standing and confirmed. The only state that fills solid, because it is the only one
+   asserting the camp is there. */
+.map-dot-up {
+  color: rgb(10 30 18);
+  background: rgb(63 191 120 / 0.92);
+  box-shadow:
+    0 0 0 2px rgb(10 7 20 / 0.75),
+    0 0 10px rgb(63 191 120 / 0.5);
+}
+
+/* Belief has decayed to Likely or Stale, so this must not read as an assertion. */
+.map-dot-unconfirmed {
+  background: rgb(23 19 49 / 0.86);
+}
+
+.map-dot-down {
+  background: rgb(90 79 158 / 0.88);
+}
+
+/* Removed from the battlefield by the objective, so there is nothing to tap. */
+.map-dot-away {
+  background: rgb(23 19 49 / 0.55);
+  box-shadow: 0 0 0 2px rgb(10 7 20 / 0.6);
+  outline: 2px dashed currentColor;
+  outline-offset: -5px;
+}
+
+.map-dot:disabled {
+  cursor: default;
+}
