@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { cues, project, view, walkChain } from '@nexiliary/engine'
 import type { MapDefinition } from '@nexiliary/engine'
-import { appliesToBudget, battlegrounds, cueText, fallbackMap, mapById, validateCueText, validateMap } from '../src/index.js'
+import { appliesToBudget, battlegrounds, camp, cueText, fallbackMap, mapById, validateCueText, validateMap } from '../src/index.js'
 
 describe('every battleground', () => {
   it('validates', () => {
@@ -232,5 +232,45 @@ describe('degradation matches the documented per-map behaviour', () => {
     const braxis = cyclesFromAnchor('braxis-holdout', 300)
     expect(braxis).not.toBeNull()
     expect(braxis!).toBeGreaterThan(cyclesFromAnchor('cursed-hollow', 300)!)
+  })
+})
+
+describe('camp positions', () => {
+  // `bad()` above is scoped to another describe block, so this one needs its own.
+  const bad = (over: Partial<MapDefinition>): MapDefinition => ({ ...battlegrounds[0]!, ...over })
+  const spec = (over: Partial<Parameters<typeof camp>[0]>) =>
+    camp({
+      id: 'a',
+      label: 'siege nw',
+      type: 'siege',
+      bearing: 'nw',
+      position: { x: 0.3, y: 0.3 },
+      firstSpawnSeconds: 60,
+      respawnSeconds: 180,
+      travelSeconds: [45],
+      ...over,
+    })
+
+  it('rejects a position outside the unit box', () => {
+    const issues = validateMap(bad({ camps: [spec({ position: { x: -0.1, y: 0.2 } })] }))
+    expect(issues.some((i) => i.problem.includes('unit box'))).toBe(true)
+  })
+
+  it('rejects a bearing that contradicts its position', () => {
+    // Declared north-west, sitting south-east: the transposed pair is the likely error
+    // across seventy-odd hand-read coordinates.
+    const issues = validateMap(bad({ camps: [spec({ position: { x: 0.8, y: 0.9 } })] }))
+    expect(issues.some((i) => i.problem.includes('bearing nw'))).toBe(true)
+  })
+
+  it('constrains only the axes the bearing names', () => {
+    // `n` says nothing about east or west, so any x is legal.
+    const issues = validateMap(bad({ camps: [spec({ bearing: 'n', position: { x: 0.92, y: 0.2 } })] }))
+    expect(issues.filter((i) => i.problem.includes('bearing'))).toEqual([])
+  })
+
+  it('exempts a central camp', () => {
+    const issues = validateMap(bad({ camps: [spec({ bearing: 'c', position: { x: 0.05, y: 0.95 } })] }))
+    expect(issues.filter((i) => i.problem.includes('bearing'))).toEqual([])
   })
 })

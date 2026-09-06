@@ -21,6 +21,7 @@ function camp(over: Partial<CampDefinition> & Pick<CampDefinition, 'id'>): CampD
     label: over.id,
     type: 'siege',
     bearing: 'c',
+    position: { x: 0.5, y: 0.5 },
     firstSpawnSeconds: 120,
     respawnSeconds: 180,
     decaySeconds: 45,

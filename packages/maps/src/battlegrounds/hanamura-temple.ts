@@ -34,9 +34,9 @@ export const hanamuraTemple: MapDefinition = {
     instances: '1 payload',
   },
   camps: [
-    camp({ id: 'sentinel-sw', label: 'sentinel sw', type: 'siege', bearing: 'sw', firstSpawnSeconds: 60, respawnSeconds: 120, travelSeconds: [45] }),
-    camp({ id: 'sentinel-ne', label: 'sentinel ne', type: 'siege', bearing: 'ne', firstSpawnSeconds: 60, respawnSeconds: 120, travelSeconds: [45] }),
-    camp({ id: 'fort-se', label: 'turret se', type: 'special', bearing: 'se', firstSpawnSeconds: 60, respawnSeconds: 150, travelSeconds: [40] }),
-    camp({ id: 'fort-nw', label: 'turret nw', type: 'special', bearing: 'nw', firstSpawnSeconds: 60, respawnSeconds: 150, travelSeconds: [40] }),
+    camp({ id: 'sentinel-sw', label: 'sentinel sw', type: 'siege', bearing: 'sw', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 120, travelSeconds: [45] }),
+    camp({ id: 'sentinel-ne', label: 'sentinel ne', type: 'siege', bearing: 'ne', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 120, travelSeconds: [45] }),
+    camp({ id: 'fort-se', label: 'turret se', type: 'special', bearing: 'se', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 150, travelSeconds: [40] }),
+    camp({ id: 'fort-nw', label: 'turret nw', type: 'special', bearing: 'nw', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 150, travelSeconds: [40] }),
   ],
 }

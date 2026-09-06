@@ -67,6 +67,15 @@ export interface CampDefinition {
   readonly label: string
   readonly type: CampType
   readonly bearing: Bearing
+  /**
+   * The camp's marker, normalised 0..1 within the battleground's playable bounding box.
+   *
+   * The image is cropped to that box, so coordinates are frame-independent: a later
+   * re-crop changes the asset, never the fifteen map files. This is a tap target rather
+   * than a survey pin, so it may sit slightly off the literal location to keep two
+   * adjacent camps separately tappable.
+   */
+  readonly position: { readonly x: number; readonly y: number }
   readonly firstSpawnSeconds: Seconds
   readonly respawnSeconds: Seconds
   /** Belief becomes `Likely` after this long unconfirmed. Per camp, never global. */

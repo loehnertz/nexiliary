@@ -30,9 +30,9 @@ export const battlefieldOfEternity: MapDefinition = {
     instances: '2 immortals',
   },
   camps: [
-    camp({ id: 'impaler-n', label: 'impalers n', type: 'siege', bearing: 'n', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [40] }),
-    camp({ id: 'impaler-s', label: 'impalers s', type: 'siege', bearing: 's', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [40] }),
-    camp({ id: 'shaman-w', label: 'shaman w', type: 'bruiser', bearing: 'w', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
-    camp({ id: 'shaman-e', label: 'shaman e', type: 'bruiser', bearing: 'e', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
+    camp({ id: 'impaler-n', label: 'impalers n', type: 'siege', bearing: 'n', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [40] }),
+    camp({ id: 'impaler-s', label: 'impalers s', type: 'siege', bearing: 's', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [40] }),
+    camp({ id: 'shaman-w', label: 'shaman w', type: 'bruiser', bearing: 'w', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
+    camp({ id: 'shaman-e', label: 'shaman e', type: 'bruiser', bearing: 'e', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
   ],
 }

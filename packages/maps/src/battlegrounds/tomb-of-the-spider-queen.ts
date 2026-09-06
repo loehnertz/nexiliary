@@ -26,9 +26,9 @@ export const tombOfTheSpiderQueen: MapDefinition = {
     'No timed objective to corroborate; camps from the wiki page. docs/camp-data.md',
   objective: { kind: 'none' },
   camps: [
-    camp({ id: 'siege-s', label: 'siege', type: 'siege', bearing: 's', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [35] }),
-    camp({ id: 'knight-w', label: 'knights w', type: 'bruiser', bearing: 'w', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
-    camp({ id: 'knight-e', label: 'knights e', type: 'bruiser', bearing: 'e', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
-    camp({ id: 'golem', label: 'boss', type: 'boss', bearing: 'n', firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [55] }),
+    camp({ id: 'siege-s', label: 'siege', type: 'siege', bearing: 's', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [35] }),
+    camp({ id: 'knight-w', label: 'knights w', type: 'bruiser', bearing: 'w', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
+    camp({ id: 'knight-e', label: 'knights e', type: 'bruiser', bearing: 'e', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
+    camp({ id: 'golem', label: 'boss', type: 'boss', bearing: 'n', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [55] }),
   ],
 }

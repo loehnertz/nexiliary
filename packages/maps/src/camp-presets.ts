@@ -39,6 +39,8 @@ export interface CampSpec {
   readonly type: CampType
   /** Where it sits on the battleground, from the wiki's location text. */
   readonly bearing: Bearing
+  /** Normalised 0..1 within the battleground's playable bounding box. */
+  readonly position: { readonly x: number; readonly y: number }
   readonly firstSpawnSeconds: number
   readonly respawnSeconds: number
   /** Seconds for the mercenaries to reach the objective, by cycle, last repeating. */
@@ -56,6 +58,7 @@ export function camp(spec: CampSpec): CampDefinition {
     label: spec.label,
     type: spec.type,
     bearing: spec.bearing,
+    position: spec.position,
     firstSpawnSeconds: spec.firstSpawnSeconds,
     respawnSeconds: spec.respawnSeconds,
     decaySeconds: preset.decaySeconds,

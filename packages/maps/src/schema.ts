@@ -12,6 +12,7 @@ export interface ValidationIssue {
 
 const positive = (n: number) => Number.isFinite(n) && n > 0
 const nonNegative = (n: number) => Number.isFinite(n) && n >= 0
+const inUnit = (n: number) => Number.isFinite(n) && n >= 0 && n <= 1
 
 function validateCamp(mapId: string, camp: CampDefinition): ValidationIssue[] {
   const issues: ValidationIssue[] = []
@@ -20,6 +21,23 @@ function validateCamp(mapId: string, camp: CampDefinition): ValidationIssue[] {
   if (camp.label.trim() === '') issues.push({ where, problem: 'camp label is empty' })
   const bearings: Bearing[] = ['nw', 'n', 'ne', 'w', 'c', 'e', 'sw', 's', 'se']
   if (!bearings.includes(camp.bearing)) issues.push({ where, problem: `unknown bearing ${camp.bearing}` })
+  const { x, y } = camp.position
+  if (!inUnit(x) || !inUnit(y)) {
+    issues.push({ where, problem: 'position must be within the unit box, 0 to 1' })
+  } else {
+    // A half-plane test, not a derived-bearing equality: the point is to catch a
+    // transposed or mistyped pair, not to relitigate whether a camp near the middle is
+    // `n` or `ne`. An axis the bearing does not name is left unconstrained.
+    const b = camp.bearing
+    if (
+      (b.includes('n') && y > 0.5) ||
+      (b.includes('s') && y < 0.5) ||
+      (b.includes('w') && x > 0.5) ||
+      (b.includes('e') && x < 0.5)
+    ) {
+      issues.push({ where, problem: `bearing ${b} contradicts position ${x}, ${y}` })
+    }
+  }
   if (!nonNegative(camp.firstSpawnSeconds)) issues.push({ where, problem: 'firstSpawnSeconds must be >= 0' })
   if (!positive(camp.respawnSeconds)) issues.push({ where, problem: 'respawnSeconds must be > 0' })
   if (!positive(camp.decaySeconds)) issues.push({ where, problem: 'decaySeconds must be > 0' })

@@ -40,11 +40,11 @@ export const gardenOfTerror: MapDefinition = {
     instances: '1 seed',
   },
   camps: [
-    camp({ id: 'siege-nw', label: 'siege nw', type: 'siege', bearing: 'nw', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'siege-ne', label: 'siege ne', type: 'siege', bearing: 'ne', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'siege-sw', label: 'siege sw', type: 'siege', bearing: 'sw', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'siege-se', label: 'siege se', type: 'siege', bearing: 'se', firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'knight-ne', label: 'knights ne', type: 'bruiser', bearing: 'ne', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
-    camp({ id: 'knight-sw', label: 'knights sw', type: 'bruiser', bearing: 'sw', firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
+    camp({ id: 'siege-nw', label: 'siege nw', type: 'siege', bearing: 'nw', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
+    camp({ id: 'siege-ne', label: 'siege ne', type: 'siege', bearing: 'ne', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
+    camp({ id: 'siege-sw', label: 'siege sw', type: 'siege', bearing: 'sw', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
+    camp({ id: 'siege-se', label: 'siege se', type: 'siege', bearing: 'se', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
+    camp({ id: 'knight-ne', label: 'knights ne', type: 'bruiser', bearing: 'ne', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
+    camp({ id: 'knight-sw', label: 'knights sw', type: 'bruiser', bearing: 'sw', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
   ],
 }
