@@ -34,9 +34,9 @@ export const hauntedMines: MapDefinition = {
     instances: '1 mine',
   },
   camps: [
-    camp({ id: 'siege-w', label: 'siege w', type: 'siege', bearing: 'w', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [40] }),
-    camp({ id: 'siege-e', label: 'siege e', type: 'siege', bearing: 'e', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [40] }),
-    camp({ id: 'sapper-n', label: 'sappers n', type: 'siege', bearing: 'n', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 120, travelSeconds: [35] }),
-    camp({ id: 'sapper-s', label: 'sappers s', type: 'siege', bearing: 's', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 120, travelSeconds: [35] }),
+    camp({ id: 'siege-w', label: 'siege w', type: 'siege', bearing: 'w', position: { x: 0.32, y: 0.425 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [40] }),
+    camp({ id: 'siege-e', label: 'siege e', type: 'siege', bearing: 'e', position: { x: 0.61, y: 0.499 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [40] }),
+    camp({ id: 'sapper-n', label: 'sappers n', type: 'siege', bearing: 'n', position: { x: 0.49, y: 0.314 }, firstSpawnSeconds: 60, respawnSeconds: 120, travelSeconds: [35] }),
+    camp({ id: 'sapper-s', label: 'sappers s', type: 'siege', bearing: 's', position: { x: 0.485, y: 0.626 }, firstSpawnSeconds: 60, respawnSeconds: 120, travelSeconds: [35] }),
   ],
 }

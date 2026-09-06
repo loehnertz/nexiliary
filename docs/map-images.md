@@ -40,12 +40,12 @@ Total 980 KB across fifteen files, precached by `vite-plugin-pwa`.
 | --- | --- | --- |
 | alterac-pass | Alterac-pass-map.jpg | 800x665 |
 | battlefield-of-eternity | Battlefield of Eternity map.jpg | 800x467 |
-| blackhearts-bay | Blackheart's Bay map.jpg | 800x522 |
+| blackhearts-bay | — | none, see below |
 | braxis-holdout | Braxis Holdout map.png | 800x566 |
 | cursed-hollow | Cursed Hollow map.jpg | 800x570 |
 | dragon-shire | Dragon Shire Map.jpg | 800x598 |
 | garden-of-terror | Garden of Terror map.jpg | 800x479 |
-| hanamura-temple | Hanamura map.png | 800x453 |
+| hanamura-temple | Hanamura Temple map.jpg | 800x556 |
 | haunted-mines | Haunted Mines map top.png | 800x346 |
 | infernal-shrines | Infernal Shrines map.jpg | 800x574 |
 | sky-temple | Sky Temple map.jpeg | 800x600 |
@@ -57,13 +57,25 @@ Total 980 KB across fifteen files, precached by `vite-plugin-pwa`.
 Haunted Mines has two renders, surface and mine. The camps are on the surface, so
 `Haunted Mines map top.png` ships and the mine render is unused.
 
-## Unverified
+## Blackheart's Bay ships no image
 
-Two renders need checking against the live game when their coordinates are read:
+The wiki records four Skeletal Pirate camps where `blackhearts-bay.ts` carries two
+`doubloon` entries, and the Icy Veins reference shows all four as separate markers. One
+dot for two camps would have to sit between them and point at neither.
 
-- **hanamura-temple** — the wiki's `Hanamura map.png` is snowy rather than the Japanese
-  theme the current battleground uses. It may be the original 2017 payload version,
-  whose terrain differs. If so the coordinates would be placed against the wrong layout.
-- **haunted-mines** and a few others carry small coloured dots that appear to be wiki
-  annotation rather than terrain. Harmless if they are structures; misleading if they
-  read as camp markers.
+The rail can say "doubloons n" without claiming a location. A dot on a map cannot, so
+Blackheart's Bay keeps the rail. Splitting the camp data into four entries would fix it
+and is a change to the timing model, not to this feature.
+
+## Corrections found by checking
+
+Every map's coordinates were checked by drawing them back onto the shipped render.
+
+- **hanamura-temple** — the wiki's `Hanamura map.png` is the original 2017 payload
+  version, snowy and a different layout. Replaced with `Hanamura Temple map.jpg`, which
+  matches the current battleground.
+- **battlefield-of-eternity** — the bright heaven half was mistaken for the terrain edge,
+  which shifted every camp left. Renormalised against the true extent.
+- **towers-of-doom** — the northern camp landed in the background above the map, because
+  the shipped crop carries more vertical margin than the reference. Moved onto the
+  northern structure.

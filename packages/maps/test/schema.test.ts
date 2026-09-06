@@ -299,12 +299,36 @@ describe('map images', () => {
     }
   })
 
-  it('covers every battleground', () => {
+  // Blackheart's Bay is the one battleground with no image, and deliberately so. The wiki
+  // records four Skeletal Pirate camps where the map file carries two `doubloon` entries,
+  // so a dot would have to sit between two real camps and point at neither. The rail can
+  // say "doubloons n" without claiming a location; a dot on a map cannot.
+  const railOnly = ['blackhearts-bay']
+
+  it('covers every battleground except the one that cannot be drawn honestly', () => {
     for (const map of battlegrounds) {
       expect({ map: map.id, hasImage: mapImages[map.id] !== undefined }).toEqual({
         map: map.id,
-        hasImage: true,
+        hasImage: !railOnly.includes(map.id),
       })
+    }
+  })
+
+  it('keeps every mapped battleground separately tappable', () => {
+    for (const map of battlegrounds) {
+      const img = mapImages[map.id]
+      if (img === undefined) continue
+      expect({ map: map.id, issues: validateMapImage(map, img) }).toEqual({ map: map.id, issues: [] })
+    }
+  })
+
+  it('places every camp on a mapped battleground away from the centre placeholder', () => {
+    // A camp left at 0.5, 0.5 passes the bearing check but stacks every dot on one point,
+    // which reads as a rendering fault rather than as missing data.
+    for (const map of battlegrounds) {
+      if (mapImages[map.id] === undefined) continue
+      const stuck = map.camps.filter((c) => c.position.x === 0.5 && c.position.y === 0.5)
+      expect({ map: map.id, stuck: stuck.map((c) => c.id) }).toEqual({ map: map.id, stuck: [] })
     }
   })
 

@@ -18,12 +18,11 @@ export interface MapImage {
 export const mapImages: Readonly<Record<string, MapImage>> = {
   'alterac-pass': { src: '/maps/alterac-pass.webp', width: 800, height: 665 },
   'battlefield-of-eternity': { src: '/maps/battlefield-of-eternity.webp', width: 800, height: 467 },
-  'blackhearts-bay': { src: '/maps/blackhearts-bay.webp', width: 800, height: 522 },
   'braxis-holdout': { src: '/maps/braxis-holdout.webp', width: 800, height: 566 },
   'cursed-hollow': { src: '/maps/cursed-hollow.webp', width: 800, height: 570 },
   'dragon-shire': { src: '/maps/dragon-shire.webp', width: 800, height: 598 },
   'garden-of-terror': { src: '/maps/garden-of-terror.webp', width: 800, height: 479 },
-  'hanamura-temple': { src: '/maps/hanamura-temple.webp', width: 800, height: 453 },
+  'hanamura-temple': { src: '/maps/hanamura-temple.webp', width: 800, height: 556 },
   'haunted-mines': { src: '/maps/haunted-mines.webp', width: 800, height: 346 },
   'infernal-shrines': { src: '/maps/infernal-shrines.webp', width: 800, height: 574 },
   'sky-temple': { src: '/maps/sky-temple.webp', width: 800, height: 600 },

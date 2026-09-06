@@ -34,10 +34,10 @@ export const braxisHoldout: MapDefinition = {
     instances: '2 beacons',
   },
   camps: [
-    camp({ id: 'hellbat-ne', label: 'hellbats ne', type: 'siege', bearing: 'ne', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 90, travelSeconds: [35] }),
-    camp({ id: 'hellbat-sw', label: 'hellbats sw', type: 'siege', bearing: 'sw', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 90, travelSeconds: [35] }),
-    camp({ id: 'raven-nw', label: 'raven nw', type: 'bruiser', bearing: 'nw', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
-    camp({ id: 'raven-se', label: 'raven se', type: 'bruiser', bearing: 'se', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
-    camp({ id: 'archangel', label: 'archangel', type: 'boss', bearing: 'c', position: { x: 0.5, y: 0.5 }, firstSpawnSeconds: 300, respawnSeconds: 250, travelSeconds: [50] }),
+    camp({ id: 'hellbat-ne', label: 'hellbats ne', type: 'siege', bearing: 'ne', position: { x: 0.564, y: 0.352 }, firstSpawnSeconds: 60, respawnSeconds: 90, travelSeconds: [35] }),
+    camp({ id: 'hellbat-sw', label: 'hellbats sw', type: 'siege', bearing: 'sw', position: { x: 0.372, y: 0.619 }, firstSpawnSeconds: 60, respawnSeconds: 90, travelSeconds: [35] }),
+    camp({ id: 'raven-nw', label: 'raven nw', type: 'bruiser', bearing: 'nw', position: { x: 0.353, y: 0.389 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
+    camp({ id: 'raven-se', label: 'raven se', type: 'bruiser', bearing: 'se', position: { x: 0.59, y: 0.574 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [35] }),
+    camp({ id: 'archangel', label: 'archangel', type: 'boss', bearing: 'c', position: { x: 0.469, y: 0.487 }, firstSpawnSeconds: 300, respawnSeconds: 250, travelSeconds: [50] }),
   ],
 }
