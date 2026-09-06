@@ -48,6 +48,10 @@ match its grading dimensions.
 | `docs/implementation-findings.md` | What building it found wrong in the design, and what was done |
 | `docs/game-constants.md` | Where `firstWaveSeconds`, `levelCurve` and `deathTimerByLevel` came from |
 | `docs/camp-data.md` | Mercenary camp spawn and respawn per battleground, with the gaps marked |
+| `docs/objective-timings.md` | The validated per-map objective table, and which sources agree |
+| `docs/map-images.md` | Where each battleground render came from and how it was cropped |
+| `docs/superpowers/specs/` | Approved designs for individual features, dated |
+| `docs/superpowers/plans/` | The implementation plan each spec was built from |
 
 ## Principles that must not be violated
 
