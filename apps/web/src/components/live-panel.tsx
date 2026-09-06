@@ -1,4 +1,4 @@
-import type { LiveView, ObjectiveSlot, Prompt, RailSlot } from '@nexiliary/engine'
+import type { CampChip, LiveView, ObjectiveSlot, Prompt } from '@nexiliary/engine'
 import { Rule, Stat, glowClass, toneClass } from './chrome.js'
 
 export function Header({
@@ -92,64 +92,62 @@ function splitRange(text: string): [string, string | null] {
   return [text.slice(0, dash), text.slice(dash).replace('-', '–')]
 }
 
-export function Rail({
-  rail,
+/**
+ * Every camp on the battleground, with its taps on it.
+ *
+ * These were two rail slots plus a list behind the overflow menu, which put the control
+ * one tap away from someone mid-match who is not looking at the phone — de facto never.
+ * Camp state is also the thing the player genuinely cannot track in their head, unlike a
+ * thirty-second wave cadence, so it earns the space.
+ */
+export function CampPanel({
+  camps,
   onCampTaken,
-  onCampUnknown,
+  onCampUp,
 }: {
-  rail: readonly RailSlot[]
+  camps: readonly CampChip[]
   onCampTaken: (campId: string) => void
-  /**
-   * A `Stale` chip is the control that corrects it, which is the whole reason decay does
-   * not remove it. What it should write is genuinely ambiguous, though — the player may
-   * be looking at a camp that is standing, or at one they just took — so it opens the
-   * camp list where both are spelled out rather than guessing on their behalf.
-   */
-  onCampUnknown: () => void
+  onCampUp: (campId: string) => void
 }) {
+  if (camps.length === 0) return null
   return (
-    <div className="rail mt-4">
-      {rail.map((slot) => {
-        const body = (
-          <>
-            <b className={`block text-[0.95rem] font-bold numerals ${toneClass(slot.tone)}`}>{slot.text}</b>
-            <span className="label-tight">{slot.label}</span>
-            {slot.camp?.tappable === true && <span className="chip-hint tone-exact">tap if taken</span>}
-            {slot.camp?.stale === true && <span className="chip-hint tone-unknown">unconfirmed</span>}
-          </>
-        )
-        if (slot.camp?.tappable === true) {
-          return (
-            <button
-              key={slot.key}
-              type="button"
-              className="chip chip-tappable flex-1"
-              onClick={() => onCampTaken(slot.camp!.id)}
-            >
-              {body}
-            </button>
-          )
-        }
-        if (slot.camp?.stale === true) {
-          return (
-            <button
-              key={slot.key}
-              type="button"
-              className="chip chip-stale flex-1"
-              onClick={onCampUnknown}
-              aria-label={`${slot.label} is unconfirmed — open the camp list`}
-            >
-              {body}
-            </button>
-          )
-        }
-        return (
-          <span key={slot.key} className="chip flex-1">
-            {body}
-          </span>
-        )
-      })}
-    </div>
+    <section className="mt-4">
+      <div className="label-tight mb-1.5">camps</div>
+      <ul className="camp-grid">
+        {camps.map((camp) => (
+          <li key={camp.id} className={`camp-row camp-${camp.state}`}>
+            <span className="min-w-0 flex-1">
+              <b className={`numerals block text-[0.95rem] leading-tight font-bold ${toneClass(camp.tone)}`}>
+                {camp.text}
+              </b>
+              <span className="label-tight block truncate">{camp.label}</span>
+            </span>
+            <span className="flex shrink-0 gap-1">
+              {camp.offerTaken && (
+                <button
+                  type="button"
+                  className="camp-action camp-action-taken"
+                  onClick={() => onCampTaken(camp.id)}
+                  aria-label={`${camp.label} taken`}
+                >
+                  taken
+                </button>
+              )}
+              {camp.offerUp && (
+                <button
+                  type="button"
+                  className="camp-action camp-action-up"
+                  onClick={() => onCampUp(camp.id)}
+                  aria-label={`${camp.label} is up`}
+                >
+                  it's up
+                </button>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 
@@ -185,14 +183,8 @@ export function Footer({ view }: { view: LiveView }) {
   return (
     <footer className="mt-3 flex justify-between gap-4 border-t border-[rgb(155_140_232_/_0.22)] pt-2.5">
       <Stat value={view.deathTimer.text} label="if you die now" tone={view.deathTimer.tone} />
-      {view.nextTier === null ? (
-        <Stat value="—" label="all tiers reached" />
-      ) : (
-        <Stat
-          value={view.nextTier.text}
-          label={`to talent tier ${view.nextTier.level}`}
-          tone={view.nextTier.tone}
-        />
+      {view.following !== null && (
+        <Stat value={view.following.text} label={view.following.label} tone={view.following.tone} />
       )}
     </footer>
   )

@@ -1,7 +1,7 @@
 import type { CampState, Confidence, Seconds, Timeline, TimedEvent } from './types.js'
 import type { MapDefinition } from './map-types.js'
 import { displayTime, mmss } from './confidence.js'
-import { isClaimable, isAvailable } from './belief.js'
+import { isAvailable } from './belief.js'
 import { compareBearing } from './types.js'
 import { applyPresentClamp } from './clamp.js'
 
@@ -62,33 +62,32 @@ export type ObjectiveSlot =
   | { readonly kind: 'timingLost'; readonly message: string }
   | { readonly kind: 'unknownMap'; readonly message: string }
 
-export interface RailCamp {
-  readonly id: string
-  readonly standingLabel: string
-  /** Tappable while the camp is believed available: the tap writes `CampTaken`. */
-  readonly tappable: boolean
-  /** A `Stale` chip still shows, and offers both "taken" and "camp is up". */
-  readonly stale: boolean
-}
+/**
+ * Every camp, always visible, each carrying the taps that make sense for what it is.
+ *
+ * The camps used to be two rail slots plus a list behind the overflow menu. That put the
+ * control one tap away from a player mid-match who is not looking at the phone, which
+ * means de facto never — the same friction that makes the objective tap expensive,
+ * applied to the input that happens most often.
+ */
+export type CampChipState = 'up' | 'down' | 'away' | 'unconfirmed'
 
-export interface RailSlot {
-  readonly key: string
-  readonly kind: 'objective' | 'wave' | 'camp' | 'tier' | 'empty'
+export interface CampChip {
+  readonly id: string
   readonly label: string
+  /** `UP`, a respawn countdown, `AWAY` during an objective phase, or `?`. */
   readonly text: string
   readonly tone: Tone
-  readonly camp?: RailCamp
+  readonly state: CampChipState
+  /** The app believes it is there, or does not know, so "we took it" means something. */
+  readonly offerTaken: boolean
+  /** The app believes it is not there, so offer the correction. */
+  readonly offerUp: boolean
 }
 
-/**
- * The next talent tier and when it lands.
- *
- * The tier a team is *on* is visible in the game and does not belong here — the app's job
- * is what is coming and when. When the next one lands is not visible, and it is the fact
- * `tier-spike` speaks about: never take an even fight into a tier deficit.
- */
-export interface NextTier {
-  readonly level: number
+/** The objective cycle after the dominant countdown, for planning two events ahead. */
+export interface FollowingObjective {
+  readonly label: string
   readonly text: string
   readonly tone: Tone
 }
@@ -97,33 +96,14 @@ export interface LiveView {
   readonly clock: string
   readonly mapName: string
   readonly objective: ObjectiveSlot
-  readonly rail: readonly RailSlot[]
-  /**
-   * Every camp, in rail order, including the ones that did not win a slot and the
-   * `Stale` ones the rail's `isClaimable` filter excludes by construction. Without it a
-   * typical map with five or six camps leaves three or four with no control anywhere,
-   * and a boss is the common casualty: its long `staleSeconds` is exactly what makes it
-   * lose to two siege camps on `pressureValue`.
-   */
-  readonly overflowCamps: readonly RailSlot[]
+  /** Every camp on the battleground, west to east. */
+  readonly camps: readonly CampChip[]
   /** How long you would be dead. Not shown in game until you already are. */
   readonly deathTimer: { readonly text: string; readonly tone: Tone }
-  /** When the next talent tier lands. Not shown in game at all. */
-  readonly nextTier: NextTier | null
+  /** The objective after the one being counted down. */
+  readonly following: FollowingObjective | null
   /** The clamped timeline, for controls and anything that needs the raw facts. */
   readonly timeline: Timeline
-}
-
-/**
- * The earliest emitted event of a kind that has not yet happened.
- *
- * `find` on the emitted list is not the same thing. Waves are emitted as a block and
- * the block stays valid until it ends — that is what keeps `validUntil` from forcing a
- * projection every thirty seconds — so the first entry in the block is routinely in the
- * past, and reading it renders a wave countdown frozen at 0:00.
- */
-function nextOfKind(timeline: Timeline, kind: TimedEvent['kind'], now: Seconds): TimedEvent | undefined {
-  return timeline.events.find((e) => e.kind === kind && e.at >= now)
 }
 
 function objectiveSpawns(timeline: Timeline): TimedEvent[] {
@@ -179,139 +159,51 @@ function objectiveSlot(map: MapDefinition, timeline: Timeline, now: Seconds): Ob
   }
 }
 
-function campSlot(camp: CampState, now: Seconds): RailSlot {
+function campChip(camp: CampState, now: Seconds): CampChip {
   const available = isAvailable(camp.standing)
   const stale = camp.standing.kind === 'Stale'
-  const text = stale
-    ? '?'
-    : available
+  const state: CampChipState = available
+    ? 'up'
+    : stale
+      ? 'unconfirmed'
+      : camp.suppressed
+        ? 'away'
+        : 'down'
+
+  const text =
+    state === 'up'
       ? 'UP'
-      : camp.nextUp !== undefined
-        ? displayTime(camp.nextUp.confidence, camp.nextUp.at, now)
-        : camp.suppressed
-          // Removed from the battlefield while the objective is live, rather than
-          // taken. An em-dash here reads as missing data instead of as a fact.
+      : state === 'unconfirmed'
+        ? '?'
+        : state === 'away'
+          // Removed from the battlefield while the objective is live, rather than taken.
           ? 'AWAY'
-          : '—'
-  const tone: Tone = stale || camp.suppressed
-    ? // "AWAY" is not a number, and green here reads as "available" rather than as
-      // "you can rely on this".
-      'unknown'
-    : camp.nextUp !== undefined
-      ? toneOf(camp.nextUp.confidence)
-      : camp.standing.kind === 'Known'
-        ? 'exact'
-        : 'estimated'
+          : camp.nextUp !== undefined
+            ? displayTime(camp.nextUp.confidence, camp.nextUp.at, now)
+            : '—'
+
+  const tone: Tone =
+    state === 'up'
+      ? 'exact'
+      : state === 'unconfirmed' || state === 'away'
+        ? // Neither is a number, and green would read as "available".
+          'unknown'
+        : camp.nextUp !== undefined
+          ? toneOf(camp.nextUp.confidence)
+          : 'estimated'
+
   return {
-    key: `camp:${camp.id}`,
-    kind: 'camp',
+    id: camp.id,
     label: camp.label,
     text,
     tone,
-    camp: {
-      id: camp.id,
-      standingLabel: stale ? 'camp?' : available ? 'up' : 'down',
-      tappable: available,
-      stale,
-    },
+    state,
+    // "We took it" is meaningful when the camp is believed there, and when the app has
+    // stopped believing anything — which is exactly when the correction is needed.
+    offerTaken: state === 'up' || state === 'unconfirmed',
+    // Offer the correction whenever the app thinks it is not there and could be wrong.
+    offerUp: state !== 'up',
   }
-}
-
-/**
- * Fixed rather than emergent, because the rail serves two purposes over four slots.
- * Without a stated rule, a map with four camps up shows no upcoming events at all.
- *
- * Slot 1 is the objective column. The dominant countdown already carries the pending
- * cycle, so the rail shows the one after it: that is what "plan two events ahead"
- * needs, and printing the same number twice is not information.
- */
-function buildRail(timeline: Timeline, now: Seconds, objective: ObjectiveSlot): RailSlot[] {
-  const slots: (RailSlot | null)[] = [null, null, null, null]
-
-  const spawns = objectiveSpawns(timeline)
-  // While a phase is live the dominant slot shows that, so slot 1 carries the pending
-  // spawn rather than the one after it.
-  const following = objective.kind === 'live' ? spawns[0] : spawns[1]
-  if (
-    (objective.kind === 'countdown' || objective.kind === 'live') &&
-    following !== undefined &&
-    following.confidence.kind !== 'Unknown'
-  ) {
-    slots[0] = {
-      key: following.id,
-      kind: 'objective',
-      label: `next ${following.label.toLowerCase()}`,
-      text: displayTime(following.confidence, following.at, now),
-      tone: toneOf(following.confidence),
-    }
-  }
-
-  const wave = nextOfKind(timeline, 'wave', now)
-  if (wave !== undefined) {
-    slots[1] = {
-      key: wave.id,
-      kind: 'wave',
-      label: 'wave',
-      text: displayTime(wave.confidence, wave.at, now),
-      tone: toneOf(wave.confidence),
-    }
-  }
-
-  // Selection is by pressure, as the design specifies. Layout is by bearing, so the
-  // westerly of the two chosen camps sits on the left and the rail reads like the map.
-  const chosen = timeline.camps
-    .filter((c) => isClaimable(c.standing))
-    .sort((a, b) => b.pressureValue - a.pressureValue || a.id.localeCompare(b.id))
-    .slice(0, 2)
-    .sort((a, b) => compareBearing(a.bearing, b.bearing) || a.id.localeCompare(b.id))
-  slots[2] = chosen[0] !== undefined ? campSlot(chosen[0], now) : null
-  slots[3] = chosen[1] !== undefined ? campSlot(chosen[1], now) : null
-
-  // Fill whatever did not qualify, in descending order of usefulness.
-  //
-  // A `Stale` camp comes before a second wave: its chip is the control that corrects it,
-  // and four identical wave countdowns is the degenerate rail the fixed allocation exists
-  // to prevent — reached from the other direction, when *nothing* qualifies rather than
-  // when too much does.
-  const chosenIds = new Set(chosen.map((c) => c.id))
-  const fallbacks: RailSlot[] = [
-    ...timeline.events
-      .filter((e) => e.kind === 'tier' && e.at >= now)
-      .map((e) => ({
-        key: e.id,
-        kind: 'tier' as const,
-        label: e.label.toLowerCase(),
-        text: displayTime(e.confidence, e.at, now),
-        tone: toneOf(e.confidence),
-      })),
-    // On a map with no data a camp chip would be a control that writes an anchor read
-    // back through respawn figures the provenance clamp has already declared worthless.
-    // Elsewhere a `Stale` chip is exactly the control that corrects it.
-    ...(timeline.provenance === 'unknown'
-      ? []
-      : timeline.camps
-          .filter((c) => !chosenIds.has(c.id))
-          .sort((a, b) => compareBearing(a.bearing, b.bearing) || a.id.localeCompare(b.id))
-          .map((c) => campSlot(c, now))),
-    ...timeline.events
-      .filter((e) => e.kind === 'wave' && e.at >= now)
-      .slice(1, 2)
-      .map((e) => ({
-        key: e.id,
-        kind: 'wave' as const,
-        label: 'wave after',
-        text: displayTime(e.confidence, e.at, now),
-        tone: toneOf(e.confidence),
-      })),
-  ]
-
-  let f = 0
-  return slots.map((slot) => {
-    if (slot !== null) return slot
-    const fallback = fallbacks[f]
-    f += 1
-    return fallback ?? { key: `empty:${f}`, kind: 'empty' as const, label: '', text: '—', tone: 'unknown' as const }
-  })
 }
 
 /**
@@ -320,25 +212,33 @@ function buildRail(timeline: Timeline, now: Seconds, objective: ObjectiveSlot): 
 export function view(timeline: Timeline, map: MapDefinition, now: Seconds): LiveView {
   const clamped = applyPresentClamp(timeline, now)
   const objective = objectiveSlot(map, clamped, now)
-  const nextTierEvent = clamped.events.find((e) => e.kind === 'tier' && e.at >= now)
+
+  // While a phase is live the dominant slot shows that, so the pending spawn is what
+  // comes next; otherwise it is the cycle after the one being counted down.
+  const spawns = objectiveSpawns(clamped)
+  const following = objective.kind === 'live' ? spawns[0] : spawns[1]
 
   return {
     clock: mmss(now),
     mapName: map.name,
     objective,
-    rail: buildRail(clamped, now, objective),
-    // The overflow list is a map of the battleground, so it reads west to east.
-    overflowCamps: [...clamped.camps]
-      .sort((a, b) => compareBearing(a.bearing, b.bearing) || a.id.localeCompare(b.id))
-      .map((c) => campSlot(c, now)),
+    // A map of the battleground, so it reads west to east. On a map with no data the
+    // chips would be controls writing anchors read back through respawn figures the
+    // provenance clamp has already declared worthless, so there are none.
+    camps:
+      clamped.provenance === 'unknown'
+        ? []
+        : [...clamped.camps]
+            .sort((a, b) => compareBearing(a.bearing, b.bearing) || a.id.localeCompare(b.id))
+            .map((c) => campChip(c, now)),
     deathTimer: { text: mmss(clamped.deathTimer.seconds), tone: toneOf(clamped.deathTimer.confidence) },
-    nextTier:
-      nextTierEvent === undefined
+    following:
+      following === undefined || following.confidence.kind === 'Unknown'
         ? null
         : {
-            level: Number(nextTierEvent.id.split(':')[1] ?? '0'),
-            text: displayTime(nextTierEvent.confidence, nextTierEvent.at, now),
-            tone: toneOf(nextTierEvent.confidence),
+            label: `next ${following.label.toLowerCase()}`,
+            text: displayTime(following.confidence, following.at, now),
+            tone: toneOf(following.confidence),
           },
     timeline: clamped,
   }

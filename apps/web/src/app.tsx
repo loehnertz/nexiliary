@@ -38,7 +38,7 @@ import type { StoredMatch, StoredSettings } from './services/storage.js'
 import { initSpeech, speak, stopSpeech, unlockSpeech } from './services/speech.js'
 import { installWakeLockRecovery, releaseWakeLock, requestWakeLock } from './services/wake-lock.js'
 import { Frame } from './components/chrome.js'
-import { Footer, Header, ObjectivePanel, PromptBar, Rail, Rule } from './components/live-panel.js'
+import { CampPanel, Footer, Header, ObjectivePanel, PromptBar, Rule } from './components/live-panel.js'
 import { ClockAdjustSheet, OverflowSheet } from './components/sheets.js'
 import { Setup } from './components/setup.js'
 import { offersFor } from './controls/registry.js'
@@ -230,7 +230,7 @@ export function App() {
     state.lastWrite === null ? null : (state.anchors.get(state.lastWrite.key)?.gameTimeSeconds ?? null)
 
   return (
-    <div className="mx-auto flex w-full max-w-[420px] flex-col gap-3 p-3 sm:max-w-[620px]">
+    <div className="mx-auto flex w-full max-w-[min(100%,980px)] flex-col gap-3 p-3">
       <Frame>
         <Header
           mapName={liveView.mapName}
@@ -245,12 +245,8 @@ export function App() {
               <ObjectivePanel slot={liveView.objective} />
             </div>
             <div className="area-rail">
-              {settings.showRail && (
-                <Rail
-                  rail={liveView.rail}
-                  onCampTaken={onCampTaken}
-                  onCampUnknown={() => setSheet('overflow')}
-                />
+              {settings.showCamps && (
+                <CampPanel camps={liveView.camps} onCampTaken={onCampTaken} onCampUp={onCampUp} />
               )}
             </div>
             <div className="area-prompt">
@@ -312,12 +308,9 @@ export function App() {
       )}
       {sheet === 'overflow' && (
         <OverflowSheet
-          view={liveView}
           settings={settings}
           onSettings={setSettings}
           matchLog={buildMatchLog(map, [...state.anchors.values()], now)}
-          onCampTaken={onCampTaken}
-          onCampUp={onCampUp}
           onEndMatch={endMatch}
           onClose={() => setSheet('none')}
         />

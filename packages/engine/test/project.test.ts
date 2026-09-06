@@ -110,11 +110,11 @@ describe('reading an emitted block after time has moved inside it', () => {
     // countdown frozen at 0:00.
     const timeline = project(tomb, anchorSet(), 0)
     for (let now = 0; now <= timeline.validUntil; now += 1) {
-      const v = view(timeline, tomb, now)
-      const wave = v.rail.find((s) => s.kind === 'wave')
-      expect(wave, `no wave slot at ${now}`).toBeDefined()
-      // 0:00 is only truthful at the instant a wave spawns.
-      if (now % 30 !== 0) expect(wave!.text, `stale wave at ${now}`).not.toBe('0:00')
+      // Waves are no longer on screen, so the guard is on the fact the cue reads.
+      const ctx = buildContext(tomb, timeline, now)
+      if (now % 30 !== 0 && ctx.nextWave !== null) {
+        expect(Math.round(ctx.nextWave.at - now), `stale wave at ${now}`).not.toBe(0)
+      }
     }
   })
 
@@ -168,8 +168,8 @@ describe('the objective phase belief', () => {
   it('renders the live state rather than a countdown to the following cycle', () => {
     const slot = view(project(braxis, anchorSet(), 150), braxis, 150).objective
     expect(slot.kind).toBe('live')
-    // And the pending spawn moves to the rail rather than disappearing.
-    expect(view(project(braxis, anchorSet(), 150), braxis, 150).rail[0]!.kind).toBe('objective')
+    // And the pending spawn is still reachable rather than disappearing.
+    expect(view(project(braxis, anchorSet(), 150), braxis, 150).following).not.toBeNull()
   })
 
   it('stops claiming a live phase once the cycle is Unknown, but still wants the tap', () => {
@@ -326,25 +326,3 @@ describe('the resolution band', () => {
   })
 })
 
-describe('the rail under starvation', () => {
-  it('never fills with the same event four times over', () => {
-    // The fixed slot allocation exists so that a map with four camps up still shows
-    // upcoming events. The same degeneracy is reachable from the other direction — no
-    // objective, no tiers left, every camp Stale — and then the rail was four identical
-    // wave countdowns.
-    for (let now = 0; now < 2400; now += 7) {
-      const rail = view(project(braxis, anchorSet(), now), braxis, now).rail
-      const waves = rail.filter((s) => s.kind === 'wave')
-      expect(waves.length, `four waves at ${now}`).toBeLessThanOrEqual(2)
-      expect(new Set(rail.map((s) => s.key)).size, `duplicate slots at ${now}`).toBe(rail.length)
-    }
-  })
-
-  it('prefers a Stale camp chip over a second wave, because the chip corrects it', () => {
-    // Deep into an unanchored match on a suppression map every camp is Stale, so nothing
-    // satisfies `isClaimable` and the slots fall through.
-    const now = 1200
-    const rail = view(project(braxis, anchorSet(), now), braxis, now).rail
-    expect(rail.some((s) => s.camp?.stale === true)).toBe(true)
-  })
-})

@@ -111,10 +111,15 @@ describe('camps suppressed during an objective phase', () => {
     // Stale stops the app claiming anything, but the chip that could correct it stays
     // in the view: an earlier version made Stale mean no chip, which deadlocked camp
     // coaching for the rest of the match after one missed tap.
-    // The rail's slots 3 and 4 take claimable camps only, so a Stale chip lives in the
-    // overflow camp list rather than on the rail.
+    // Every camp is on screen, so the chip that could correct a Stale one is too.
     const v = view(project(braxis, anchorSet(), now), braxis, now)
-    expect(v.overflowCamps.some((s) => s.camp?.stale === true)).toBe(true)
+    const unconfirmed = v.camps.filter((c) => c.state === 'unconfirmed')
+    expect(unconfirmed.length).toBeGreaterThan(0)
+    // And it offers both readings, because which one is true is the player's to say.
+    for (const chip of unconfirmed) {
+      expect(chip.offerTaken).toBe(true)
+      expect(chip.offerUp).toBe(true)
+    }
   })
 
   it('resets availableSince when suppression lifts, so camps do not emerge already Stale', () => {
@@ -128,5 +133,37 @@ describe('camps suppressed during an objective phase', () => {
       expect(camp.availableSince).toBe(170)
       expect(camp.standing).toEqual({ kind: 'Known', value: true })
     }
+  })
+})
+
+describe('camp chips carry the taps that make sense for what they are', () => {
+  const chip = (id: string, anchors = anchorSet(), now = 400) =>
+    view(project(tomb, anchors, now), tomb, now).camps.find((c) => c.id === id)!
+
+  it('offers only "taken" while the camp is believed there', () => {
+    const up = chip('siege-top', anchorSet(anchor('CampUp', 'siege-top:1', 395)), 400)
+    expect(up.state).toBe('up')
+    expect(up.text).toBe('UP')
+    expect({ taken: up.offerTaken, itsUp: up.offerUp }).toEqual({ taken: true, itsUp: false })
+  })
+
+  it('offers only the correction while it is counting back', () => {
+    const down = chip('siege-top', anchorSet(anchor('CampTaken', 'siege-top:1', 300)), 400)
+    expect(down.state).toBe('down')
+    expect({ taken: down.offerTaken, itsUp: down.offerUp }).toEqual({ taken: false, itsUp: true })
+  })
+
+  it('offers both once it has stopped claiming, because either could be true', () => {
+    const stale = chip('siege-top', anchorSet(), 400)
+    expect(stale.state).toBe('unconfirmed')
+    expect(stale.text).toBe('?')
+    expect({ taken: stale.offerTaken, itsUp: stale.offerUp }).toEqual({ taken: true, itsUp: true })
+  })
+
+  it('shows every camp, so none of them is a menu away', () => {
+    // Two rail slots plus a list behind the overflow menu put the most frequent input in
+    // the app one tap out of reach of someone who is not looking at the phone.
+    const v = view(project(braxis, anchorSet(), 400), braxis, 400)
+    expect(v.camps.map((c) => c.id).sort()).toEqual(braxis.camps.map((c) => c.id).sort())
   })
 })

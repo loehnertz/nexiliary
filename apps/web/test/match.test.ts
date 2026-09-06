@@ -233,10 +233,10 @@ describe('a fifteen minute match with no anchor ever given', () => {
       const v = view(project(map, started().anchors, now), map, now)
       // Every slot always says something. A blank reads as a bug.
       expect(v.objective.kind).not.toBe('unknownMap')
-      for (const slot of v.rail) expect(slot.text.length).toBeGreaterThan(0)
-      // Waves, tiers and the death timer carry on regardless.
+      for (const chip of v.camps) expect(chip.text.length).toBeGreaterThan(0)
+      // The death timer carries on regardless.
       expect(v.deathTimer.text).not.toBe('')
-      expect(v.rail.some((s) => s.kind === 'wave' || s.kind === 'tier')).toBe(true)
+      expect(v.camps.length).toBe(mapById('braxis-holdout').camps.length)
 
       if (v.objective.kind === 'timingLost' && lostFrom === null) lostFrom = now
       // Once lost, it stays lost rather than flickering back to a confident number.
@@ -260,7 +260,9 @@ describe('the map registry', () => {
     const map = mapById('some-future-aram-map')
     const v = view(project(map, started().anchors, 300), map, 300)
     expect(v.objective.kind).toBe('noObjective')
-    expect(v.rail.some((s) => s.kind === 'wave')).toBe(true)
+    // No data means no camp controls: a chip would write an anchor read back through
+    // respawn figures the provenance clamp has already declared worthless.
+    expect(v.camps).toEqual([])
   })
 
   it('resolves every battleground the picker offers', () => {

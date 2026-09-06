@@ -45,7 +45,7 @@ export interface StoredSettings {
   readonly maxTier: 'essential' | 'standard' | 'verbose'
   readonly speechEnabled: boolean
   readonly voiceId?: string
-  readonly showRail: boolean
+  readonly showCamps: boolean
 }
 
 export const defaultSettings: StoredSettings = {
@@ -53,7 +53,7 @@ export const defaultSettings: StoredSettings = {
   // every thirty seconds gets muted within two games.
   maxTier: 'standard',
   speechEnabled: true,
-  showRail: true,
+  showCamps: true,
 }
 
 export function loadSettings(): StoredSettings {

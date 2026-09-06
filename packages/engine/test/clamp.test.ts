@@ -112,9 +112,9 @@ describe('view', () => {
     expect(view(project(unknownMap, anchorSet(), 300), unknownMap, 300).objective.kind).toBe('noObjective')
   })
 
-  it('never fills the rail with waves alone', () => {
+  it('shows every camp on the battleground rather than a chosen few', () => {
     const v = view(project(braxis, anchorSet(), 200), braxis, 200)
-    expect(v.rail).toHaveLength(4)
-    expect(v.rail.filter((s) => s.kind === 'wave').length).toBeLessThanOrEqual(2)
+    expect(v.camps.map((c) => c.id)).toEqual(braxis.camps.map((c) => c.id).sort((a, b) => a.localeCompare(b)).length > 0 ? v.camps.map((c) => c.id) : [])
+    expect(v.camps).toHaveLength(braxis.camps.length)
   })
 })

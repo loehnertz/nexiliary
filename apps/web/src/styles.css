@@ -159,7 +159,7 @@ body {
    rather than being two layouts. */
 .live-grid {
   display: grid;
-  grid-template-areas: 'countdown' 'rail' 'prompt' 'action';
+  grid-template-areas: 'countdown' 'prompt' 'action' 'rail';
 }
 
 .area-countdown {
@@ -175,24 +175,105 @@ body {
   grid-area: action;
 }
 
-.rail {
+/* Every camp fits on one screen on a phone, and pairs up as soon as there is width —
+   a landscape phone is wider than most desktops care to be. */
+.camp-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-@media (min-width: 640px) {
+/* A camp row is a label and two 44px targets, so it needs about 230px before pairing
+   up is an improvement rather than a squeeze. */
+@media (min-width: 560px) {
+  .camp-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.camp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 5px 8px;
+  background: linear-gradient(180deg, rgb(150 136 224 / 0.1), rgb(150 136 224 / 0.03));
+  box-shadow: inset 0 0 0 1px rgb(150 136 224 / 0.22);
+  clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
+}
+
+/* A camp that is there is the one worth acting on, so it is the one that stands out. */
+.camp-up {
+  background: linear-gradient(180deg, rgb(74 222 128 / 0.16), rgb(74 222 128 / 0.04));
+  box-shadow: inset 0 0 0 1px rgb(74 222 128 / 0.4);
+}
+
+.camp-unconfirmed {
+  box-shadow: inset 0 0 0 1px rgb(93 85 144 / 0.55);
+}
+
+.camp-away {
+  opacity: 0.55;
+}
+
+/* 44px minimum: these are pressed without looking, mid-game. */
+.camp-action {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 10px;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  transition: filter 120ms ease;
+}
+
+.camp-action:active {
+  filter: brightness(1.3);
+}
+
+.camp-action-taken {
+  color: #7ff0aa;
+  background: linear-gradient(180deg, rgb(74 222 128 / 0.24), rgb(74 222 128 / 0.07));
+  box-shadow: inset 0 0 0 1px rgb(122 240 170 / 0.45);
+}
+
+.camp-action-up {
+  color: var(--color-ink-dim);
+  background: linear-gradient(180deg, rgb(150 136 224 / 0.18), rgb(150 136 224 / 0.05));
+  box-shadow: inset 0 0 0 1px rgb(150 136 224 / 0.4);
+}
+
+/* A landscape phone is short and wide, so the countdown and the camps go side by side
+   rather than the camps falling off the bottom. */
+@media (min-width: 700px) {
   .live-grid {
-    grid-template-columns: 1.15fr 1fr;
-    grid-template-areas: 'countdown rail' 'prompt action';
+    grid-template-columns: 1fr 1.1fr;
+    grid-template-areas: 'countdown rail' 'prompt rail' 'action rail';
     column-gap: 20px;
     align-items: start;
   }
 
-  /* Four across is right under a dominant countdown and too narrow beside one. */
-  .live-grid .rail {
+  .live-grid .area-rail {
+    align-self: stretch;
+  }
+
+  /* The camps are in a column of their own now, which is narrower than the page. */
+  .live-grid .camp-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1100px) {
+  .live-grid .camp-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    row-gap: 8px;
   }
 }
 

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import type { LiveView, RailSlot } from '@nexiliary/engine'
 import type { StoredSettings } from '../services/storage.js'
 import { Frame, Rule } from './chrome.js'
 import { isSpeechAvailable, listVoices } from '../services/speech.js'
@@ -88,31 +87,25 @@ export function ClockAdjustSheet({
 }
 
 export function OverflowSheet({
-  view,
   settings,
   matchLog,
   onSettings,
-  onCampTaken,
-  onCampUp,
   onEndMatch,
   onClose,
 }: {
-  view: LiveView
   settings: StoredSettings
   matchLog: string
   onSettings: (next: StoredSettings) => void
-  onCampTaken: (campId: string) => void
-  onCampUp: (campId: string) => void
   onEndMatch: () => void
   onClose: () => void
 }) {
-  const [tab, setTab] = useState<'camps' | 'guide' | 'log' | 'settings'>('camps')
-  const titles = { camps: 'All camps', guide: 'What am I looking at', log: 'Match log', settings: 'Settings' }
+  const [tab, setTab] = useState<'guide' | 'log' | 'settings'>('guide')
+  const titles = { guide: 'What am I looking at', log: 'Match log', settings: 'Settings' }
   const title = titles[tab]
   return (
     <Sheet title={title} onClose={onClose}>
       <div className="mb-4 flex gap-2">
-        {(['camps', 'guide', 'log', 'settings'] as const).map((t) => (
+        {(['guide', 'log', 'settings'] as const).map((t) => (
           <button
             key={t}
             type="button"
@@ -124,7 +117,6 @@ export function OverflowSheet({
         ))}
       </div>
 
-      {tab === 'camps' && <CampList camps={view.overflowCamps} onCampTaken={onCampTaken} onCampUp={onCampUp} />}
       {tab === 'guide' && <Legend />}
       {tab === 'log' && <MatchLog text={matchLog} />}
       {tab === 'settings' && <SettingsPanel settings={settings} onSettings={onSettings} />}
@@ -189,17 +181,20 @@ function Legend() {
         guess. <b>LIVE</b> means the objective is believed to be running right now.
       </Entry>
 
-      <Entry term="The four chips">
-        The objective after this one, the next minion wave, and the two camps most worth taking for
-        the coming fight. They read west to east, like the map. A chip with a green outline is
-        tappable: tap it when that camp gets taken, and its respawn becomes exact.
+      <Entry term="Camps">
+        Every camp on the battleground, reading west to east like the map. Green means it is there.
+        A countdown means it is coming back. <b>?</b> means the app has stopped claiming, which is
+        what happens when nobody has said anything about it for a while.
+        <br />
+        <b className="text-[var(--color-ink)]">Taken</b> starts an exact respawn countdown.{' '}
+        <b className="text-[var(--color-ink)]">It's up</b> corrects the app when it has the camp
+        wrong. This is the tap that happens most, so it is on the main screen rather than behind a
+        menu.
       </Entry>
 
-      <Entry term="To talent tier 16">
-        When the next tier lands — not which one you are on, which is on your own screen. A tier
-        advantage matters far more than a level advantage, so never take an even fight into a
-        deficit. This is estimated from the experience tables and is the least certain number in
-        the app.
+      <Entry term="Next beacons">
+        When the objective after the one being counted down arrives, so a camp can be started for
+        it rather than for the one already in progress.
       </Entry>
 
       <Entry term="If you die now">
@@ -209,10 +204,11 @@ function Legend() {
       </Entry>
 
       <Entry term="What is not here">
-        Team level and which talent tier you are on. Both are on your own screen, and a derived
-        number that can visibly disagree with one you can read costs trust in the numbers you
-        cannot check. The level is still estimated internally, because the two readings above are
-        computed from it — which is also why both are amber rather than green.
+        Team level, the talent tier row, and the wave countdown. The first two are on your own
+        screen already, and a derived number that can visibly disagree with one you can read costs
+        trust in the numbers you cannot check. The wave is a fixed thirty-second cadence you can
+        keep in your head, and the spoken reminder covers it if you turn it on. Camp state is the
+        thing you genuinely cannot track, so it got the space.
       </Entry>
 
       <Entry term="Objective ended">
@@ -231,47 +227,6 @@ function Entry({ term, children }: { term: string; children: React.ReactNode }) 
       <div className="label mb-1">{term}</div>
       <p className="m-0">{children}</p>
     </div>
-  )
-}
-
-function CampList({
-  camps,
-  onCampTaken,
-  onCampUp,
-}: {
-  camps: readonly RailSlot[]
-  onCampTaken: (campId: string) => void
-  onCampUp: (campId: string) => void
-}) {
-  if (camps.length === 0) {
-    return <p className="text-sm text-[var(--color-ink-faint)]">No camp data for this battleground.</p>
-  }
-  return (
-    <ul className="flex flex-col gap-2">
-      {camps.map((slot) => (
-        <li key={slot.key} className="flex items-center gap-2">
-          <span className="min-w-[5.5rem] flex-1">
-            <b className={`numerals block text-sm tone-${slot.tone}`}>{slot.text}</b>
-            <span className="label-tight">{slot.label}</span>
-          </span>
-          <button
-            type="button"
-            className="btn-slant btn-quiet min-h-11 px-4 py-2 text-[0.65rem]"
-            onClick={() => onCampTaken(slot.camp!.id)}
-          >
-            Taken
-          </button>
-          {/* Decay must not remove the only control that could correct it. */}
-          <button
-            type="button"
-            className="btn-slant btn-quiet min-h-11 px-4 py-2 text-[0.65rem]"
-            onClick={() => onCampUp(slot.camp!.id)}
-          >
-            Camp is up
-          </button>
-        </li>
-      ))}
-    </ul>
   )
 }
 
@@ -324,7 +279,7 @@ export function SettingsPanel({
             onChange={(e) =>
               onSettings(
                 e.target.value === ''
-                  ? { maxTier: settings.maxTier, speechEnabled: settings.speechEnabled, showRail: settings.showRail }
+                  ? { maxTier: settings.maxTier, speechEnabled: settings.speechEnabled, showCamps: settings.showCamps }
                   : { ...settings, voiceId: e.target.value },
               )
             }
@@ -342,17 +297,17 @@ export function SettingsPanel({
       <WakeLockRow />
 
       <label className="flex min-h-11 items-center justify-between gap-3">
-        <span className="label">Show rail</span>
+        <span className="label">Show camps</span>
         <input
           type="checkbox"
-          checked={settings.showRail}
-          onChange={(e) => onSettings({ ...settings, showRail: e.target.checked })}
+          checked={settings.showCamps}
+          onChange={(e) => onSettings({ ...settings, showCamps: e.target.checked })}
           className="h-6 w-6 accent-[var(--color-exact)]"
         />
       </label>
       <p className="-mt-3 text-xs leading-snug text-[var(--color-ink-faint)]">
-        Hiding the rail degrades to the dominant countdown alone, if it proves busy under
-        stress.
+        Hiding the camps degrades to the dominant countdown alone, if the panel proves busy
+        under stress.
       </p>
     </div>
   )

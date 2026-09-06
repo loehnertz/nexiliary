@@ -70,12 +70,15 @@ describe('the provenance clamp', () => {
     }
   })
 
-  it('collapses rail slots 1, 3 and 4 on an unknown map', () => {
+  it('offers no camp controls on an unknown map', () => {
+    // A chip there would write an anchor read back through respawn figures the clamp has
+    // already declared worthless.
     const map = withProvenance(braxis, 'unknown')
     const v = view(project(map, anchorSet(), 200), map, 200)
-    expect(v.rail.some((s) => s.kind === 'camp')).toBe(false)
-    expect(v.rail.some((s) => s.kind === 'wave')).toBe(true)
-    expect(v.rail.some((s) => s.kind === 'tier')).toBe(true)
+    expect(v.camps).toEqual([])
+    // A timed map with no data is the unknown-map state, distinct from a map that has
+    // no objective at all.
+    expect(v.objective.kind).toBe('unknownMap')
   })
 })
 
@@ -101,9 +104,11 @@ describe('nothing map-derived escapes the clamp', () => {
       const v = view(t, map, now)
       if (v.objective.kind === 'live') expect(v.objective.tone).not.toBe('exact')
       if (v.objective.kind === 'countdown') expect(v.objective.countdown.tone).not.toBe('exact')
-      for (const slot of v.rail) {
-        if (slot.kind === 'wave') continue
-        expect(slot.tone, `rail ${slot.key} at ${now}`).not.toBe('exact')
+      if (v.following !== null) expect(v.following.tone, `following at ${now}`).not.toBe('exact')
+      for (const chip of v.camps) {
+        // `UP` is a Belief, not a map-derived time, so it keeps its own colour.
+        if (chip.state === 'up') continue
+        expect(chip.tone, `camp ${chip.id} at ${now}`).not.toBe('exact')
       }
     }
   })
