@@ -30,18 +30,22 @@ pnpm test
 pnpm typecheck
 ```
 
-To use it in a real match before it is deployed, run `dev:lan` and open the printed
-**https** address on the phone, accepting the self-signed certificate once.
-
-The `https` is not optional. Screen Wake Lock requires a secure context, so on a plain
-`http://192.168.x.x` address the API is not merely restricted, it is absent — the phone's
-screen sleeps mid-match and takes the speech with it. There is no working fallback on
-Android: Chrome pauses background video-only media outright. If the certificate warning is
-a nuisance, the alternative is to allow the origin under
-`chrome://flags/#unsafely-treat-insecure-origin-as-secure`, which also gets you the service
-worker that a bypassed certificate does not.
+Use the deployed address on the phone, not a LAN one. Screen Wake Lock requires a secure
+context, so on a plain `http://192.168.x.x` address the API is not restricted, it is
+absent — the screen sleeps mid-match and takes the speech with it, and there is no
+fallback that works. `dev:lan` is for looking at layout on a phone, not for playing.
 
 Settings reports what is actually holding the screen, and says so plainly when nothing is.
+
+## Deploying
+
+```sh
+pnpm --filter @nexiliary/web deploy
+```
+
+A Cloudflare Worker serving static assets. Real certificate, so Wake Lock works and the
+service worker registers, which is what makes it installable — an installed PWA is also
+markedly harder for a phone to discard mid-match.
 
 Pick a battleground, tap **start match** as you spawn in, then tap **objective ended**
 during the regroup after each objective fight. That tap is the whole interaction. Without

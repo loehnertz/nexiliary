@@ -18,14 +18,13 @@ function useWakeLockStatus(): WakeLockStatus {
 }
 
 const wakeLockCopy: Record<WakeLockStatus, string> = {
-  off: 'Not held. It is requested when a match starts.',
-  locked: 'Held. The screen will stay on for the match.',
-  video: 'Held by the video fallback rather than by the real API.',
+  off: 'Not held. It is requested when a match starts, and released when it ends.',
+  locked: 'Held. The screen stays on for the match.',
   insecure:
-    'Not held. Screen Wake Lock needs a secure context, and this page was opened over plain http, ' +
-    'so the API is not there at all — the screen will sleep mid-match. Open the https:// address ' +
-    'instead, or allow this origin under chrome://flags/#unsafely-treat-insecure-origin-as-secure.',
-  unavailable: 'Not held, and the fallback was refused. The screen will sleep, and speech stops with it.',
+    'Not held. Screen Wake Lock needs a secure context and this page was opened over plain http, ' +
+    'so the API is not there at all — the screen will sleep mid-match and take the speech with it. ' +
+    'Use the deployed https address.',
+  unavailable: 'Not held: the browser refused. The screen will sleep, and speech stops with it.',
 }
 
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {

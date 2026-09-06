@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "dev:lan": "vite --host --https",
+    "dev:lan": "vite --host",
     "deploy": "pnpm build && wrangler deploy",
     "deploy:dry": "pnpm build && wrangler deploy --dry-run",
     "whoami": "wrangler whoami"
@@ -24,7 +24,6 @@
     "@tailwindcss/vite": "^4.1.14",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
-    "@vitejs/plugin-basic-ssl": "^2.3.0",
     "@vitejs/plugin-react": "^5.1.0",
     "jsdom": "^27.0.0",
     "tailwindcss": "^4.1.14",
