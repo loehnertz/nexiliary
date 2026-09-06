@@ -36,7 +36,7 @@ export const warheadJunction: MapDefinition = {
   camps: [
     camp({
       id: 'hellbat-w',
-      label: 'hellbats w',
+      label: 'Hellbats west',
       type: 'siege',
       bearing: 'w', position: { x: 0.345, y: 0.6 },
       firstSpawnSeconds: 60,
@@ -46,7 +46,7 @@ export const warheadJunction: MapDefinition = {
     }),
     camp({
       id: 'hellbat-e',
-      label: 'hellbats e',
+      label: 'Hellbats east',
       type: 'siege',
       bearing: 'e', position: { x: 0.64, y: 0.6 },
       firstSpawnSeconds: 60,
@@ -56,7 +56,7 @@ export const warheadJunction: MapDefinition = {
     }),
     camp({
       id: 'raven-w',
-      label: 'raven w',
+      label: 'Raven west',
       type: 'bruiser',
       bearing: 'w', position: { x: 0.365, y: 0.335 },
       firstSpawnSeconds: 60,
@@ -66,7 +66,7 @@ export const warheadJunction: MapDefinition = {
     }),
     camp({
       id: 'raven-e',
-      label: 'raven e',
+      label: 'Raven east',
       type: 'bruiser',
       bearing: 'e', position: { x: 0.63, y: 0.335 },
       firstSpawnSeconds: 60,
@@ -74,6 +74,6 @@ export const warheadJunction: MapDefinition = {
       travelSeconds: [45, 55, 50],
       pressureValue: [8, 6, 7],
     }),
-    camp({ id: 'slime', label: 'boss', type: 'boss', bearing: 'n', position: { x: 0.495, y: 0.07 }, firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [60] }),
+    camp({ id: 'slime', label: 'Boss', type: 'boss', bearing: 'n', position: { x: 0.495, y: 0.07 }, firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [60] }),
   ],
 }

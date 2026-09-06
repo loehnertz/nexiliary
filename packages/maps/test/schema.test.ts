@@ -349,3 +349,32 @@ describe('map images', () => {
     expect(validateMapImage(map, mapImages['cursed-hollow']!)).toEqual([])
   })
 })
+
+describe('camp labels', () => {
+  it('spells directions out, because a voice reads "ne" as letters', () => {
+    // The label is what `{camp}` substitutes into the spoken prompt, so an abbreviation
+    // here comes out of the speaker as nonsense rather than as a direction.
+    const abbreviated = /(^|\s)(n|s|e|w|ne|nw|se|sw|c|mid)(\s|$)/i
+    for (const map of battlegrounds) {
+      for (const camp of map.camps) {
+        expect({ camp: camp.id, label: camp.label, abbreviated: abbreviated.test(camp.label) }).toEqual({
+          camp: camp.id,
+          label: camp.label,
+          abbreviated: false,
+        })
+      }
+    }
+  })
+
+  it('capitalises every camp label', () => {
+    for (const map of battlegrounds) {
+      for (const camp of map.camps) {
+        const first = camp.label[0] ?? ''
+        expect({ camp: camp.id, capitalised: first === first.toUpperCase() && first !== '' }).toEqual({
+          camp: camp.id,
+          capitalised: true,
+        })
+      }
+    }
+  })
+})

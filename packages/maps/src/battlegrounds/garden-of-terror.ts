@@ -40,11 +40,11 @@ export const gardenOfTerror: MapDefinition = {
     instances: '1 seed',
   },
   camps: [
-    camp({ id: 'siege-nw', label: 'siege nw', type: 'siege', bearing: 'nw', position: { x: 0.365, y: 0.28 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'siege-ne', label: 'siege ne', type: 'siege', bearing: 'ne', position: { x: 0.615, y: 0.435 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'siege-sw', label: 'siege sw', type: 'siege', bearing: 'sw', position: { x: 0.385, y: 0.535 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'siege-se', label: 'siege se', type: 'siege', bearing: 'se', position: { x: 0.635, y: 0.69 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'knight-ne', label: 'knights ne', type: 'bruiser', bearing: 'ne', position: { x: 0.58, y: 0.21 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
-    camp({ id: 'knight-sw', label: 'knights sw', type: 'bruiser', bearing: 'sw', position: { x: 0.42, y: 0.76 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
+    camp({ id: 'siege-nw', label: 'Siege north-west', type: 'siege', bearing: 'nw', position: { x: 0.365, y: 0.28 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
+    camp({ id: 'siege-ne', label: 'Siege north-east', type: 'siege', bearing: 'ne', position: { x: 0.615, y: 0.435 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
+    camp({ id: 'siege-sw', label: 'Siege south-west', type: 'siege', bearing: 'sw', position: { x: 0.385, y: 0.535 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
+    camp({ id: 'siege-se', label: 'Siege south-east', type: 'siege', bearing: 'se', position: { x: 0.635, y: 0.69 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
+    camp({ id: 'knight-ne', label: 'Knights north-east', type: 'bruiser', bearing: 'ne', position: { x: 0.58, y: 0.21 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
+    camp({ id: 'knight-sw', label: 'Knights south-west', type: 'bruiser', bearing: 'sw', position: { x: 0.42, y: 0.76 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [40] }),
   ],
 }

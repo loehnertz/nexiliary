@@ -100,15 +100,13 @@ body {
 
 .label {
   font-size: 0.75rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--color-ink-dim);
 }
 
 .label-tight {
   font-size: 0.625rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0.03em;
   color: var(--color-ink-faint);
 }
 

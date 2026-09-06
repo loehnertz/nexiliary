@@ -33,7 +33,7 @@ export const towersOfDoom: MapDefinition = {
   camps: [
     camp({
       id: 'sapper-n',
-      label: 'sappers n',
+      label: 'Sappers north',
       type: 'siege',
       bearing: 'n', position: { x: 0.5, y: 0.12 },
       firstSpawnSeconds: 60,
@@ -43,7 +43,7 @@ export const towersOfDoom: MapDefinition = {
     }),
     camp({
       id: 'sapper-w',
-      label: 'sappers w',
+      label: 'Sappers west',
       type: 'siege',
       bearing: 'w', position: { x: 0.415, y: 0.615 },
       firstSpawnSeconds: 60,
@@ -53,7 +53,7 @@ export const towersOfDoom: MapDefinition = {
     }),
     camp({
       id: 'sapper-e',
-      label: 'sappers e',
+      label: 'Sappers east',
       type: 'siege',
       bearing: 'e', position: { x: 0.585, y: 0.61 },
       firstSpawnSeconds: 60,
@@ -61,6 +61,6 @@ export const towersOfDoom: MapDefinition = {
       travelSeconds: [50, 35, 45],
       pressureValue: [5, 7, 6],
     }),
-    camp({ id: 'horseman', label: 'boss', type: 'boss', bearing: 'c', position: { x: 0.5, y: 0.31 }, firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [50] }),
+    camp({ id: 'horseman', label: 'Boss', type: 'boss', bearing: 'c', position: { x: 0.5, y: 0.31 }, firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [50] }),
   ],
 }

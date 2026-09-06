@@ -40,9 +40,9 @@ export const alteracPass: MapDefinition = {
     instances: '3 cavalry',
   },
   camps: [
-    camp({ id: 'gnoll-e', label: 'gnolls e', type: 'siege', bearing: 'e', position: { x: 0.615, y: 0.42 }, firstSpawnSeconds: 60, respawnSeconds: 90, travelSeconds: [40] }),
-    camp({ id: 'gnoll-w', label: 'gnolls w', type: 'siege', bearing: 'w', position: { x: 0.355, y: 0.58 }, firstSpawnSeconds: 60, respawnSeconds: 90, travelSeconds: [40] }),
-    camp({ id: 'giant-n', label: 'ice giant n', type: 'boss', bearing: 'n', position: { x: 0.485, y: 0.18 }, firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [60] }),
-    camp({ id: 'giant-s', label: 'ice giant s', type: 'boss', bearing: 's', position: { x: 0.51, y: 0.815 }, firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [60] }),
+    camp({ id: 'gnoll-e', label: 'Gnolls east', type: 'siege', bearing: 'e', position: { x: 0.615, y: 0.42 }, firstSpawnSeconds: 60, respawnSeconds: 90, travelSeconds: [40] }),
+    camp({ id: 'gnoll-w', label: 'Gnolls west', type: 'siege', bearing: 'w', position: { x: 0.355, y: 0.58 }, firstSpawnSeconds: 60, respawnSeconds: 90, travelSeconds: [40] }),
+    camp({ id: 'giant-n', label: 'Ice giant north', type: 'boss', bearing: 'n', position: { x: 0.485, y: 0.18 }, firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [60] }),
+    camp({ id: 'giant-s', label: 'Ice giant south', type: 'boss', bearing: 's', position: { x: 0.51, y: 0.815 }, firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [60] }),
   ],
 }

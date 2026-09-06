@@ -41,7 +41,7 @@ export const skyTemple: MapDefinition = {
     // bottom-lane siege camps are close to the first temples and far from the second.
     camp({
       id: 'siege-w',
-      label: 'siege w',
+      label: 'Siege west',
       type: 'siege',
       bearing: 'w', position: { x: 0.368, y: 0.668 },
       firstSpawnSeconds: 60,
@@ -51,7 +51,7 @@ export const skyTemple: MapDefinition = {
     }),
     camp({
       id: 'siege-e',
-      label: 'siege e',
+      label: 'Siege east',
       type: 'siege',
       bearing: 'e', position: { x: 0.629, y: 0.669 },
       firstSpawnSeconds: 60,
@@ -61,7 +61,7 @@ export const skyTemple: MapDefinition = {
     }),
     camp({
       id: 'knight-w',
-      label: 'knights w',
+      label: 'Knights west',
       type: 'bruiser',
       bearing: 'w', position: { x: 0.36, y: 0.365 },
       firstSpawnSeconds: 60,
@@ -71,7 +71,7 @@ export const skyTemple: MapDefinition = {
     }),
     camp({
       id: 'knight-e',
-      label: 'knights e',
+      label: 'Knights east',
       type: 'bruiser',
       bearing: 'e', position: { x: 0.64, y: 0.365 },
       firstSpawnSeconds: 60,
@@ -79,6 +79,6 @@ export const skyTemple: MapDefinition = {
       travelSeconds: [35, 55, 45],
       pressureValue: [8, 6, 7],
     }),
-    camp({ id: 'golem', label: 'boss', type: 'boss', bearing: 'c', position: { x: 0.498, y: 0.623 }, firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [55] }),
+    camp({ id: 'golem', label: 'Boss', type: 'boss', bearing: 'c', position: { x: 0.498, y: 0.623 }, firstSpawnSeconds: 300, respawnSeconds: 300, travelSeconds: [55] }),
   ],
 }

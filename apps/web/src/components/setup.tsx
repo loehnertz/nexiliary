@@ -39,7 +39,7 @@ export function Setup({
       <Frame>
         <header className="flex items-baseline justify-between px-4 pt-3 pb-2">
           <span className="label">nexiliary</span>
-          <span className="label-tight">pick a battleground</span>
+          <span className="label-tight">Pick a battleground</span>
         </header>
         <Rule />
         <div className="p-4">
@@ -71,11 +71,11 @@ export function Setup({
                 onClick={() => setSelected(map.id)}
                 aria-pressed={selected === map.id}
               >
-                <span className="block text-[0.8rem] leading-tight font-semibold tracking-wide uppercase">
+                <span className="block text-[0.8rem] leading-tight font-semibold tracking-wide">
                   {map.name}
                 </span>
                 <span className="label-tight mt-1 block">
-                  {map.objective.kind === 'timed' ? map.objective.label : 'no objective timer'}
+                  {map.objective.kind === 'timed' ? map.objective.label : 'No objective timer'}
                   {map.provenance !== 'verified' && ' · estimated'}
                 </span>
               </button>

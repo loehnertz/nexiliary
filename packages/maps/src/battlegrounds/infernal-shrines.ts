@@ -25,10 +25,10 @@ export const infernalShrines: MapDefinition = {
     instances: '1 shrine',
   },
   camps: [
-    camp({ id: 'impaler-w', label: 'impalers w', type: 'siege', bearing: 'w', position: { x: 0.405, y: 0.64 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'impaler-c', label: 'impalers mid', type: 'siege', bearing: 'c', position: { x: 0.495, y: 0.895 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [35] }),
-    camp({ id: 'impaler-e', label: 'impalers e', type: 'siege', bearing: 'e', position: { x: 0.59, y: 0.64 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
-    camp({ id: 'shaman-w', label: 'shaman w', type: 'bruiser', bearing: 'w', position: { x: 0.36, y: 0.36 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [50] }),
-    camp({ id: 'shaman-e', label: 'shaman e', type: 'bruiser', bearing: 'e', position: { x: 0.65, y: 0.36 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [50] }),
+    camp({ id: 'impaler-w', label: 'Impalers west', type: 'siege', bearing: 'w', position: { x: 0.405, y: 0.64 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
+    camp({ id: 'impaler-c', label: 'Impalers centre', type: 'siege', bearing: 'c', position: { x: 0.495, y: 0.895 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [35] }),
+    camp({ id: 'impaler-e', label: 'Impalers east', type: 'siege', bearing: 'e', position: { x: 0.59, y: 0.64 }, firstSpawnSeconds: 60, respawnSeconds: 180, travelSeconds: [45] }),
+    camp({ id: 'shaman-w', label: 'Shaman west', type: 'bruiser', bearing: 'w', position: { x: 0.36, y: 0.36 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [50] }),
+    camp({ id: 'shaman-e', label: 'Shaman east', type: 'bruiser', bearing: 'e', position: { x: 0.65, y: 0.36 }, firstSpawnSeconds: 60, respawnSeconds: 240, travelSeconds: [50] }),
   ],
 }

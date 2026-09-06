@@ -36,7 +36,7 @@ export function MapPanel({
   if (camps.length === 0) return null
   return (
     <section className="mt-4">
-      <div className="label-tight mb-1.5">camps</div>
+      <div className="label-tight mb-1.5">Camps</div>
       {/* The aspect ratio is reserved from the declared dimensions, so the panel does not
           jump when the image lands. */}
       <div className="map-frame" style={{ aspectRatio: `${image.width} / ${image.height}` }}>

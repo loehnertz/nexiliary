@@ -236,7 +236,7 @@ export function view(timeline: Timeline, map: MapDefinition, now: Seconds): Live
       following === undefined || following.confidence.kind === 'Unknown'
         ? null
         : {
-            label: `next ${following.label.toLowerCase()}`,
+            label: `Next ${following.label.toLowerCase()}`,
             text: displayTime(following.confidence, following.at, now),
             tone: toneOf(following.confidence),
           },

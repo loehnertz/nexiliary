@@ -305,7 +305,7 @@ export function App() {
               {undoOffered && (
                 <div className="mt-3 flex items-center justify-between gap-2">
                   <span className="label-tight">
-                    recorded {lastWriteAt === null ? '' : mmss(lastWriteAt)}
+                    Recorded {lastWriteAt === null ? '' : mmss(lastWriteAt)}
                   </span>
                   <button
                     type="button"

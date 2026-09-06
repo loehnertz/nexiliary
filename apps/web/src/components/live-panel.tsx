@@ -112,7 +112,7 @@ export function CampPanel({
   if (camps.length === 0) return null
   return (
     <section className="mt-4">
-      <div className="label-tight mb-1.5">camps</div>
+      <div className="label-tight mb-1.5">Camps</div>
       <ul className="camp-grid">
         {camps.map((camp) => (
           <li key={camp.id} className={`camp-row camp-${camp.state}`}>
@@ -185,7 +185,7 @@ export function PromptBar({ prompts }: { prompts: readonly Prompt[] }) {
 export function Footer({ view }: { view: LiveView }) {
   return (
     <footer className="mt-3 flex justify-between gap-4 border-t border-[rgb(155_140_232_/_0.22)] pt-2.5">
-      <Stat value={view.deathTimer.text} label="if you die now" tone={view.deathTimer.tone} />
+      <Stat value={view.deathTimer.text} label="If you die now" tone={view.deathTimer.tone} />
       {view.following !== null && (
         <Stat value={view.following.text} label={view.following.label} tone={view.following.tone} />
       )}
