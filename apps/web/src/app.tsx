@@ -13,7 +13,7 @@ import {
   view,
 } from '@nexiliary/engine'
 import type { Anchor, CueState, Prompt, PromptSettings } from '@nexiliary/engine'
-import { battlegrounds, cueText, mapById } from '@nexiliary/maps'
+import { battlegrounds, cueText, mapById, mapImages } from '@nexiliary/maps'
 import {
   gameTimeSeconds,
   initialMatchState,
@@ -39,6 +39,8 @@ import { initSpeech, speak, stopSpeech, unlockSpeech } from './services/speech.j
 import { installWakeLockRecovery, releaseWakeLock, requestWakeLock } from './services/wake-lock.js'
 import { Frame } from './components/chrome.js'
 import { CampPanel, Footer, Header, ObjectivePanel, PromptBar, Rule } from './components/live-panel.js'
+import { MapPanel } from './components/map-panel.js'
+import type { CampPositions } from './components/map-panel.js'
 import { ClockAdjustSheet, OverflowSheet } from './components/sheets.js'
 import { Setup } from './components/setup.js'
 import { offersFor } from './controls/registry.js'
@@ -64,6 +66,14 @@ export function App() {
   const now = gameTimeSeconds(state, wallClock)
   const map = useMemo(() => mapById(state.mapId), [state.mapId])
   const timeline = useTimeline(map, state.anchors, now)
+  // Battlegrounds with no unmarked render keep the rail; `CampPanel` is the degraded
+  // path rather than dead code. Both live above the setup-screen early return, because a
+  // hook after it is a conditional hook.
+  const mapImage = mapImages[map.id]
+  const campPositions: CampPositions = useMemo(
+    () => Object.fromEntries(map.camps.map((c) => [c.id, c.position])),
+    [map],
+  )
 
   useEffect(() => {
     saveSettings(settings)
@@ -246,9 +256,18 @@ export function App() {
               <ObjectivePanel slot={liveView.objective} />
             </div>
             <div className="area-rail">
-              {settings.showCamps && (
-                <CampPanel camps={liveView.camps} onCampTaken={onCampTaken} onCampUp={onCampUp} />
-              )}
+              {settings.showCamps &&
+                (mapImage === undefined ? (
+                  <CampPanel camps={liveView.camps} onCampTaken={onCampTaken} onCampUp={onCampUp} />
+                ) : (
+                  <MapPanel
+                    camps={liveView.camps}
+                    image={mapImage}
+                    positions={campPositions}
+                    onCampTaken={onCampTaken}
+                    onCampUp={onCampUp}
+                  />
+                ))}
             </div>
             <div className="area-prompt">
               <CueRunner

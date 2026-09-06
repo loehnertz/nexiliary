@@ -299,3 +299,23 @@ describe('prompts stay on screen long enough to read', () => {
     }
   })
 })
+
+describe('correcting a mis-tapped camp', () => {
+  it('lets the same dot undo itself without growing the anchor set', () => {
+    // Principle 2: anchors overwrite rather than accumulate. On the map a single tap
+    // performs whichever action is on offer, so tapping "taken" by mistake flips the
+    // offer to "it's up" and tapping the same dot again corrects it. Neither tap may
+    // leave a log entry behind, and re-asserting one must overwrite rather than append.
+    let state = started('cursed-hollow')
+    const taken = anchor('CampTaken', 'golem-ne#1', 300, START + 300_000)
+    state = matchReducer(state, { type: 'ANCHOR_SET', key: 'CampTaken:golem-ne#1', anchor: taken })
+    const afterTaken = state.anchors.size
+
+    const up = anchor('CampUp', 'golem-ne#1', 320, START + 320_000)
+    state = matchReducer(state, { type: 'ANCHOR_SET', key: 'CampUp:golem-ne#1', anchor: up })
+    expect(state.anchors.size).toBe(afterTaken + 1)
+
+    state = matchReducer(state, { type: 'ANCHOR_SET', key: 'CampUp:golem-ne#1', anchor: up })
+    expect(state.anchors.size).toBe(afterTaken + 1)
+  })
+})
