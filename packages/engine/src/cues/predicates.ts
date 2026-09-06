@@ -44,17 +44,15 @@ export function startCaptureAt(
 }
 
 /**
- * The highest `pressureValue` among camps that are actually there, ties broken by id.
- * A static argmax would name the same camp every cycle of every match, which is the
- * "speech becomes noise" risk with a deterministic cause; `pressureValue` is indexed
- * by cycle for exactly that reason.
+ * Camps that are actually there, best first: highest `pressureValue`, ties broken by id.
+ *
+ * A ranked list rather than an argmax, because naming the same camp every cycle is the
+ * "speech becomes noise" risk with a deterministic cause, and the runner-up is what the
+ * cue reaches for instead. `pressureValue` is indexed by cycle for the same reason, but
+ * only helps on the maps where the objective genuinely moves.
  */
-export function bestStallCamp(ctx: AdviceContext): CampState | null {
-  const candidates = ctx.camps.filter((c) => isAvailable(c.standing))
-  if (candidates.length === 0) return null
-  return candidates.reduce((best, c) =>
-    c.pressureValue > best.pressureValue || (c.pressureValue === best.pressureValue && c.id < best.id)
-      ? c
-      : best,
-  )
+export function rankedStallCamps(ctx: AdviceContext): CampState[] {
+  return ctx.camps
+    .filter((c) => isAvailable(c.standing))
+    .sort((a, b) => b.pressureValue - a.pressureValue || a.id.localeCompare(b.id))
 }

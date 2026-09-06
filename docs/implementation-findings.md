@@ -243,6 +243,17 @@ a phone kills the tab. It is now written on a heartbeat and, the one that counts
 whenever the page stops being visible, and nothing updated the status, so the settings
 panel reported the screen was held while the phone was asleep.
 
+**32. `stall-camp` fired on every *other* objective cycle.** The design gives it "does not
+fire on consecutive cycles unless the chosen camp differs", as a backstop against a static
+argmax naming the same camp all match. But `pressureValue` only varies by cycle on the
+maps where the objective moves, so on the rest one camp is simply the best every time and
+the backstop silenced the prompt half the time — reproduced on Battlefield of Eternity
+firing at cycles 1, 3 and 5 and never at 2 or 4.
+
+The goal was never silence, it was variety. It now reaches for the runner-up instead, and
+repeats the only camp when there is no alternative, because one available camp *is* the
+camp to take and saying so twice beats saying nothing.
+
 ## Data
 
 **17. Camps are removed during the objective on seven maps, not two.** Alterac Pass,

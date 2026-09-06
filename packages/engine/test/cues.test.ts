@@ -10,7 +10,7 @@ import {
   stallCamp,
   waveReminder,
 } from '../src/index.js'
-import type { AdviceContext, CueState, PromptSettings, Timeline } from '../src/index.js'
+import type { AdviceContext, Anchor, CueState, PromptSettings, Timeline } from '../src/index.js'
 import { anchor, anchorSet, braxis, dragon, tomb } from './fixtures.js'
 import { cueText } from './cue-text.fixture.js'
 
@@ -182,17 +182,21 @@ describe('re-firing after an anchor correction', () => {
 })
 
 describe('stall-camp', () => {
-  it('does not repeat on consecutive cycles unless the camp differs', () => {
+  it('reaches for the runner-up rather than going quiet on a repeat', () => {
     // A static argmax would name the same camp every cycle of every match, which is
-    // "speech becomes noise" with a deterministic cause.
+    // "speech becomes noise" with a deterministic cause. Naming the next camp down fixes
+    // that; dropping the prompt entirely, which is what it used to do, does not.
     const ctx = ctxAt(dragon, anchorSet(), 200)
     const match = stallCamp.evaluate(ctx, { windowSeconds: 600 }, undefined)
     expect(match).not.toBeNull()
     const cycle = ctx.nextObjective!.cycle!
-    const blocked = stallCamp.evaluate(ctx, { windowSeconds: 600 }, { cycle: cycle - 1, campId: match!.subject })
-    expect(blocked).toBeNull()
-    const allowed = stallCamp.evaluate(ctx, { windowSeconds: 600 }, { cycle: cycle - 1, campId: 'somewhere-else' })
-    expect(allowed).not.toBeNull()
+
+    const repeated = stallCamp.evaluate(ctx, { windowSeconds: 600 }, { cycle: cycle - 1, campId: match!.subject })
+    expect(repeated, 'still speaks').not.toBeNull()
+    expect(repeated!.subject, 'but names a different camp').not.toBe(match!.subject)
+
+    const unrelated = stallCamp.evaluate(ctx, { windowSeconds: 600 }, { cycle: cycle - 1, campId: 'somewhere-else' })
+    expect(unrelated!.subject).toBe(match!.subject)
   })
 })
 
@@ -217,5 +221,80 @@ describe('context', () => {
     waveReminder.evaluate(ctx, { warnSeconds: 10 }, undefined)
     stallCamp.evaluate(ctx, { windowSeconds: 15 }, undefined)
     expect(JSON.stringify(ctx)).toBe(before)
+  })
+})
+
+describe('stall-camp across a whole match', () => {
+  // Braxis-shaped: a 130 second offset after a 70 second fight, so a cycle is about
+  // 200 seconds and an anchor every 200 keeps the chain's cycle index moving by one.
+  const ends = [300, 500, 700, 900]
+
+  function fireLog(mapArg = dragon) {
+    const anchors = new Map<string, Anchor>()
+    let state = newCueState('m1')
+    const fired: { at: number; camp: string; cycle: number }[] = []
+    for (let now = 0; now <= 1100; now += 1) {
+      ends.forEach((t, i) => {
+        if (now === t) {
+          anchors.set(`ObjectiveEnded:${i + 1}`, anchor('ObjectiveEnded', String(i + 1), t))
+        }
+      })
+      const ctx = buildContext(mapArg, project(mapArg, anchors, now), now)
+      const result = evaluateCues(cues, cueText, verbose, ctx, state)
+      state = result.state
+      for (const p of result.active) {
+        if (p.cueId !== 'stall-camp') continue
+        const [, camp, cycle] = p.key.split(':')
+        fired.push({ at: now, camp: camp!, cycle: Number(cycle!.replace('cycle-', '')) })
+      }
+    }
+    return fired
+  }
+
+  it('fires on every objective cycle, not every other one', () => {
+    // Reported from a real match: the camp prompt "only hit the first time around".
+    // The old rule dropped the cue whenever the same camp won two cycles running, which
+    // on a map where one camp is simply the best is every cycle — observed firing on
+    // 1, 3 and 5 and never on 2 or 4.
+    const fired = fireLog()
+    const cyclesFired = fired.map((f) => f.cycle)
+    expect(new Set(cyclesFired).size).toBe(cyclesFired.length)
+    for (let i = 1; i < cyclesFired.length; i += 1) {
+      expect(cyclesFired[i]! - cyclesFired[i - 1]!, `skipped a cycle: ${cyclesFired}`).toBe(1)
+    }
+    expect(cyclesFired.length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('names a different camp than last cycle when there is one to name', () => {
+    // The design's actual goal: a static argmax would name the same camp every cycle of
+    // every match. Reaching for the runner-up achieves that; going silent did not.
+    //
+    // Two camps of equal standing that both stay believed-available all match, which is
+    // the real shape on Battlefield of Eternity: two shaman camps, one east, one west.
+    const pair = {
+      ...dragon,
+      camps: dragon.camps
+        .filter((c) => c.type === 'boss')
+        .flatMap((c) => [
+          { ...c, id: 'twin-w', label: 'twin w' },
+          { ...c, id: 'twin-e', label: 'twin e' },
+        ]),
+    }
+    const fired = fireLog(pair)
+    expect(fired.length).toBeGreaterThanOrEqual(3)
+    for (let i = 1; i < fired.length; i += 1) {
+      expect(fired[i]!.camp, `repeated ${fired[i]!.camp}`).not.toBe(fired[i - 1]!.camp)
+    }
+  })
+
+  it('repeats the only camp rather than going quiet when there is no alternative', () => {
+    // One available camp means that is the camp to take, and saying so twice beats
+    // saying nothing.
+    // The boss, because its `staleSeconds` keeps it believed-available all match; an
+    // ordinary camp decays to Stale and drops out for reasons unrelated to this rule.
+    const oneCamp = { ...dragon, camps: dragon.camps.filter((c) => c.type === 'boss') }
+    const fired = fireLog(oneCamp)
+    expect(fired.length).toBeGreaterThanOrEqual(2)
+    expect(new Set(fired.map((f) => f.camp)).size).toBe(1)
   })
 })
