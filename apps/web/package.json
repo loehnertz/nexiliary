@@ -9,7 +9,10 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "dev:lan": "vite --host --https"
+    "dev:lan": "vite --host --https",
+    "deploy": "pnpm build && wrangler deploy",
+    "deploy:dry": "pnpm build && wrangler deploy --dry-run",
+    "whoami": "wrangler whoami"
   },
   "dependencies": {
     "@nexiliary/engine": "workspace:*",
@@ -26,6 +29,7 @@
     "jsdom": "^27.0.0",
     "tailwindcss": "^4.1.14",
     "vite": "^7.1.0",
-    "vite-plugin-pwa": "^1.0.0"
+    "vite-plugin-pwa": "^1.0.0",
+    "wrangler": "^4.129.0"
   }
 }

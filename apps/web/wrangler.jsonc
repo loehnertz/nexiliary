@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nexiliary",
+  "compatibility_date": "2026-09-06",
+
+  // Static assets on a Worker rather than on Pages. Cloudflare's investment has moved to
+  // Workers, and it matters here beyond following the current recommendation: the relay in
+  // step 5 is a Worker with Durable Objects, so the app and the relay end up as one
+  // deployment on one origin, with no CORS between them and no second thing to configure.
+  //
+  // `docs/architecture.md` says "Cloudflare Pages for the app"; this supersedes that.
+  "assets": {
+    "directory": "./dist",
+
+    // The app is a single page with no router, so any path must serve index.html rather
+    // than 404 — including a phone restoring a tab on a URL with a stray path.
+    "not_found_handling": "single-page-application"
+  },
+
+  "observability": {
+    "enabled": true
+  }
+}

@@ -33,3 +33,6 @@ blob-report/
 # Point the derivation tool at a path outside the repo.
 *.StormReplay
 replays/
+
+# Wrangler local state
+.wrangler/
