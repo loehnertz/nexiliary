@@ -26,10 +26,20 @@ the fifteen battlegrounds carry a render and camp coordinates; Blackheart's Bay 
 because its four Skeletal Pirate camps are two entries in the data, so a dot would point at
 neither. See `docs/map-images.md`.
 
-No map is `verified`. Nothing has been hand-timed, so nothing renders `Exact` except waves. The
-exact display path, the exact spoken wording and any cue requiring an exact objective are all
-implemented but unreachable until one map is timed in a few custom games and promoted, which is
-a one-line data change.
+Thirteen of the fifteen battlegrounds are `verified` and render exact objective numbers. The
+bar is corroboration between two maintained sources, not hand-timing: under the old bar nothing
+ever rendered green, so the confidence system carried no information while adding twenty seconds
+of noise to figures both sources state identically.
+
+Two maps stay `published`, which widens every map-derived time by twenty seconds so it can never
+render `Exact`. **Warhead Junction**, because Icy Veins says 2:55 and the wiki says 3:05 and
+they genuinely disagree. **Haunted Mines**, because its objective corroborates but the wiki page
+carries no camp timings at all, so its camps are the game-wide fallback rather than the
+battleground's own numbers.
+
+`verified` permits `Exact` rather than guaranteeing it. Cursed Hollow is verified and still
+renders `Estimated`, because its respawn is a real 50-90 second range. Confidence answers how
+well the number is known; provenance answers how far the source is trusted.
 
 v1 is the live match only, from the moment the player spawns in. No draft support before it
 and no review after it. The post-game review is designed in `docs/spec.md` but deferred;
@@ -146,7 +156,9 @@ Development happens on macOS.
 ## Conventions
 
 - Branch per unit of work; do not commit directly to `master`.
-- Timings are hand-authored and sources conflict. The validated per-map table is in
-  `docs/architecture.md` and supersedes the older seed table in `docs/research.md`. A map never
-  renders `Exact` until hand-timed and marked `verified`; unverified maps still render
-  estimates, and only a map with no data falls back to waves, tiers and the death timer.
+- Timings are hand-authored and sources sometimes conflict. `docs/objective-timings.md` holds
+  the wiki figures verbatim and is the authority; the table in `docs/architecture.md` and the
+  seed table in `docs/research.md` are both older. A map renders `Exact` only when marked
+  `verified`, meaning two maintained sources agree. Where they disagree it stays `published`
+  and every map-derived time is widened; only a map with no data at all falls back to waves,
+  tiers and the death timer.

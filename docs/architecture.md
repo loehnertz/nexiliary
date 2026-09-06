@@ -338,6 +338,8 @@ Source: Icy Veins map guides, September 2026. Every figure still requires confir
 These figures disagree with the older seed table in `research.md` on several maps, including
 Cursed Hollow, Sky Temple, Garden of Terror and Haunted Mines. The disagreements are patch
 drift; the Icy Veins guides are the more current source and this table supersedes the other.
+Both are now superseded in turn by `docs/objective-timings.md`, which records the wiki's own
+figures verbatim and is what the map files' `provenanceNote` fields cite.
 
 #### Camps vanish during some objective phases
 
