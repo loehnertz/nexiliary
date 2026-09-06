@@ -42,13 +42,16 @@ export const cueText: Record<string, CueText> = {
 
   'camp-available': {
     id: 'camp-available',
-    display: 'Camp is up.',
-    spoken: 'Camp is up.',
+    display: '{camp} is up.',
+    spoken: '{camp} is up.',
     tier: 'standard',
     basePriority: 'normal',
     priorityWithinBand: 40,
-    // Camps come back often. Without this the same sentence arrives every few minutes.
-    cooldownSeconds: 120,
+    // `fired[match.key]` already dedupes per availability window, keyed on the camp and
+    // when it came up, so this only ever needed to be a burst limiter. At the old 120 one
+    // siege camp muted every other camp for two minutes, a boss included — which is the
+    // one case where being late is expensive.
+    cooldownSeconds: 30,
     thresholds: { freshSeconds: 15 },
   },
 

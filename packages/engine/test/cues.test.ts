@@ -11,7 +11,7 @@ import {
   waveReminder,
 } from '../src/index.js'
 import type { AdviceContext, Anchor, CueState, CueText, MapDefinition, PromptSettings, Timeline } from '../src/index.js'
-import { anchor, anchorSet, boss, braxis, dragon, tomb } from './fixtures.js'
+import { anchor, anchorSet, boss, braxis, bruiser, dragon, siegeTop, tomb } from './fixtures.js'
 import { cueText } from './cue-text.fixture.js'
 
 const verbose: PromptSettings = { maxTier: 'verbose', speechEnabled: true }
@@ -332,5 +332,37 @@ describe('prompt text substitution', () => {
     const spoke = speakWith('Camp is up.', 'Camp is up.')
     expect(spoke?.spoken).toBe('Camp is up.')
     expect(spoke?.display).toBe('Camp is up.')
+  })
+})
+
+describe('which camp gets the sentence', () => {
+  // `bruiser` (pressure 5) sits first in the file and `siegeTop` (7) second, so a cue
+  // that simply returns the first match would pass this by accident if the order were
+  // the other way round.
+  const twoCamps: MapDefinition = {
+    id: 'two-camps',
+    name: 'Two Camps',
+    provenance: 'verified',
+    provenanceNote: 'fixture',
+    objective: { kind: 'none' },
+    camps: [bruiser, siegeTop],
+  }
+
+  it('announces the camp worth walking to, not the first one in the file', () => {
+    // Both first spawn at 120, so both are fresh in the same tick.
+    const ctx = buildContext(twoCamps, project(twoCamps, anchorSet(), 120), 120)
+    const cue = cues.find((c) => c.id === 'camp-available')
+    const match = cue?.evaluate(ctx, { freshSeconds: 15 }, undefined)
+    expect(match?.subject).toBe('siege-top')
+    expect(match?.score).toBe(7)
+  })
+
+  it('still keys the fired record on the camp it chose', () => {
+    const ctx = buildContext(twoCamps, project(twoCamps, anchorSet(), 120), 120)
+    const cue = cues.find((c) => c.id === 'camp-available')
+    const match = cue?.evaluate(ctx, { freshSeconds: 15 }, undefined)
+    // Per-window dedupe is what makes the cooldown a burst limiter rather than the
+    // thing that decides whether a boss gets announced at all.
+    expect(match?.key).toBe('camp-available:siege-top:120')
   })
 })
