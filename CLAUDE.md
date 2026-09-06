@@ -10,7 +10,7 @@ below and in `docs/spec.md`, and nothing else.
 ## Current state
 
 Steps 1 to 4 of the build order are done: `packages/engine`, `packages/maps` with all fifteen
-battlegrounds, and `apps/web`. `pnpm dev` runs it. 175 tests, TypeScript strict throughout.
+battlegrounds, and `apps/web`. `pnpm dev` runs it. TypeScript strict throughout.
 
 Step 5, the relay, is not started. It needs a Cloudflare account that does not exist yet, and
 nothing else depends on it: the app works fully as a single-player local app, which is what
