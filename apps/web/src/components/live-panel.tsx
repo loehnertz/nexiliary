@@ -44,7 +44,7 @@ export function ObjectivePanel({ slot }: { slot: ObjectiveSlot }) {
     // The phase is believed to be running. Saying so is a claim about the present, so
     // it carries the cycle's own confidence and goes quiet when that is Unknown.
     return (
-      <div className="pt-1 pb-1 text-center">
+      <div className="objective-slot pt-1 pb-1 text-center">
         <div className="label">{slot.label}</div>
         <div className={`countdown ${toneClass(slot.tone)} ${glowClass(slot.tone)}`}>LIVE</div>
         <div className={`mt-1 text-[0.7rem] uppercase tracking-[0.16em] ${toneClass(slot.tone)}`}>
@@ -57,7 +57,7 @@ export function ObjectivePanel({ slot }: { slot: ObjectiveSlot }) {
 
   if (slot.kind !== 'countdown') {
     return (
-      <div className="py-6 text-center">
+      <div className="objective-slot py-6 text-center">
         <div className="label">Objective</div>
         <p className="mx-auto mt-3 max-w-[26ch] text-sm leading-snug text-[var(--color-ink-faint)]">
           {slot.message}
@@ -69,7 +69,7 @@ export function ObjectivePanel({ slot }: { slot: ObjectiveSlot }) {
   const { countdown } = slot
   const [head, tail] = splitRange(countdown.text)
   return (
-    <div className="pt-1 pb-1 text-center">
+    <div className="objective-slot pt-1 pb-1 text-center">
       <div className="label">{countdown.label}</div>
       <div className={`countdown ${toneClass(countdown.tone)} ${glowClass(countdown.tone)}`}>
         {head}
@@ -155,6 +155,9 @@ export function PromptBar({ prompts }: { prompts: readonly Prompt[] }) {
   // Collapses rather than reserving space. The reserved band kept the layout still, but
   // with no prompt and no anchor button to show it left a hole in the middle of the
   // panel that reads as a rendering fault.
+  //
+  // Collapsing is now free of its old cost too: the prompt sits *below* the map, so its
+  // appearing and disappearing moves nothing the player taps.
   if (prompts.length === 0) return null
   return (
     <div className="mt-3 flex flex-col gap-1">

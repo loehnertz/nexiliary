@@ -117,7 +117,7 @@ body {
 }
 
 .countdown {
-  font-size: clamp(3.25rem, 17vw, 4.5rem);
+  font-size: var(--countdown-size, clamp(3.25rem, 17vw, 4.5rem));
   font-weight: 700;
   line-height: 0.98;
   text-align: center;
@@ -158,8 +158,24 @@ body {
    same four blocks stack on a phone and split into two columns on a wider screen
    rather than being two layouts. */
 .live-grid {
+  --countdown-size: clamp(3.25rem, 17vw, 4.5rem);
   display: grid;
-  grid-template-areas: 'countdown' 'prompt' 'action' 'rail';
+  /* The map comes second and everything that appears and disappears comes after it, so
+     the map's top edge never moves mid-match. A camp dot that slides out from under a
+     thumb produces a mis-tap, and a mis-tap writes a wrong anchor. */
+  grid-template-areas: 'countdown' 'rail' 'action' 'prompt';
+}
+
+/* The one band above the map, so its height is what decides whether the map is still.
+   `ObjectivePanel` always renders something — a countdown, LIVE, or a message — so
+   reserving here can never leave the hole that got the reserved prompt band reverted.
+   Sized from the same variable as the number itself, because that number is `17vw` and a
+   pixel height would be wrong at half the widths it has to survive. */
+.objective-slot {
+  min-height: calc(var(--countdown-size, clamp(3.25rem, 17vw, 4.5rem)) * 0.98 + 4.25rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .area-countdown {
