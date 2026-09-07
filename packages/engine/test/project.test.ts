@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest'
 import {
   buildContext,
   deathTimerSeconds,
+  displayTime,
   levelCurve,
   project,
   validUntilFallbackSeconds,
   view,
   walkChain,
 } from '../src/index.js'
-import { anchor, anchorSet, braxis, tomb } from './fixtures.js'
+import { anchor, anchorSet, braxis, cursed, tomb } from './fixtures.js'
 
 describe('validUntil', () => {
   it('is always strictly greater than now, including once every camp is Stale', () => {
@@ -170,6 +171,28 @@ describe('the objective phase belief', () => {
     expect(slot.kind).toBe('live')
     // And the pending spawn is still reachable rather than disappearing.
     expect(view(project(braxis, anchorSet(), 150), braxis, 150).following).not.toBeNull()
+  })
+
+  it('names the cycle after the live one, even when the live cycle is the freshly anchored pending step', () => {
+    // `phaseInProgress` can return `pending` itself, not just `elapsed`: right after an
+    // `ObjectiveEnded` anchor, `pending` is unadvanced (offset === null) and is itself the
+    // live cycle for its whole spawn-to-resolution window. `objectiveSpawns` always puts
+    // `pending`'s own spawn first, so `following` must not blindly take spawns[0] there —
+    // it would name the cycle already showing as live instead of the one after it.
+    const anchors = anchorSet(anchor('ObjectiveEnded', '1', 300))
+    const now = 360
+    const walk = walkChain(cursed, anchors, now)!
+    expect(walk.elapsed).toBeNull()
+    expect(walk.pending.offset).toBeNull()
+    expect(walk.pending.cycle).toBe(2)
+
+    const timeline = project(cursed, anchors, now)
+    expect(timeline.objectivePhase.kind).toBe('active')
+    if (timeline.objectivePhase.kind === 'active') expect(timeline.objectivePhase.cycle).toBe(2)
+
+    const following = view(timeline, cursed, now).following
+    expect(following).not.toBeNull()
+    expect(following?.text).toBe(displayTime(walk.following.confidence, walk.following.at, now))
   })
 
   it('stops claiming a live phase once the cycle is Unknown, but still wants the tap', () => {

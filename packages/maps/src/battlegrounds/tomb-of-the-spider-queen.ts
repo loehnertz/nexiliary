@@ -5,6 +5,16 @@ import { camp } from '../camp-presets.js'
  * The one map with no timed objective at all. Gems drop continuously from minions and the
  * turn-in is player-initiated with no clock, so there is nothing to count down to.
  *
+ * The wiki's infobox and prose both give explicit numbers anyway — "First Objective 0:30",
+ * "Subsequent Objectives 0:15 minutes after all Webweavers die" — which read like every
+ * other map's timed-objective figures and were flagged in `docs/objective-timings.md` as
+ * an open contradiction with this file. It is not one: 0:30 is when the Altars become
+ * usable, not when a wave spawns, since that still needs a team to bank 50 gems first, an
+ * unbounded, player-paced quantity with no timer to model. And neither figure comes with a
+ * fight/spread duration for the Webweaver push itself, so even the 0:15 subsequent phase
+ * has nothing to anchor a `timed` objective's active window on without inventing a number
+ * — exactly what "never assert what cannot be derived" exists to rule out.
+ *
  * `kind: 'none'` is a supported, tested state rather than an error: the app shows waves,
  * camps, tiers and the death timer, and the objective slot reads "no objective timer on
  * this battleground" rather than sitting blank or falling into the unknown-map path.
@@ -16,7 +26,8 @@ import { camp } from '../camp-presets.js'
  * from. Setting the flag would ask the app to assert a window it cannot compute, which
  * is the founding principle in miniature.
  *
- * Sources: camps from the wiki, recorded in `docs/camp-data.md`.
+ * Sources: camps from the wiki, recorded in `docs/camp-data.md`. Objective figures
+ * considered and rejected, recorded in `docs/objective-timings.md`.
  */
 export const tombOfTheSpiderQueen: MapDefinition = {
   id: 'tomb-of-the-spider-queen',

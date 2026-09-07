@@ -315,7 +315,12 @@ export function SettingsPanel({
 
 function WakeLockRow() {
   const status = useWakeLockStatus()
-  const tone = status === 'unavailable' ? 'tone-estimated' : status === 'off' ? 'tone-unknown' : 'tone-exact'
+  const tone =
+    status === 'unavailable' || status === 'insecure'
+      ? 'tone-estimated'
+      : status === 'off'
+        ? 'tone-unknown'
+        : 'tone-exact'
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3">

@@ -213,10 +213,19 @@ export function view(timeline: Timeline, map: MapDefinition, now: Seconds): Live
   const clamped = applyPresentClamp(timeline, now)
   const objective = objectiveSlot(map, clamped, now)
 
-  // While a phase is live the dominant slot shows that, so the pending spawn is what
-  // comes next; otherwise it is the cycle after the one being counted down.
+  // While a phase is live the dominant slot shows that, so the pending spawn is
+  // usually what comes next; otherwise it is the cycle after the one being counted
+  // down. But right after an anchor, `walk.pending` itself can be the live cycle (its
+  // own spawn window, unclamped because the predecessor's resolution was observed) —
+  // there `spawns[0]` names the cycle already showing as live, and the one after it is
+  // `spawns[1]` instead.
   const spawns = objectiveSpawns(clamped)
-  const following = objective.kind === 'live' ? spawns[0] : spawns[1]
+  const following =
+    objective.kind === 'live'
+      ? spawns[0]?.cycle === objective.cycle
+        ? spawns[1]
+        : spawns[0]
+      : spawns[1]
 
   return {
     clock: mmss(now),

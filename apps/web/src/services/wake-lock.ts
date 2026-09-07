@@ -58,7 +58,15 @@ async function acquire(): Promise<void> {
     return
   }
   try {
-    sentinel = await api.request('screen')
+    const acquired = await api.request('screen')
+    // A release can land while this request is in flight (e.g. the match ends before the
+    // browser responds). Adopting the sentinel unconditionally here would hold the screen
+    // awake forever after the player is done, so re-check `wanted` post-await.
+    if (!wanted) {
+      void acquired.release().catch(() => undefined)
+      return
+    }
+    sentinel = acquired
     sentinel.addEventListener('release', () => {
       // The browser releases the lock whenever the page stops being visible. Leaving the
       // status at 'locked' would claim the screen is held while the phone is asleep.
@@ -67,7 +75,7 @@ async function acquire(): Promise<void> {
     })
     setStatus('locked')
   } catch {
-    setStatus('unavailable')
+    if (wanted) setStatus('unavailable')
   }
 }
 

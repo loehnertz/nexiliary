@@ -135,13 +135,16 @@ export function App() {
 
   const onObjectiveEnded = useCallback((outcome?: string) => {
     // A near-simultaneous second tap overwrites rather than opening a cycle, judged
-    // against the map's own minimum respawn offset.
+    // against the map's own minimum respawn offset — for the cycle actually being
+    // reported, since a later cycle can unlock a different, possibly smaller, minimum
+    // (e.g. Cursed Hollow's `curse` outcome only becomes possible from cycle 4).
+    const cycle = timeline.objectivePhase.kind === 'idle' ? 1 : timeline.objectivePhase.cycle
     const coalesce =
-      map.objective.kind === 'timed' ? offsetFor(map.objective.respawn, 1, now).min : 60
+      map.objective.kind === 'timed' ? offsetFor(map.objective.respawn, cycle, now).min : 60
     const key = objectiveEndedKeyFor(state.anchors, now, coalesce)
     const subject = key.slice('ObjectiveEnded:'.length)
     writeAnchorAt('ObjectiveEnded', subject, key, outcome)
-  }, [map, now, state.anchors, writeAnchorAt])
+  }, [map, now, state.anchors, writeAnchorAt, timeline])
 
   const onObjectiveSpawned = useCallback(
     (cycle: string) => writeAnchorAt('ObjectiveSpawned', cycle),
