@@ -382,6 +382,45 @@ describe('camp labels', () => {
     }
   })
 
+  it('rejects a label whose direction contradicts its bearing', () => {
+    // The same shape as the endedLabel fault: the direction is written twice, once in the
+    // label the voice reads and once in the bearing the map view places the dot from. If
+    // they disagree the speaker names one camp while the dot marks another.
+    const bad = (over: Partial<MapDefinition>): MapDefinition => ({ ...battlegrounds[0]!, ...over })
+    const camps = [
+      camp({
+        id: 'a',
+        label: 'Siege north-west',
+        type: 'siege',
+        bearing: 'ne',
+        position: { x: 0.7, y: 0.3 },
+        firstSpawnSeconds: 60,
+        respawnSeconds: 180,
+        travelSeconds: [45],
+      }),
+    ]
+    const issues = validateMap(bad({ camps }))
+    expect(issues.some((i) => i.problem.includes('label says north-west'))).toBe(true)
+  })
+
+  it('accepts a label that names no direction at all', () => {
+    // Camps whose name is unique on their map carry no direction, which must stay legal.
+    const bad = (over: Partial<MapDefinition>): MapDefinition => ({ ...battlegrounds[0]!, ...over })
+    const camps = [
+      camp({
+        id: 'a',
+        label: 'Archangel',
+        type: 'boss',
+        bearing: 'c',
+        position: { x: 0.5, y: 0.5 },
+        firstSpawnSeconds: 300,
+        respawnSeconds: 300,
+        travelSeconds: [60],
+      }),
+    ]
+    expect(validateMap(bad({ camps })).filter((i) => i.problem.includes('label says'))).toEqual([])
+  })
+
   it('capitalises every camp label', () => {
     for (const map of battlegrounds) {
       for (const camp of map.camps) {

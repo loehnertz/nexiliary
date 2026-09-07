@@ -15,6 +15,26 @@ const positive = (n: number) => Number.isFinite(n) && n > 0
 const nonNegative = (n: number) => Number.isFinite(n) && n >= 0
 const inUnit = (n: number) => Number.isFinite(n) && n >= 0 && n <= 1
 
+/**
+ * The direction a label may end with, and the bearing it has to agree with.
+ *
+ * The direction is written twice — once in the label the voice reads out, once in the
+ * bearing the map view places the dot from. Nothing stopped the two disagreeing, which is
+ * the same shape as the `endedLabel` fault: a second copy free to contradict the first.
+ * Here it would have the speaker name one camp while the dot marks another.
+ */
+const labelBearing: Readonly<Record<string, Bearing>> = {
+  north: 'n',
+  south: 's',
+  east: 'e',
+  west: 'w',
+  'north-east': 'ne',
+  'north-west': 'nw',
+  'south-east': 'se',
+  'south-west': 'sw',
+  centre: 'c',
+}
+
 function validateCamp(mapId: string, camp: CampDefinition): ValidationIssue[] {
   const issues: ValidationIssue[] = []
   const where = `${mapId}/${camp.id}`
@@ -38,6 +58,14 @@ function validateCamp(mapId: string, camp: CampDefinition): ValidationIssue[] {
     ) {
       issues.push({ where, problem: `bearing ${b} contradicts position ${x}, ${y}` })
     }
+  }
+  // A label ending in a direction must name the bearing's direction. A label naming no
+  // direction is legal and deliberate: camps unique on their map carry none, so speech
+  // says "Archangel is up" rather than "Archangel centre is up".
+  const tail = camp.label.trim().split(/\s+/).slice(-1)[0]?.toLowerCase() ?? ''
+  const named = labelBearing[tail]
+  if (named !== undefined && named !== camp.bearing) {
+    issues.push({ where, problem: `label says ${tail} but bearing says ${camp.bearing}` })
   }
   if (!nonNegative(camp.firstSpawnSeconds)) issues.push({ where, problem: 'firstSpawnSeconds must be >= 0' })
   if (!positive(camp.respawnSeconds)) issues.push({ where, problem: 'respawnSeconds must be > 0' })

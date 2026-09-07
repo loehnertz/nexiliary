@@ -156,6 +156,8 @@ Development happens on macOS.
 ## Conventions
 
 - Branch per unit of work; do not commit directly to `master`.
+- Deploy with `pnpm --filter @nexiliary/web run release`. The script is not called `deploy`
+  because `pnpm deploy` is a pnpm built-in and fails with `ERR_PNPM_CANNOT_DEPLOY_MANY`.
 - Timings are hand-authored and sources sometimes conflict. `docs/objective-timings.md` holds
   the wiki figures verbatim and is the authority; the table in `docs/architecture.md` and the
   seed table in `docs/research.md` are both older. A map renders `Exact` only when marked

@@ -10,9 +10,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "dev:lan": "vite --host",
-    "deploy": "pnpm build && wrangler deploy",
-    "deploy:dry": "pnpm build && wrangler deploy --dry-run",
-    "whoami": "wrangler whoami"
+    "whoami": "wrangler whoami",
+    "release": "pnpm build && wrangler deploy",
+    "release:dry": "pnpm build && wrangler deploy --dry-run"
   },
   "dependencies": {
     "@nexiliary/engine": "workspace:*",
